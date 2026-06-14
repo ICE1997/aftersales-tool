@@ -39,4 +39,15 @@ describe('MaterialRepo', () => {
     materials.remove(id)
     expect(materials.listByTicket('AS-1').length).toBe(0)
   })
+
+  it('stores and returns a custom name', () => {
+    const id = materials.add({ aftersaleNo: 'AS-1', name: '聊天截图', relPath: 'AS-1/images/a.jpg', kind: 'image', capturedAt: null, importedAt: 5, sizeBytes: 100, thumbPath: null })
+    expect(materials.getByIds([id])[0].name).toBe('聊天截图')
+    expect(materials.listByTicket('AS-1')[0].name).toBe('聊天截图')
+  })
+
+  it('defaults name to empty string when omitted', () => {
+    const id = materials.add({ aftersaleNo: 'AS-1', relPath: 'AS-1/images/b.jpg', kind: 'image', capturedAt: null, importedAt: 5, sizeBytes: 100, thumbPath: null })
+    expect(materials.getByIds([id])[0].name).toBe('')
+  })
 })
