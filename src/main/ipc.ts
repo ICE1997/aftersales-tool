@@ -1,7 +1,8 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
+import { mediaUrl } from './media-url'
+import { handleMediaProtocol } from './media-protocol'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
@@ -17,6 +18,7 @@ export function registerIpc(): void {
   const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'vhelper-data'))
   const dataRoot = settings.getDataRoot()
   mkdirSync(dataRoot, { recursive: true })
+  handleMediaProtocol(dataRoot)
   const db = createDatabase(join(dataRoot, 'vhelper.db'))
 
   const tickets = new TicketRepo(db)
@@ -44,7 +46,7 @@ export function registerIpc(): void {
 
   ipcMain.handle('materials:list', (_e, no: string) => materials.listByTicket(no))
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
-  ipcMain.handle('materials:fileUrl', (_e, relPath: string) => pathToFileURL(join(dataRoot, relPath)).href)
+  ipcMain.handle('materials:fileUrl', (_e, relPath: string) => mediaUrl(relPath))
 
   ipcMain.handle('import:pick', async (_e, no: string) => {
     const r = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })

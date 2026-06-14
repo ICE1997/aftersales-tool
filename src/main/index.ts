@@ -1,6 +1,12 @@
 import { app, BrowserWindow, dialog } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
+import { registerMediaScheme } from './media-protocol'
+
+// Must run before app 'ready' — registers the privileged scheme used to serve
+// local media to the renderer (works from both the dev http:// origin and the
+// packaged file:// origin).
+registerMediaScheme()
 
 function createWindow(): void {
   const win = new BrowserWindow({
