@@ -1,5 +1,5 @@
 import { copyFileSync, mkdirSync, existsSync, statSync, writeFileSync } from 'node:fs'
-import { join, basename, extname } from 'node:path'
+import { join, basename, extname, relative } from 'node:path'
 import type { Material, MaterialKind, ImportResult } from '../../shared/types'
 import type { MaterialRepo } from '../db/materials'
 import type { Thumbnailer } from './thumbnails'
@@ -45,7 +45,7 @@ export class Importer {
 
   /** Generate thumbnail, insert the material row, return the created Material. */
   private async record(aftersaleNo: string, kind: MaterialKind, destAbs: string, name: string): Promise<Material> {
-    const relPath = destAbs.slice(this.dataRoot.length + 1).split('\\').join('/')
+    const relPath = relative(this.dataRoot, destAbs).split('\\').join('/')
     const thumbPath = kind === 'image' ? await this.thumb.forImage(destAbs) : await this.thumb.forVideo(destAbs)
     const id = this.materials.add({
       aftersaleNo, name, relPath, kind,
@@ -54,7 +54,9 @@ export class Importer {
       sizeBytes: statSync(destAbs).size,
       thumbPath
     })
-    return this.materials.getByIds([id])[0]
+    const created = this.materials.getByIds([id])[0]
+    if (!created) throw new Error(`material not found after insert: ${id}`)
+    return created
   }
 
   /** Copy one file into the ticket folder and record it. Throws on unsupported/missing. */
@@ -69,6 +71,7 @@ export class Importer {
 
   /** Save an image buffer (e.g. from the clipboard) as a png and record it. */
   async addImageBuffer(aftersaleNo: string, buffer: Buffer, name: string): Promise<Material> {
+    if (!buffer || buffer.length === 0) throw new Error('empty image buffer')
     const dest = this.uniqueDest(this.destDirFor(aftersaleNo, 'image'), `paste-${this.now()}.png`)
     writeFileSync(dest, buffer)
     return this.record(aftersaleNo, 'image', dest, name)

@@ -105,4 +105,8 @@ describe('Importer', () => {
     // relPath uses the sanitized folder
     expect(res.imported[0].relPath).toContain(sanitizedFolder)
   })
+
+  it('addImageBuffer rejects an empty buffer', async () => {
+    await expect(importer.addImageBuffer('AS-1', Buffer.alloc(0), 'x')).rejects.toThrow(/empty/i)
+  })
 })
