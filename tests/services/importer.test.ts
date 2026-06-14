@@ -65,4 +65,21 @@ describe('Importer', () => {
     expect(res.imported.length).toBe(1)
     expect(res.skipped.length).toBe(1)
   })
+
+  it('sanitizes illegal chars in aftersaleNo when building the destination folder', async () => {
+    // Ticket key may contain '/' or ':' — these are illegal in directory names on most OSes
+    const illegalNo = 'AS/2026:06'
+    new TicketRepo(db, () => 1).create({ aftersaleNo: illegalNo, orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    const localImporter = new Importer(root, new MaterialRepo(db), { forImage: async () => 'thumb.jpg', forVideo: async () => 'thumb.jpg' } as any, () => 42)
+    const img = makeFile('photo2.jpg')
+    const res = await localImporter.importFiles(illegalNo, [img])
+    expect(res.imported.length).toBe(1)
+    // The folder should use sanitized dir name (slashes and colons → underscores), not the raw aftersaleNo
+    const sanitizedFolder = 'AS_2026_06'
+    expect(existsSync(join(root, sanitizedFolder, 'images', 'photo2.jpg'))).toBe(true)
+    // The DB record uses the original key
+    expect(res.imported[0].aftersaleNo).toBe(illegalNo)
+    // relPath uses the sanitized folder
+    expect(res.imported[0].relPath).toContain(sanitizedFolder)
+  })
 })

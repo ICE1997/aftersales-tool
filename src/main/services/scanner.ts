@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import type { MaterialRepo } from '../db/materials'
 
@@ -10,6 +10,7 @@ export class Scanner {
     let removed = 0
     for (const m of this.materials.listByTicket(aftersaleNo)) {
       if (!existsSync(join(this.dataRoot, m.relPath))) {
+        if (m.thumbPath) { try { unlinkSync(join(this.dataRoot, m.thumbPath)) } catch { /* ignore */ } }
         this.materials.remove(m.id)
         removed++
       }

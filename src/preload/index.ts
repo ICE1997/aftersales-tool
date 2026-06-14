@@ -7,6 +7,7 @@ const api = {
   getTicket: (no: string): Promise<Ticket | undefined> => ipcRenderer.invoke('tickets:get', no),
   createTicket: (t: NewTicket): Promise<void> => ipcRenderer.invoke('tickets:create', t),
   updateTicket: (no: string, patch: Partial<Ticket>): Promise<void> => ipcRenderer.invoke('tickets:update', no, patch),
+  deleteTicket: (no: string): Promise<void> => ipcRenderer.invoke('tickets:delete', no),
   listMaterials: (no: string): Promise<Material[]> => ipcRenderer.invoke('materials:list', no),
   removeMaterial: (id: number): Promise<void> => ipcRenderer.invoke('materials:remove', id),
   fileUrl: (relPath: string): Promise<string> => ipcRenderer.invoke('materials:fileUrl', relPath),

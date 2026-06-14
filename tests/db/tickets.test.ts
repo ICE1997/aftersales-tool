@@ -48,4 +48,12 @@ describe('TicketRepo', () => {
     expect(repo.search('555').map(t => t.aftersaleNo)).not.toContain('AS-1')
     expect(repo.search('999').map(t => t.aftersaleNo)).toContain('AS-1')
   })
+
+  it('deletes a ticket and cascades to its materials and FTS', () => {
+    repo.create({ aftersaleNo: 'DEL-1', orderNo: 'ORD-DEL', shippingNo: '', returnNo: '', note: '' })
+    repo.delete('DEL-1')
+    expect(repo.get('DEL-1')).toBeUndefined()
+    expect(repo.search('ORD-DEL').length).toBe(0)   // FTS entry gone
+    expect(repo.list().length).toBe(0)
+  })
 })

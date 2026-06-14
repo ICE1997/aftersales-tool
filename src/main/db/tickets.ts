@@ -50,6 +50,14 @@ export class TicketRepo {
     tx()
   }
 
+  delete(aftersaleNo: string): void {
+    const tx = this.db.transaction(() => {
+      this.ftsDelete(aftersaleNo)
+      this.db.prepare('DELETE FROM tickets WHERE aftersale_no = ?').run(aftersaleNo)
+    })
+    tx()
+  }
+
   get(aftersaleNo: string): Ticket | undefined {
     return this.db.prepare(`SELECT ${ROW} FROM tickets WHERE aftersale_no = ?`).get(aftersaleNo) as Ticket | undefined
   }

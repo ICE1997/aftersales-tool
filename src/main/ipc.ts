@@ -1,6 +1,7 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
@@ -9,6 +10,7 @@ import { Thumbnailer } from './services/thumbnails'
 import { Importer } from './services/importer'
 import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
+import { safeDir } from './services/paths'
 import type { Ticket } from '../shared/types'
 
 export function registerIpc(): void {
@@ -30,9 +32,19 @@ export function registerIpc(): void {
   ipcMain.handle('tickets:create', (_e, t: NewTicket) => tickets.create(t))
   ipcMain.handle('tickets:update', (_e, no: string, patch: Partial<Ticket>) => tickets.update(no, patch))
 
+  ipcMain.handle('tickets:delete', (_e, no: string) => {
+    // Remove on-disk thumbnails for this ticket's materials, then the ticket folder, then DB rows
+    for (const m of materials.listByTicket(no)) {
+      if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
+    }
+    try { rmSync(join(dataRoot, safeDir(no)), { recursive: true, force: true }) } catch { /* ignore */ }
+    tickets.delete(no)
+    return true
+  })
+
   ipcMain.handle('materials:list', (_e, no: string) => materials.listByTicket(no))
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
-  ipcMain.handle('materials:fileUrl', (_e, relPath: string) => `file://${join(dataRoot, relPath)}`)
+  ipcMain.handle('materials:fileUrl', (_e, relPath: string) => pathToFileURL(join(dataRoot, relPath)).href)
 
   ipcMain.handle('import:pick', async (_e, no: string) => {
     const r = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
@@ -65,7 +77,13 @@ export function registerIpc(): void {
   ipcMain.handle('settings:chooseDataRoot', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     if (r.canceled || !r.filePaths[0]) return false
-    settings.setDataRoot(r.filePaths[0])
+    const newRoot = r.filePaths[0]
+    if (newRoot === dataRoot) return false
+    // If the chosen folder already holds a vhelper library, point to it; otherwise copy the current library in.
+    if (!existsSync(join(newRoot, 'vhelper.db'))) {
+      cpSync(dataRoot, newRoot, { recursive: true })
+    }
+    settings.setDataRoot(newRoot)
     await dialog.showMessageBox({ message: '数据目录已更改,应用将重启以生效。' })
     app.relaunch()
     app.exit(0)

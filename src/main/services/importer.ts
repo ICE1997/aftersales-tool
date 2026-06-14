@@ -3,6 +3,7 @@ import { join, basename, extname } from 'node:path'
 import type { MaterialKind, ImportResult } from '../../shared/types'
 import type { MaterialRepo } from '../db/materials'
 import type { Thumbnailer } from './thumbnails'
+import { safeDir } from './paths'
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic'])
 const VIDEO_EXT = new Set(['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'])
@@ -45,7 +46,7 @@ export class Importer {
         if (!existsSync(file)) { result.skipped.push({ file, reason: 'file not found' }); continue }
 
         const subDir = kind === 'image' ? 'images' : 'videos'
-        const destDir = join(this.dataRoot, aftersaleNo, subDir)
+        const destDir = join(this.dataRoot, safeDir(aftersaleNo), subDir)
         mkdirSync(destDir, { recursive: true })
         const dest = this.uniqueDest(destDir, basename(file))
         copyFileSync(file, dest)
