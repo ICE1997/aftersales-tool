@@ -1,5 +1,5 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
-import { join } from 'node:path'
+import { join, basename, extname } from 'node:path'
 import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync } from 'node:fs'
 import { mediaUrl } from './media-url'
 import { handleMediaProtocol } from './media-protocol'
@@ -12,6 +12,7 @@ import { Importer } from './services/importer'
 import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
 import { safeDir } from './services/paths'
+import { peekClipboard, readClipboardSource } from './services/clipboard-source'
 import type { Ticket } from '../shared/types'
 
 export function registerIpc(): void {
@@ -48,10 +49,21 @@ export function registerIpc(): void {
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
   ipcMain.handle('materials:fileUrl', (_e, relPath: string) => mediaUrl(relPath))
 
-  ipcMain.handle('import:pick', async (_e, no: string) => {
-    const r = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
-    if (r.canceled) return { imported: [], skipped: [] }
-    return importer.importFiles(no, r.filePaths)
+  ipcMain.handle('clipboard:peek', () => peekClipboard())
+
+  ipcMain.handle('materials:pickFile', async () => {
+    const r = await dialog.showOpenDialog({ properties: ['openFile'] })
+    if (r.canceled || !r.filePaths[0]) return null
+    const p = r.filePaths[0]
+    return { path: p, name: basename(p, extname(p)) }
+  })
+
+  ipcMain.handle('materials:create', async (_e, no: string, payload: import('../shared/types').CreateMaterialPayload) => {
+    if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name)
+    const src = readClipboardSource()
+    if (!src) throw new Error('剪贴板没有可用的图片或文件')
+    if (src.kind === 'image') return importer.addImageBuffer(no, src.buffer, payload.name)
+    return importer.addFile(no, src.path, payload.name)
   })
 
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {
