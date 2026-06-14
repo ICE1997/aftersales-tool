@@ -10,19 +10,18 @@ export class Exporter {
     return join(this.dataRoot, m.relPath)
   }
 
-  private uniqueName(dir: string, name: string): string {
-    const ext = extname(name)
-    const stem = basename(name, ext)
-    let candidate = join(dir, name)
-    let i = 1
-    while (existsSync(candidate)) { candidate = join(dir, `${stem}-${i}${ext}`); i++ }
+  private uniqueBasename(name: string, taken: (n: string) => boolean): string {
+    const ext = extname(name); const stem = basename(name, ext)
+    let candidate = name; let i = 1
+    while (taken(candidate)) { candidate = `${stem}-${i}${ext}`; i++ }
     return candidate
   }
 
   async toFolder(materials: Material[], targetDir: string): Promise<void> {
     mkdirSync(targetDir, { recursive: true })
     for (const m of materials) {
-      copyFileSync(this.abs(m), this.uniqueName(targetDir, basename(m.relPath)))
+      const name = this.uniqueBasename(basename(m.relPath), (n) => existsSync(join(targetDir, n)))
+      copyFileSync(this.abs(m), join(targetDir, name))
     }
   }
 
@@ -31,18 +30,17 @@ export class Exporter {
       const output = createWriteStream(zipPath)
       const archive = new ZipArchive({ zlib: { level: 9 } })
       output.on('close', () => resolve())
+      output.on('error', reject)
       archive.on('error', reject)
+      archive.on('warning', (err) => reject(err))
       archive.pipe(output)
       const used = new Set<string>()
       for (const m of materials) {
-        let name = basename(m.relPath)
-        const ext = extname(name); const stem = basename(name, ext)
-        let i = 1
-        while (used.has(name)) { name = `${stem}-${i}${ext}`; i++ }
+        const name = this.uniqueBasename(basename(m.relPath), (n) => used.has(n))
         used.add(name)
         archive.file(this.abs(m), { name })
       }
-      archive.finalize()
+      archive.finalize().catch(reject)
     })
   }
 }
