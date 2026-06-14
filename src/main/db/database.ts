@@ -27,6 +27,7 @@ function migrate(db: DB): void {
       aftersale_no TEXT NOT NULL REFERENCES tickets(aftersale_no) ON DELETE CASCADE,
       rel_path     TEXT NOT NULL UNIQUE,
       kind         TEXT NOT NULL,
+      name         TEXT NOT NULL DEFAULT '',
       captured_at  INTEGER,
       imported_at  INTEGER NOT NULL,
       size_bytes   INTEGER NOT NULL,
@@ -39,4 +40,12 @@ function migrate(db: DB): void {
       content='tickets', content_rowid='rowid'
     );
   `)
+  ensureColumn(db, 'materials', 'name', "name TEXT NOT NULL DEFAULT ''")
+}
+
+export function ensureColumn(db: DB, table: string, column: string, ddl: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`)
+  }
 }

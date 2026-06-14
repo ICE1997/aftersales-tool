@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { createDatabase } from '../../src/main/db/database'
+import Database from 'better-sqlite3'
+import { createDatabase, ensureColumn } from '../../src/main/db/database'
 
 describe('createDatabase', () => {
   it('creates tickets, materials and FTS tables', () => {
@@ -17,5 +18,31 @@ describe('createDatabase', () => {
     const db = createDatabase(':memory:')
     const row = db.prepare('PRAGMA foreign_keys').get() as any
     expect(row.foreign_keys).toBe(1)
+  })
+})
+
+describe('ensureColumn', () => {
+  it('adds a missing column with its default', () => {
+    const db = new Database(':memory:')
+    db.exec('CREATE TABLE t (id INTEGER PRIMARY KEY, a TEXT)')
+    ensureColumn(db, 't', 'name', "name TEXT NOT NULL DEFAULT ''")
+    const cols = (db.prepare('PRAGMA table_info(t)').all() as { name: string }[]).map((c) => c.name)
+    expect(cols).toContain('name')
+    db.prepare('INSERT INTO t (a) VALUES (?)').run('x')
+    expect((db.prepare('SELECT name FROM t').get() as { name: string }).name).toBe('')
+  })
+
+  it('is idempotent (no throw if column already exists)', () => {
+    const db = new Database(':memory:')
+    db.exec('CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT)')
+    expect(() => ensureColumn(db, 't', 'name', "name TEXT NOT NULL DEFAULT ''")).not.toThrow()
+  })
+})
+
+describe('materials.name column', () => {
+  it('exists on a freshly created database', () => {
+    const db = createDatabase(':memory:')
+    const cols = (db.prepare('PRAGMA table_info(materials)').all() as { name: string }[]).map((c) => c.name)
+    expect(cols).toContain('name')
   })
 })
