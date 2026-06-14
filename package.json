@@ -3,10 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "main": "out/main/index.js",
-  "directories": {
-    "doc": "docs"
-  },
-  "scripts": {
+"scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
