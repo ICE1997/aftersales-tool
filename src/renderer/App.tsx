@@ -47,7 +47,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-72 border-r"><TicketList tickets={tickets} selected={selected} onSelect={setSelected} onNew={() => setNewOpen(true)} /></aside>
         <main className="flex-1 overflow-hidden">
-          {selected ? <TicketDetail aftersaleNo={selected} onChanged={() => load()} /> : <div className="p-6 text-gray-500">选择或新建一个售后单</div>}
+          {selected ? <TicketDetail aftersaleNo={selected} onChanged={() => load()} onDeleted={() => { setSelected(undefined); load() }} /> : <div className="p-6 text-gray-500">选择或新建一个售后单</div>}
         </main>
       </div>
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
