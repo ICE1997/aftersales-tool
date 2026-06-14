@@ -41,4 +41,11 @@ describe('TicketRepo', () => {
     repo.create({ aftersaleNo: 'B', orderNo: '', shippingNo: '', returnNo: '', note: '' })
     expect(repo.list().length).toBe(2)
   })
+
+  it('updating a number field removes old token and adds new one in FTS', () => {
+    repo.create({ aftersaleNo: 'AS-1', orderNo: 'ORD-555', shippingNo: '', returnNo: '', note: '' })
+    repo.update('AS-1', { orderNo: 'ORD-999' })
+    expect(repo.search('555').map(t => t.aftersaleNo)).not.toContain('AS-1')
+    expect(repo.search('999').map(t => t.aftersaleNo)).toContain('AS-1')
+  })
 })
