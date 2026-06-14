@@ -14,7 +14,7 @@ function material(relPath: string): Material {
   const abs = join(root, relPath)
   mkdirSync(join(abs, '..'), { recursive: true })
   writeFileSync(abs, 'data-' + relPath)
-  return { id: 1, aftersaleNo: 'AS-1', relPath, kind: 'image', capturedAt: null, importedAt: 1, sizeBytes: 5, thumbPath: null }
+  return { id: 1, aftersaleNo: 'AS-1', name: '', relPath, kind: 'image', capturedAt: null, importedAt: 1, sizeBytes: 5, thumbPath: null }
 }
 
 beforeEach(() => {

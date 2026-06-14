@@ -23,6 +23,7 @@ export interface Ticket {
 export interface Material {
   id: number
   aftersaleNo: string
+  name: string
   relPath: string
   kind: MaterialKind
   capturedAt: number | null
@@ -35,3 +36,19 @@ export interface ImportResult {
   imported: Material[]
   skipped: { file: string; reason: string }[]
 }
+
+export interface ClipboardPeek {
+  type: 'image' | 'file' | 'empty'
+  name?: string
+  thumbDataUrl?: string
+  path?: string
+}
+
+export interface PickedFile {
+  path: string
+  name: string
+}
+
+export type CreateMaterialPayload =
+  | { source: 'file'; path: string; name: string }
+  | { source: 'clipboard'; name: string }
