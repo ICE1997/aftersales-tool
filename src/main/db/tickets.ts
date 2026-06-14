@@ -1,13 +1,8 @@
 import type { Database } from 'better-sqlite3'
 import type { Ticket } from '../../shared/types'
+import type { NewTicket } from '../../shared/types'
 
-export interface NewTicket {
-  aftersaleNo: string
-  orderNo: string
-  shippingNo: string
-  returnNo: string
-  note: string
-}
+export type { NewTicket }
 
 type Now = () => number
 

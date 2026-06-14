@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 
@@ -21,7 +21,13 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  registerIpc()
+  try {
+    registerIpc()
+  } catch (e) {
+    dialog.showErrorBox('启动失败', `无法初始化数据存储:\n${(e as Error).message}`)
+    app.quit()
+    return
+  }
   createWindow()
 })
 app.on('window-all-closed', () => {

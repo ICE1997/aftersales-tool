@@ -1,6 +1,14 @@
 export type MaterialKind = 'image' | 'video'
 export type TicketStatus = 'pending' | 'processing' | 'resolved'
 
+export interface NewTicket {
+  aftersaleNo: string
+  orderNo: string
+  shippingNo: string
+  returnNo: string
+  note: string
+}
+
 export interface Ticket {
   aftersaleNo: string
   orderNo: string

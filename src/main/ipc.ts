@@ -1,5 +1,6 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
 import { join } from 'node:path'
+import { mkdirSync } from 'node:fs'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
@@ -13,6 +14,7 @@ import type { Ticket } from '../shared/types'
 export function registerIpc(): void {
   const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'vhelper-data'))
   const dataRoot = settings.getDataRoot()
+  mkdirSync(dataRoot, { recursive: true })
   const db = createDatabase(join(dataRoot, 'vhelper.db'))
 
   const tickets = new TicketRepo(db)
@@ -40,7 +42,7 @@ export function registerIpc(): void {
 
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
-    if (r.canceled) return false
+    if (r.canceled || !r.filePaths[0]) return false
     await exporter.toFolder(materials.getByIds(ids), r.filePaths[0])
     return true
   })
@@ -62,9 +64,11 @@ export function registerIpc(): void {
   ipcMain.handle('settings:getDataRoot', () => settings.getDataRoot())
   ipcMain.handle('settings:chooseDataRoot', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
-    if (r.canceled) return false
+    if (r.canceled || !r.filePaths[0]) return false
     settings.setDataRoot(r.filePaths[0])
-    dialog.showMessageBoxSync({ message: '数据目录已更改,请重启应用生效。' })
+    await dialog.showMessageBox({ message: '数据目录已更改,应用将重启以生效。' })
+    app.relaunch()
+    app.exit(0)
     return true
   })
 

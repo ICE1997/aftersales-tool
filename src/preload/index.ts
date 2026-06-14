@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Ticket, Material, ImportResult } from '../shared/types'
-import type { NewTicket } from '../main/db/tickets'
+import type { Ticket, Material, ImportResult, NewTicket } from '../shared/types'
 
 const api = {
   listTickets: (): Promise<Ticket[]> => ipcRenderer.invoke('tickets:list'),
