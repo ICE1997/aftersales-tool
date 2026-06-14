@@ -4,6 +4,7 @@ import { api } from '../api'
 import { STATUS_META, STATUS_ORDER } from '../status'
 import { MaterialGrid } from './MaterialGrid'
 import { PreviewModal } from './PreviewModal'
+import { NewMaterialDialog } from './NewMaterialDialog'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose } from './icons'
 
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void }) {
@@ -13,6 +14,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleN
   const [preview, setPreview] = useState<Material | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [newOpen, setNewOpen] = useState(false)
   const currentNo = useRef(aftersaleNo)
 
   async function reload() {
@@ -30,12 +32,6 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleN
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const meta = STATUS_META[ticket.status]
 
-  async function doImport() {
-    const res = await api.importPick(aftersaleNo)
-    await reload()
-    const skipped = res.skipped.length
-    setMsg(`导入 ${res.imported.length} 个${skipped ? `,跳过 ${skipped} 个(${res.skipped.map(s => s.reason).join('、')})` : ''}`)
-  }
   async function exportFolder() {
     try { const ok = await api.exportFolder(ids()); setMsg(ok ? '已导出到文件夹' : null) }
     catch (e) { setMsg(`导出失败:${(e as Error).message}`) }
@@ -103,7 +99,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleN
 
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-6 py-3">
-        <button className="btn-primary" onClick={doImport}><IconImport className="text-[16px]" /> 导入材料</button>
+        <button className="btn-primary" onClick={() => setNewOpen(true)}><IconImport className="text-[16px]" /> 新建材料</button>
         <span className="mx-1 h-5 w-px bg-line" />
         <button className="btn-ghost" disabled={!selected.size} onClick={exportFolder}><IconFolder className="text-[16px]" /> 导出到文件夹</button>
         <button className="btn-ghost" disabled={!selected.size} onClick={exportZip}><IconArchive className="text-[16px]" /> 打包 zip</button>
@@ -122,6 +118,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleN
         <MaterialGrid materials={materials} selectedIds={selected} onToggle={toggle} onOpen={setPreview} />
       </div>
       <PreviewModal material={preview} onClose={() => setPreview(null)} />
+      <NewMaterialDialog
+        open={newOpen}
+        aftersaleNo={aftersaleNo}
+        onCancel={() => setNewOpen(false)}
+        onCreated={async (m) => { setNewOpen(false); await reload(); setMsg(`已新建材料:${m.name || m.relPath.split('/').pop()}`) }}
+      />
     </div>
   )
 }

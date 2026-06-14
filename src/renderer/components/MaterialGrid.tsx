@@ -72,7 +72,7 @@ export function MaterialGrid({ materials, selectedIds, onToggle, onOpen }: Props
               <IconCheck className="text-[13px]" />
             </button>
 
-            <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.relPath.split('/').pop()}</div>
+            <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
           </div>
         )
       })}

@@ -9,7 +9,7 @@ export function PreviewModal({ material, onClose }: Props) {
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => { setUrl(null); if (material) api.fileUrl(material.relPath).then(setUrl) }, [material])
   if (!material || !url) return null
-  const name = material.relPath.split('/').pop()
+  const name = material.name || material.relPath.split('/').pop()
 
   return (
     <div className="scrim animate-fadein" onClick={onClose}>
