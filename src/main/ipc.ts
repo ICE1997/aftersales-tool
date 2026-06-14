@@ -60,6 +60,8 @@ export function registerIpc(): void {
 
   ipcMain.handle('materials:create', async (_e, no: string, payload: import('../shared/types').CreateMaterialPayload) => {
     if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name)
+    // Re-read the clipboard at create time (the dialog's peek was only for preview); if it
+    // changed to empty since the preview, surface an error so the user can retry.
     const src = readClipboardSource()
     if (!src) throw new Error('剪贴板没有可用的图片或文件')
     if (src.kind === 'image') return importer.addImageBuffer(no, src.buffer, payload.name)
