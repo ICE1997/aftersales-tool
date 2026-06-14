@@ -9,7 +9,7 @@ function Thumb({ m }: { m: Material }) {
   useEffect(() => {
     if (m.thumbPath) api.fileUrl(m.thumbPath).then(setUrl)
     else if (m.kind === 'image') api.fileUrl(m.relPath).then(setUrl)
-  }, [m])
+  }, [m.thumbPath, m.relPath, m.kind])
   if (!url) return <div className="flex h-32 items-center justify-center bg-gray-200 text-xs text-gray-500">{m.kind === 'video' ? '视频' : '无预览'}</div>
   return <img src={url} className="h-32 w-full object-cover" />
 }

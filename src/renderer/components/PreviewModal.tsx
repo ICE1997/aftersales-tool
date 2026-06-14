@@ -6,7 +6,7 @@ interface Props { material: Material | null; onClose: () => void }
 
 export function PreviewModal({ material, onClose }: Props) {
   const [url, setUrl] = useState<string | null>(null)
-  useEffect(() => { if (material) api.fileUrl(material.relPath).then(setUrl); else setUrl(null) }, [material])
+  useEffect(() => { setUrl(null); if (material) api.fileUrl(material.relPath).then(setUrl) }, [material])
   if (!material || !url) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={onClose}>
