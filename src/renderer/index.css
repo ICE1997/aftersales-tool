@@ -1,3 +1,129 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --paper: #f3efe6;
+  --paper-2: #faf7f0;
+  --surface: #ffffff;
+  --ink: #211e18;
+  --ink-soft: #56503f;
+  --muted: #9a9081;
+  --line: #e7dfd0;
+  --line-strong: #d6cbb6;
+  --accent: #bd4f2a;
+  --accent-soft: #f6e4d9;
+  --accent-ink: #8c3818;
+  --ok: #3f7e5b;
+  --ok-soft: #e3f0e8;
+  --info: #3563a6;
+  --info-soft: #e5edf8;
+  --warn: #a9781f;
+  --warn-soft: #f6ecd4;
+  --danger: #b3332b;
+  --danger-soft: #f7e2df;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans, 'Spline Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif);
+    color: var(--ink);
+    background-color: var(--paper);
+    /* warm paper atmosphere: layered soft light + faint grain */
+    background-image:
+      radial-gradient(120% 90% at 100% 0%, rgba(189, 79, 42, 0.05) 0%, transparent 42%),
+      radial-gradient(120% 90% at 0% 100%, rgba(53, 99, 166, 0.045) 0%, transparent 45%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.018'/%3E%3C/svg%3E");
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* refined thin scrollbars */
+  *::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #c0b59e;
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  .tnum {
+    font-family: theme('fontFamily.mono');
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-150 select-none;
+  }
+  .btn:active {
+    transform: translateY(0.5px) scale(0.985);
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white shadow-sm hover:brightness-[1.06];
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink-soft hover:border-line-strong hover:text-ink hover:shadow-sm;
+  }
+  .btn-ghost:disabled {
+    @apply cursor-not-allowed border-line bg-transparent text-muted opacity-55 shadow-none hover:shadow-none;
+  }
+  .btn-danger {
+    @apply btn border border-danger-soft bg-transparent text-danger hover:bg-danger-soft;
+  }
+  .btn-danger-solid {
+    @apply btn bg-danger text-white hover:brightness-110;
+  }
+
+  /* form field */
+  .field {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition;
+  }
+  .field::placeholder {
+    color: var(--muted);
+  }
+  .field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* status chip */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* label-value number chip */
+  .numchip {
+    @apply inline-flex items-baseline gap-1.5 rounded-md border border-line bg-paper-2 px-2 py-1;
+  }
+
+  .scrim {
+    @apply fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-[3px];
+    background: rgba(28, 25, 20, 0.5);
+  }
+  .modal-card {
+    @apply w-full rounded-xl2 border border-line bg-surface p-6 shadow-modal animate-pop;
+  }
+}

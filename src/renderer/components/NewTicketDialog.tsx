@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { NewTicket } from '@shared/types'
+import { IconClose } from './icons'
 
 interface Props { open: boolean; onCreate: (t: NewTicket) => void; onCancel: () => void }
 
@@ -17,20 +18,35 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
     reset()
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-96 rounded bg-white p-4">
-        <h3 className="mb-3 font-semibold">新建售后单</h3>
-        <label className="mb-1 block text-sm">售后单号 *</label>
-        <input className="mb-3 w-full rounded border px-2 py-1" value={aftersaleNo} onChange={(e) => setAftersaleNo(e.target.value)} placeholder="必填" />
-        <label className="mb-1 block text-sm">订单号</label>
-        <input className="mb-3 w-full rounded border px-2 py-1" value={orderNo} onChange={(e) => setOrderNo(e.target.value)} />
-        <label className="mb-1 block text-sm">发货单号</label>
-        <input className="mb-3 w-full rounded border px-2 py-1" value={shippingNo} onChange={(e) => setShippingNo(e.target.value)} />
-        <label className="mb-1 block text-sm">退货单号</label>
-        <input className="mb-4 w-full rounded border px-2 py-1" value={returnNo} onChange={(e) => setReturnNo(e.target.value)} />
-        <div className="flex justify-end gap-2">
-          <button className="rounded border px-3 py-1" onClick={() => { reset(); onCancel() }}>取消</button>
-          <button className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-50" disabled={!aftersaleNo.trim()} onClick={submit}>创建</button>
+    <div className="scrim">
+      <div className="modal-card max-w-md">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-display text-lg font-extrabold tracking-tight">新建售后单</h3>
+          <button className="rounded-lg p-1.5 text-muted hover:bg-paper-2 hover:text-ink" onClick={() => { reset(); onCancel() }} aria-label="关闭"><IconClose className="text-[16px]" /></button>
+        </div>
+
+        <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">售后单号 <span className="text-accent">*</span></span>
+            <input className="field tnum" value={aftersaleNo} onChange={(e) => setAftersaleNo(e.target.value)} placeholder="必填" autoFocus />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">订单号</span>
+            <input className="field tnum" value={orderNo} onChange={(e) => setOrderNo(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">发货单号</span>
+            <input className="field tnum" value={shippingNo} onChange={(e) => setShippingNo(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货单号</span>
+            <input className="field tnum" value={returnNo} onChange={(e) => setReturnNo(e.target.value)} />
+          </label>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button className="btn-ghost" onClick={() => { reset(); onCancel() }}>取消</button>
+          <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!aftersaleNo.trim()} onClick={submit}>创建</button>
         </div>
       </div>
     </div>

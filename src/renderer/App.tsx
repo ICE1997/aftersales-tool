@@ -6,6 +6,7 @@ import { TicketList } from './components/TicketList'
 import { TicketDetail } from './components/TicketDetail'
 import { SettingsDialog } from './components/SettingsDialog'
 import { NewTicketDialog } from './components/NewTicketDialog'
+import { IconSettings, IconClose, IconBox } from './components/icons'
 
 export default function App() {
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -33,25 +34,68 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center gap-2 border-b p-2">
-        <div className="flex-1"><SearchBar onSearch={onSearch} /></div>
-        <button className="rounded border px-3 py-2" onClick={() => setSettingsOpen(true)}>设置</button>
+    <div className="flex h-screen flex-col bg-paper text-ink">
+      <header className="flex items-center gap-4 border-b border-line bg-paper-2 px-4 py-3">
+        <div className="flex shrink-0 items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl2 bg-accent text-white shadow-sm">
+            <IconBox className="text-[18px]" />
+          </span>
+          <div className="leading-tight">
+            <div className="font-display text-[17px] font-extrabold tracking-tight">vhelper</div>
+            <div className="-mt-0.5 text-[11px] text-muted">售后材料管理</div>
+          </div>
+        </div>
+        <div className="mx-auto w-full max-w-xl"><SearchBar onSearch={onSearch} /></div>
+        <button
+          className="btn-ghost shrink-0 px-3"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="设置"
+        >
+          <IconSettings className="text-[16px]" />
+          <span className="hidden sm:inline">设置</span>
+        </button>
       </header>
+
       {error && (
-        <div className="flex items-center justify-between bg-red-50 px-3 py-1 text-sm text-red-700">
+        <div className="flex animate-slidedown items-center justify-between gap-3 border-b border-danger-soft bg-danger-soft px-4 py-2 text-sm text-danger">
           <span>{error}</span>
-          <button className="text-red-500" onClick={() => setError(null)}>×</button>
+          <button className="rounded p-1 hover:bg-white/40" onClick={() => setError(null)} aria-label="关闭"><IconClose className="text-[14px]" /></button>
         </div>
       )}
+
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-72 border-r"><TicketList tickets={tickets} selected={selected} onSelect={setSelected} onNew={() => setNewOpen(true)} /></aside>
+        <aside className="w-80 shrink-0 border-r border-line bg-paper-2">
+          <TicketList tickets={tickets} selected={selected} onSelect={setSelected} onNew={() => setNewOpen(true)} />
+        </aside>
         <main className="flex-1 overflow-hidden">
-          {selected ? <TicketDetail aftersaleNo={selected} onChanged={() => load()} onDeleted={() => { setSelected(undefined); load() }} /> : <div className="p-6 text-gray-500">选择或新建一个售后单</div>}
+          {selected ? (
+            <TicketDetail
+              aftersaleNo={selected}
+              onChanged={() => load()}
+              onDeleted={() => { setSelected(undefined); load() }}
+            />
+          ) : (
+            <EmptyState />
+          )}
         </main>
       </div>
+
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <NewTicketDialog open={newOpen} onCreate={createTicket} onCancel={() => setNewOpen(false)} />
+    </div>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+      <div className="grid h-16 w-16 place-items-center rounded-2xl border border-line bg-paper-2 text-muted shadow-card">
+        <IconBox className="text-[28px]" />
+      </div>
+      <div>
+        <div className="font-display text-lg font-bold text-ink">选择或新建一个售后单</div>
+        <p className="mt-1 max-w-xs text-sm text-muted">从左侧选择售后单查看材料,或新建一个开始归档视频与图片证据。</p>
+      </div>
     </div>
   )
 }
