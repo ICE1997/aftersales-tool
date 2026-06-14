@@ -61,7 +61,7 @@ describe('Exporter', () => {
   })
 
   it('rejects when a material file is missing', async () => {
-    const m = { id: 1, aftersaleNo: 'AS-1', relPath: 'AS-1/images/ghost.jpg', kind: 'image' as const, capturedAt: null, importedAt: 1, sizeBytes: 5, thumbPath: null }
+    const m = { id: 1, aftersaleNo: 'AS-1', name: '', relPath: 'AS-1/images/ghost.jpg', kind: 'image' as const, capturedAt: null, importedAt: 1, sizeBytes: 5, thumbPath: null }
     await expect(exporter.toZip([m], join(out, 'p.zip'))).rejects.toBeTruthy()
   })
 })
