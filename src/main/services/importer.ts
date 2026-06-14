@@ -1,6 +1,6 @@
-import { copyFileSync, mkdirSync, existsSync, statSync } from 'node:fs'
+import { copyFileSync, mkdirSync, existsSync, statSync, writeFileSync } from 'node:fs'
 import { join, basename, extname } from 'node:path'
-import type { MaterialKind, ImportResult } from '../../shared/types'
+import type { Material, MaterialKind, ImportResult } from '../../shared/types'
 import type { MaterialRepo } from '../db/materials'
 import type { Thumbnailer } from './thumbnails'
 import { safeDir } from './paths'
@@ -37,30 +37,49 @@ export class Importer {
     return candidate
   }
 
+  private destDirFor(aftersaleNo: string, kind: MaterialKind): string {
+    const dir = join(this.dataRoot, safeDir(aftersaleNo), kind === 'image' ? 'images' : 'videos')
+    mkdirSync(dir, { recursive: true })
+    return dir
+  }
+
+  /** Generate thumbnail, insert the material row, return the created Material. */
+  private async record(aftersaleNo: string, kind: MaterialKind, destAbs: string, name: string): Promise<Material> {
+    const relPath = destAbs.slice(this.dataRoot.length + 1).split('\\').join('/')
+    const thumbPath = kind === 'image' ? await this.thumb.forImage(destAbs) : await this.thumb.forVideo(destAbs)
+    const id = this.materials.add({
+      aftersaleNo, name, relPath, kind,
+      capturedAt: null,
+      importedAt: this.now(),
+      sizeBytes: statSync(destAbs).size,
+      thumbPath
+    })
+    return this.materials.getByIds([id])[0]
+  }
+
+  /** Copy one file into the ticket folder and record it. Throws on unsupported/missing. */
+  async addFile(aftersaleNo: string, srcPath: string, name: string): Promise<Material> {
+    const kind = this.kindOf(srcPath)
+    if (!kind) throw new Error('unsupported file type')
+    if (!existsSync(srcPath)) throw new Error('file not found')
+    const dest = this.uniqueDest(this.destDirFor(aftersaleNo, kind), basename(srcPath))
+    copyFileSync(srcPath, dest)
+    return this.record(aftersaleNo, kind, dest, name)
+  }
+
+  /** Save an image buffer (e.g. from the clipboard) as a png and record it. */
+  async addImageBuffer(aftersaleNo: string, buffer: Buffer, name: string): Promise<Material> {
+    const dest = this.uniqueDest(this.destDirFor(aftersaleNo, 'image'), `paste-${this.now()}.png`)
+    writeFileSync(dest, buffer)
+    return this.record(aftersaleNo, 'image', dest, name)
+  }
+
+  /** Batch import (used by older callers/tests). Delegates to addFile, never aborting the batch. */
   async importFiles(aftersaleNo: string, files: string[]): Promise<ImportResult> {
     const result: ImportResult = { imported: [], skipped: [] }
     for (const file of files) {
       try {
-        const kind = this.kindOf(file)
-        if (!kind) { result.skipped.push({ file, reason: 'unsupported file type' }); continue }
-        if (!existsSync(file)) { result.skipped.push({ file, reason: 'file not found' }); continue }
-
-        const subDir = kind === 'image' ? 'images' : 'videos'
-        const destDir = join(this.dataRoot, safeDir(aftersaleNo), subDir)
-        mkdirSync(destDir, { recursive: true })
-        const dest = this.uniqueDest(destDir, basename(file))
-        copyFileSync(file, dest)
-
-        const relPath = dest.slice(this.dataRoot.length + 1).split('\\').join('/')
-        const thumbPath = kind === 'image' ? await this.thumb.forImage(dest) : await this.thumb.forVideo(dest)
-        const id = this.materials.add({
-          aftersaleNo, relPath, kind,
-          capturedAt: null,
-          importedAt: this.now(),
-          sizeBytes: statSync(dest).size,
-          thumbPath
-        })
-        result.imported.push(...this.materials.getByIds([id]))
+        result.imported.push(await this.addFile(aftersaleNo, file, ''))
       } catch (e) {
         result.skipped.push({ file, reason: (e as Error).message })
       }

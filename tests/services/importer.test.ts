@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Database } from 'better-sqlite3'
+import sharp from 'sharp'
 import { createDatabase } from '../../src/main/db/database'
 import { TicketRepo } from '../../src/main/db/tickets'
 import { MaterialRepo } from '../../src/main/db/materials'
@@ -64,6 +65,28 @@ describe('Importer', () => {
     const res = await importer.importFiles('AS-1', [join(root, 'ghost.jpg'), ok])
     expect(res.imported.length).toBe(1)
     expect(res.skipped.length).toBe(1)
+  })
+
+  it('addFile copies a single file and stores the custom name', async () => {
+    const img = makeFile('photo.jpg')
+    const m = await importer.addFile('AS-1', img, '破损正面')
+    expect(m.name).toBe('破损正面')
+    expect(m.kind).toBe('image')
+    expect(existsSync(join(root, 'AS-1/images/photo.jpg'))).toBe(true)
+  })
+
+  it('addFile throws on unsupported type', async () => {
+    const txt = makeFile('note.txt')
+    await expect(importer.addFile('AS-1', txt, 'x')).rejects.toThrow(/unsupported/i)
+  })
+
+  it('addImageBuffer writes a png and stores the name', async () => {
+    const png = await sharp({ create: { width: 12, height: 12, channels: 3, background: '#0a0' } }).png().toBuffer()
+    const m = await importer.addImageBuffer('AS-1', png, '剪贴板图')
+    expect(m.name).toBe('剪贴板图')
+    expect(m.kind).toBe('image')
+    expect(m.relPath).toMatch(/^AS-1\/images\/paste-\d+\.png$/)
+    expect(existsSync(join(root, m.relPath))).toBe(true)
   })
 
   it('sanitizes illegal chars in aftersaleNo when building the destination folder', async () => {
