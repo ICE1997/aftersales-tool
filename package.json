@@ -1,7 +1,7 @@
 {
   "name": "vhelper",
   "version": "0.1.0",
-  "description": "",
+  "description": "Aftersales helper tool for managing orders, media, and archiving",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -14,8 +14,20 @@
     "rebuild:node": "npm rebuild better-sqlite3 sharp"
   },
   "keywords": [],
-  "author": "",
+  "author": "vhelper",
   "license": "ISC",
+  "build": {
+    "appId": "com.vhelper.app",
+    "productName": "vhelper",
+    "files": ["out/**/*"],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**",
+      "**/node_modules/sharp/**",
+      "**/node_modules/ffmpeg-static/**"
+    ],
+    "mac": { "target": "dmg", "identity": null },
+    "win": { "target": "nsis" }
+  },
   "type": "module",
   "dependencies": {
     "archiver": "^8.0.0",
