@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { SettingsDialog } from './components/SettingsDialog'
 import { TicketsView } from './views/TicketsView'
 import { CustomersView } from './views/CustomersView'
+import { StatsView } from './views/StatsView'
 import { IconSettings, IconBox } from './components/icons'
 
-type Tab = 'tickets' | 'customers'
+type Tab = 'tickets' | 'customers' | 'stats'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('tickets')
@@ -24,6 +25,7 @@ export default function App() {
         <nav className="ml-2 inline-flex rounded-lg border border-line bg-surface p-0.5 text-sm">
           <button className={`rounded-md px-3 py-1.5 ${tab === 'tickets' ? 'bg-accent text-white shadow-sm' : 'text-muted'}`} onClick={() => setTab('tickets')}>售后单</button>
           <button className={`rounded-md px-3 py-1.5 ${tab === 'customers' ? 'bg-accent text-white shadow-sm' : 'text-muted'}`} onClick={() => setTab('customers')}>客户</button>
+          <button className={`rounded-md px-3 py-1.5 ${tab === 'stats' ? 'bg-accent text-white shadow-sm' : 'text-muted'}`} onClick={() => setTab('stats')}>统计</button>
         </nav>
         <div className="flex-1" />
         <button className="btn-ghost shrink-0 px-3" onClick={() => setSettingsOpen(true)} aria-label="设置">
@@ -34,7 +36,9 @@ export default function App() {
       <main className="flex-1 overflow-hidden">
         {tab === 'tickets'
           ? <TicketsView jumpTo={jumpTicket} onJumpHandled={() => setJumpTicket(undefined)} />
-          : <CustomersView onOpenTicket={(no) => { setJumpTicket(no); setTab('tickets') }} />}
+          : tab === 'customers'
+          ? <CustomersView onOpenTicket={(no) => { setJumpTicket(no); setTab('tickets') }} />
+          : <StatsView />}
       </main>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
