@@ -18,6 +18,7 @@ export interface Ticket {
   note: string
   createdAt: number
   updatedAt: number
+  customerId: number | null
 }
 
 export interface Material {
@@ -45,3 +46,20 @@ export interface PickedFile {
 export type CreateMaterialPayload =
   | { source: 'file'; path: string; name: string }
   | { source: 'paste'; fileName: string; name: string; bytes: Uint8Array }
+
+export interface Customer {
+  id: number
+  nickname: string
+  name: string
+  provinceCode: string
+  province: string
+  cityCode: string
+  city: string
+  districtCode: string
+  district: string
+  addressDetail: string
+  createdAt: number
+  updatedAt: number
+}
+export type NewCustomer = Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>
+export interface CustomerRow extends Customer { ticketCount: number }
