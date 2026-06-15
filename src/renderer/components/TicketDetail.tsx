@@ -24,12 +24,14 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     currentNo.current = aftersaleNo
     const [t, ms] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
+    const c = t && t.customerId != null ? await api.getCustomer(t.customerId) : undefined
+    if (currentNo.current !== aftersaleNo) return
     setTicket(t)
-    setCustomer(t && t.customerId != null ? await api.getCustomer(t.customerId) : undefined)
     setMaterials(ms)
     setSelected(new Set())
+    setCustomer(c)
   }
-  useEffect(() => { setMsg(null); setConfirmDelete(false); reload() }, [aftersaleNo])
+  useEffect(() => { setMsg(null); setConfirmDelete(false); setCustomer(undefined); reload() }, [aftersaleNo])
 
   if (!ticket) return null
   const ids = () => [...selected]
