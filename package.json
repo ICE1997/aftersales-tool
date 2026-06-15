@@ -19,14 +19,21 @@
   "build": {
     "appId": "com.vhelper.app",
     "productName": "vhelper",
-    "files": ["out/**/*"],
+    "files": [
+      "out/**/*"
+    ],
     "asarUnpack": [
       "**/node_modules/better-sqlite3/**",
       "**/node_modules/sharp/**",
       "**/node_modules/ffmpeg-static/**"
     ],
-    "mac": { "target": "dmg", "identity": null },
-    "win": { "target": "nsis" }
+    "mac": {
+      "target": "dmg",
+      "identity": null
+    },
+    "win": {
+      "target": "nsis"
+    }
   },
   "type": "module",
   "dependencies": {
@@ -48,6 +55,7 @@
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/ui": "^4.1.8",
     "autoprefixer": "^10.5.0",
+    "china-division": "^2.7.0",
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
