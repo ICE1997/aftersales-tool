@@ -17,6 +17,7 @@ export function ReturnMap() {
   const ref = useRef<HTMLDivElement>(null)
   const chartRef = useRef<echarts.ECharts | null>(null)
   const featuresRef = useRef<GeoFC['features']>([])
+  const busyRef = useRef(false)
   const [stack, setStack] = useState<Frame[]>([{ adcode: '100000', level: 'province', name: '全国' }])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const current = stack[stack.length - 1]
@@ -36,6 +37,7 @@ export function ReturnMap() {
     const chart = chartRef.current
     if (!chart) return
     const handler = (p: { name?: string }) => {
+      if (busyRef.current) return
       const next = NEXT[current.level]
       if (!next || !p.name) return
       const f = featuresRef.current.find((x) => x.properties.name === p.name)
@@ -50,6 +52,7 @@ export function ReturnMap() {
   useEffect(() => {
     let alive = true
     setStatus('loading')
+    busyRef.current = true
     Promise.all([loadGeo(current.adcode), api.regionCounts(current.level)])
       .then(([geo, counts]) => {
         if (!alive || !chartRef.current) return
@@ -69,6 +72,7 @@ export function ReturnMap() {
         setStatus('ready')
       })
       .catch(() => { if (alive) setStatus('error') })
+      .finally(() => { if (alive) busyRef.current = false })
     return () => { alive = false }
   }, [current.adcode, current.level])
 
