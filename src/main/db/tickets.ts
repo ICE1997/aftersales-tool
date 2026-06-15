@@ -7,7 +7,7 @@ export type { NewTicket }
 type Now = () => number
 
 const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS shippingNo,
-  return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt`
+  return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt, customer_id AS customerId`
 
 interface FtsRow {
   rowid: number
@@ -50,6 +50,11 @@ export class TicketRepo {
     tx()
   }
 
+  setCustomer(aftersaleNo: string, customerId: number | null): void {
+    this.db.prepare('UPDATE tickets SET customer_id = ?, updated_at = ? WHERE aftersale_no = ?')
+      .run(customerId, this.now(), aftersaleNo)
+  }
+
   delete(aftersaleNo: string): void {
     const tx = this.db.transaction(() => {
       this.ftsDelete(aftersaleNo)
@@ -72,7 +77,7 @@ export class TicketRepo {
     const match = `"${q.replace(/"/g, '""')}"*`
     return this.db.prepare(
       `SELECT t.aftersale_no AS aftersaleNo, t.order_no AS orderNo, t.shipping_no AS shippingNo,
-       t.return_no AS returnNo, t.status, t.note, t.created_at AS createdAt, t.updated_at AS updatedAt
+       t.return_no AS returnNo, t.status, t.note, t.created_at AS createdAt, t.updated_at AS updatedAt, t.customer_id AS customerId
        FROM tickets_fts f
        JOIN tickets t ON t.rowid = f.rowid
        WHERE tickets_fts MATCH ? ORDER BY t.updated_at DESC`

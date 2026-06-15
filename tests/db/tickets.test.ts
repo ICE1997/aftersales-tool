@@ -56,4 +56,18 @@ describe('TicketRepo', () => {
     expect(repo.search('ORD-DEL').length).toBe(0)   // FTS entry gone
     expect(repo.list().length).toBe(0)
   })
+
+  it('new tickets have a null customerId', () => {
+    repo.create({ aftersaleNo: 'C-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    expect(repo.get('C-1')!.customerId).toBeNull()
+  })
+
+  it('setCustomer links and unlinks a customer', () => {
+    repo.create({ aftersaleNo: 'C-2', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    db.prepare("INSERT INTO customers (id, created_at, updated_at) VALUES (7, 1, 1)").run()
+    repo.setCustomer('C-2', 7)
+    expect(repo.get('C-2')!.customerId).toBe(7)
+    repo.setCustomer('C-2', null)
+    expect(repo.get('C-2')!.customerId).toBeNull()
+  })
 })
