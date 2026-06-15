@@ -12,7 +12,7 @@ import { Importer } from './services/importer'
 import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
 import { safeDir } from './services/paths'
-import { peekClipboard, readClipboardSource } from './services/clipboard-source'
+
 import type { Ticket } from '../shared/types'
 
 export function registerIpc(): void {
@@ -49,8 +49,6 @@ export function registerIpc(): void {
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
   ipcMain.handle('materials:fileUrl', (_e, relPath: string) => mediaUrl(relPath))
 
-  ipcMain.handle('clipboard:peek', () => peekClipboard())
-
   ipcMain.handle('materials:pickFile', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openFile'] })
     if (r.canceled || !r.filePaths[0]) return null
@@ -60,12 +58,7 @@ export function registerIpc(): void {
 
   ipcMain.handle('materials:create', async (_e, no: string, payload: import('../shared/types').CreateMaterialPayload) => {
     if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name)
-    // Re-read the clipboard at create time (the dialog's peek was only for preview); if it
-    // changed to empty since the preview, surface an error so the user can retry.
-    const src = readClipboardSource()
-    if (!src) throw new Error('剪贴板没有可用的图片或文件')
-    if (src.kind === 'image') return importer.addImageBuffer(no, src.buffer, payload.name)
-    return importer.addFile(no, src.path, payload.name)
+    return importer.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name)
   })
 
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {

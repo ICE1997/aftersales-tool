@@ -69,12 +69,14 @@ export class Importer {
     return this.record(aftersaleNo, kind, dest, name)
   }
 
-  /** Save an image buffer (e.g. from the clipboard) as a png and record it. */
-  async addImageBuffer(aftersaleNo: string, buffer: Buffer, name: string): Promise<Material> {
-    if (!buffer || buffer.length === 0) throw new Error('empty image buffer')
-    const dest = this.uniqueDest(this.destDirFor(aftersaleNo, 'image'), `paste-${this.now()}.png`)
+  /** Write file bytes (e.g. a pasted image/file) into the ticket folder and record it. */
+  async addBytes(aftersaleNo: string, fileName: string, buffer: Buffer, name: string): Promise<Material> {
+    const kind = this.kindOf(fileName)
+    if (!kind) throw new Error('unsupported file type')
+    if (!buffer || buffer.length === 0) throw new Error('empty file')
+    const dest = this.uniqueDest(this.destDirFor(aftersaleNo, kind), fileName)
     writeFileSync(dest, buffer)
-    return this.record(aftersaleNo, 'image', dest, name)
+    return this.record(aftersaleNo, kind, dest, name)
   }
 
   /** Batch import (used by older callers/tests). Delegates to addFile, never aborting the batch. */

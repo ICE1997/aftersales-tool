@@ -37,13 +37,6 @@ export interface ImportResult {
   skipped: { file: string; reason: string }[]
 }
 
-export interface ClipboardPeek {
-  type: 'image' | 'file' | 'empty'
-  name?: string
-  thumbDataUrl?: string
-  path?: string
-}
-
 export interface PickedFile {
   path: string
   name: string
@@ -51,4 +44,4 @@ export interface PickedFile {
 
 export type CreateMaterialPayload =
   | { source: 'file'; path: string; name: string }
-  | { source: 'clipboard'; name: string }
+  | { source: 'paste'; fileName: string; name: string; bytes: Uint8Array }

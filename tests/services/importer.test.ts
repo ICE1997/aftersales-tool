@@ -80,13 +80,27 @@ describe('Importer', () => {
     await expect(importer.addFile('AS-1', txt, 'x')).rejects.toThrow(/unsupported/i)
   })
 
-  it('addImageBuffer writes a png and stores the name', async () => {
+  it('addBytes writes an image with the given filename and stores the name', async () => {
     const png = await sharp({ create: { width: 12, height: 12, channels: 3, background: '#0a0' } }).png().toBuffer()
-    const m = await importer.addImageBuffer('AS-1', png, '剪贴板图')
+    const m = await importer.addBytes('AS-1', 'paste.png', png, '剪贴板图')
     expect(m.name).toBe('剪贴板图')
     expect(m.kind).toBe('image')
-    expect(m.relPath).toMatch(/^AS-1\/images\/paste-\d+\.png$/)
+    expect(m.relPath).toBe('AS-1/images/paste.png')
     expect(existsSync(join(root, m.relPath))).toBe(true)
+  })
+
+  it('addBytes classifies a video by extension', async () => {
+    const m = await importer.addBytes('AS-1', 'clip.mp4', Buffer.from('x'), '视频')
+    expect(m.kind).toBe('video')
+    expect(m.relPath).toBe('AS-1/videos/clip.mp4')
+  })
+
+  it('addBytes throws on unsupported type', async () => {
+    await expect(importer.addBytes('AS-1', 'note.txt', Buffer.from('x'), 'x')).rejects.toThrow(/unsupported/i)
+  })
+
+  it('addBytes rejects an empty buffer', async () => {
+    await expect(importer.addBytes('AS-1', 'paste.png', Buffer.alloc(0), 'x')).rejects.toThrow(/empty/i)
   })
 
   it('sanitizes illegal chars in aftersaleNo when building the destination folder', async () => {
@@ -106,7 +120,5 @@ describe('Importer', () => {
     expect(res.imported[0].relPath).toContain(sanitizedFolder)
   })
 
-  it('addImageBuffer rejects an empty buffer', async () => {
-    await expect(importer.addImageBuffer('AS-1', Buffer.alloc(0), 'x')).rejects.toThrow(/empty/i)
-  })
+
 })
