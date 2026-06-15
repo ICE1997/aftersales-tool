@@ -63,3 +63,7 @@ export interface Customer {
 }
 export type NewCustomer = Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>
 export interface CustomerRow extends Customer { ticketCount: number }
+
+export type RegionLevel = 'province' | 'city' | 'district'
+export interface RegionCount { code: string; name: string; count: number }
+export interface StatsSummary { total: number; classified: number; unclassified: number }
