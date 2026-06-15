@@ -20,6 +20,7 @@ export function ReturnMap() {
   const busyRef = useRef(false)
   const [stack, setStack] = useState<Frame[]>([{ adcode: '100000', level: 'province', name: '全国' }])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [notice, setNotice] = useState<string | null>(null)
   const current = stack[stack.length - 1]
 
   // init once
@@ -42,6 +43,7 @@ export function ReturnMap() {
       if (!next || !p.name) return
       const f = featuresRef.current.find((x) => x.properties.name === p.name)
       if (!f) return
+      setNotice(null)
       setStack((s) => [...s, { adcode: toAdcode(String(f.properties.adcode)), level: next, name: p.name! }])
     }
     chart.on('click', handler)
@@ -71,7 +73,14 @@ export function ReturnMap() {
         chartRef.current.resize()
         setStatus('ready')
       })
-      .catch(() => { if (alive) setStatus('error') })
+      .catch(() => {
+        if (!alive) return
+        setStack((s) => {
+          if (s.length > 1) { setNotice('该地区暂无下级地图'); return s.slice(0, -1) }
+          setStatus('error')
+          return s
+        })
+      })
       .finally(() => { if (alive) busyRef.current = false })
     return () => { alive = false }
   }, [current.adcode, current.level])
@@ -85,6 +94,7 @@ export function ReturnMap() {
             <button className="btn-ghost px-2 py-0.5 text-xs disabled:opacity-60" disabled={i === stack.length - 1} onClick={() => setStack((s) => s.slice(0, i + 1))}>{f.name}</button>
           </span>
         ))}
+        {notice && <span className="ml-2 text-xs text-warn">{notice}</span>}
       </div>
       <div className="relative rounded-xl2 border border-line bg-surface p-2 shadow-card">
         {status === 'loading' && <div className="absolute inset-0 z-10 grid place-items-center text-sm text-muted">地图加载中…</div>}
