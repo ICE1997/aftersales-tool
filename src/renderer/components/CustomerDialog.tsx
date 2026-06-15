@@ -3,7 +3,7 @@ import type { Customer, NewCustomer } from '@shared/types'
 import { childrenOf } from '../region'
 import { IconClose } from './icons'
 
-interface Props { open: boolean; editing?: Customer; onSave: (c: NewCustomer) => void; onCancel: () => void }
+interface Props { open: boolean; editing?: Customer; onSave: (c: NewCustomer) => void | Promise<void>; onCancel: () => void }
 
 const EMPTY: NewCustomer = {
   nickname: '', name: '', provinceCode: '', province: '', cityCode: '', city: '',
@@ -12,9 +12,11 @@ const EMPTY: NewCustomer = {
 
 export function CustomerDialog({ open, editing, onSave, onCancel }: Props) {
   const [f, setF] = useState<NewCustomer>(EMPTY)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!open) return
+    setSaving(false)
     if (editing) {
       const { id, createdAt, updatedAt, ...rest } = editing
       void id; void createdAt; void updatedAt
@@ -86,7 +88,11 @@ export function CustomerDialog({ open, editing, onSave, onCancel }: Props) {
 
         <div className="mt-6 flex justify-end gap-2">
           <button className="btn-ghost" onClick={onCancel}>取消</button>
-          <button className="btn-primary disabled:cursor-not-allowed disabled:opacity-50" disabled={!valid} onClick={() => onSave(f)}>保存</button>
+          <button
+            className="btn-primary disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!valid || saving}
+            onClick={async () => { if (!valid || saving) return; setSaving(true); try { await onSave(f) } finally { setSaving(false) } }}
+          >保存</button>
         </div>
       </div>
     </div>

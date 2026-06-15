@@ -12,20 +12,34 @@ export function CustomersView({ onOpenTicket }: { onOpenTicket: (no: string) => 
   const [selected, setSelected] = useState<number | undefined>()
   const [query, setQuery] = useState('')
   const [dialog, setDialog] = useState<{ open: boolean; editing?: Customer }>({ open: false })
+  const [refreshTick, setRefreshTick] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   async function load(q = query) { setCustomers(q ? await api.searchCustomers(q) : await api.listCustomers()) }
   useEffect(() => { load('') }, [])
   function onSearch(q: string) { setQuery(q); load(q) }
 
   async function save(c: NewCustomer) {
-    if (dialog.editing) await api.updateCustomer(dialog.editing.id, c)
-    else await api.createCustomer(c)
-    setDialog({ open: false })
-    await load()
+    try {
+      if (dialog.editing) await api.updateCustomer(dialog.editing.id, c)
+      else await api.createCustomer(c)
+      setDialog({ open: false })
+      setError(null)
+      setRefreshTick((t) => t + 1)
+      await load()
+    } catch (e) {
+      setError(`保存失败:${(e as Error).message}`)
+    }
   }
 
   return (
     <div className="flex h-full flex-col">
+      {error && (
+        <div className="flex items-center justify-between gap-3 border-b border-danger-soft bg-danger-soft px-4 py-2 text-sm text-danger">
+          <span>{error}</span>
+          <button className="text-danger" onClick={() => setError(null)}>×</button>
+        </div>
+      )}
       {view === 'detail' && selected != null ? (
         <div className="flex-1 overflow-auto">
           <CustomerDetail
@@ -34,6 +48,7 @@ export function CustomersView({ onOpenTicket }: { onOpenTicket: (no: string) => 
             onEdit={(c) => setDialog({ open: true, editing: c })}
             onDeleted={() => { setView('list'); load() }}
             onOpenTicket={onOpenTicket}
+            refreshTick={refreshTick}
           />
         </div>
       ) : (

@@ -5,24 +5,29 @@ import { regionLabel } from '../region'
 import { STATUS_META } from '../status'
 import { formatTime } from '../table'
 
-interface Props { id: number; onBack: () => void; onEdit: (c: Customer) => void; onDeleted: () => void; onOpenTicket: (no: string) => void }
+interface Props { id: number; onBack: () => void; onEdit: (c: Customer) => void; onDeleted: () => void; onOpenTicket: (no: string) => void; refreshTick?: number }
 
-export function CustomerDetail({ id, onBack, onEdit, onDeleted, onOpenTicket }: Props) {
+export function CustomerDetail({ id, onBack, onEdit, onDeleted, onOpenTicket, refreshTick }: Props) {
   const [customer, setCustomer] = useState<Customer | undefined>()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
 
   async function reload() {
-    setCustomer(await api.getCustomer(id))
-    setTickets(await api.customerTickets(id))
+    const [c, ts] = await Promise.all([api.getCustomer(id), api.customerTickets(id)])
+    setCustomer(c)
+    setTickets(ts)
   }
-  useEffect(() => { setConfirmDelete(false); reload() }, [id])
+  useEffect(() => { setConfirmDelete(false); reload() }, [id, refreshTick])
 
   if (!customer) return null
   const region = regionLabel(customer)
   const fullAddress = [region, customer.addressDetail].filter(Boolean).join(' ')
 
-  async function remove() { await api.deleteCustomer(id); onDeleted() }
+  async function remove() {
+    try { await api.deleteCustomer(id); onDeleted() }
+    catch (e) { setErr(`删除失败:${(e as Error).message}`) }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -44,7 +49,7 @@ export function CustomerDetail({ id, onBack, onEdit, onDeleted, onOpenTicket }: 
 
       {confirmDelete && (
         <div className="flex animate-slidedown items-center justify-between gap-3 border-b border-danger-soft bg-danger-soft px-6 py-2.5 text-sm text-danger">
-          <span>确认删除该客户?其关联售后单将解除关联(不删除售后单)。</span>
+          <span>{err ?? '确认删除该客户?其关联售后单将解除关联(不删除售后单)。'}</span>
           <span className="flex shrink-0 gap-2">
             <button className="btn-danger-solid px-3 py-1.5 text-xs" onClick={remove}>确认删除</button>
             <button className="btn-ghost px-3 py-1.5 text-xs" onClick={() => setConfirmDelete(false)}>取消</button>
