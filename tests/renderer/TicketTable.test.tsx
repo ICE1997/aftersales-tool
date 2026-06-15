@@ -43,4 +43,13 @@ describe('TicketTable', () => {
     render(<TicketTable tickets={[]} query="" onOpen={() => {}} onNew={() => {}} />)
     expect(screen.getByText('暂无售后单')).toBeTruthy()
   })
+
+  it('resets to page 1 when the query changes', () => {
+    const { rerender } = render(<TicketTable tickets={mk(25)} query="" onOpen={() => {}} onNew={() => {}} />)
+    fireEvent.click(screen.getByText('下一页'))
+    expect(screen.getByText('AS-21')).toBeTruthy()
+    rerender(<TicketTable tickets={mk(25)} query="x" onOpen={() => {}} onNew={() => {}} />)
+    expect(screen.getByText('AS-1')).toBeTruthy()
+    expect(screen.queryByText('AS-21')).toBeNull()
+  })
 })

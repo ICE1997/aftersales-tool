@@ -35,6 +35,7 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl2 border border-line bg-surface shadow-card">
+          <div className="max-h-[calc(100vh-220px)] overflow-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-paper-2 text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-line">
@@ -67,6 +68,7 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
               })}
             </tbody>
           </table>
+          </div>
 
           <div className="flex items-center justify-between gap-3 border-t border-line bg-paper-2 px-4 py-2.5 text-sm">
             <div className="flex items-center gap-2 text-muted">
