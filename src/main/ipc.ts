@@ -7,6 +7,7 @@ import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
 import { CustomerRepo } from './db/customers'
+import { StatsRepo } from './db/stats'
 import { Settings } from './services/settings'
 import { Thumbnailer } from './services/thumbnails'
 import { Importer } from './services/importer'
@@ -26,6 +27,7 @@ export function registerIpc(): void {
   const tickets = new TicketRepo(db)
   const materials = new MaterialRepo(db)
   const customerRepo = new CustomerRepo(db)
+  const statsRepo = new StatsRepo(db)
   const thumb = new Thumbnailer(dataRoot)
   const importer = new Importer(dataRoot, materials, thumb)
   const exporter = new Exporter(dataRoot)
@@ -55,6 +57,9 @@ export function registerIpc(): void {
   ipcMain.handle('customers:delete', (_e, id: number) => customerRepo.delete(id))
   ipcMain.handle('customers:ticketsOf', (_e, id: number) => customerRepo.ticketsOf(id))
   ipcMain.handle('tickets:setCustomer', (_e, no: string, customerId: number | null) => tickets.setCustomer(no, customerId))
+
+  ipcMain.handle('stats:regionCounts', (_e, level: import('../shared/types').RegionLevel) => statsRepo.regionCounts(level))
+  ipcMain.handle('stats:summary', () => statsRepo.summary())
 
   ipcMain.handle('materials:list', (_e, no: string) => materials.listByTicket(no))
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))

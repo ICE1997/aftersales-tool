@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, Customer, NewCustomer, CustomerRow } from '../shared/types'
+import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, Customer, NewCustomer, CustomerRow, RegionLevel, RegionCount, StatsSummary } from '../shared/types'
 
 const api = {
   listTickets: (): Promise<Ticket[]> => ipcRenderer.invoke('tickets:list'),
@@ -27,7 +27,9 @@ const api = {
   updateCustomer: (id: number, patch: Partial<NewCustomer>): Promise<void> => ipcRenderer.invoke('customers:update', id, patch),
   deleteCustomer: (id: number): Promise<void> => ipcRenderer.invoke('customers:delete', id),
   customerTickets: (id: number): Promise<Ticket[]> => ipcRenderer.invoke('customers:ticketsOf', id),
-  setTicketCustomer: (no: string, customerId: number | null): Promise<void> => ipcRenderer.invoke('tickets:setCustomer', no, customerId)
+  setTicketCustomer: (no: string, customerId: number | null): Promise<void> => ipcRenderer.invoke('tickets:setCustomer', no, customerId),
+  regionCounts: (level: RegionLevel): Promise<RegionCount[]> => ipcRenderer.invoke('stats:regionCounts', level),
+  statsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke('stats:summary')
 }
 
 export type Api = typeof api
