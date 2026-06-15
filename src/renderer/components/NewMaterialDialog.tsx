@@ -1,54 +1,74 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ClipboardPeek, Material } from '@shared/types'
+import type { Material } from '@shared/types'
 import { api } from '../api'
-import { IconClose } from './icons'
+import { IconClose, IconBox } from './icons'
 
 interface Props { open: boolean; aftersaleNo: string; onCreated: (m: Material) => void; onCancel: () => void }
-
 type Tab = 'clipboard' | 'file'
+interface Pending { fileName: string; bytes: Uint8Array; previewUrl?: string; isImage: boolean }
+
+const IMG_NAME: Record<string, string> = {
+  'image/png': 'paste.png',
+  'image/jpeg': 'paste.jpg',
+  'image/gif': 'paste.gif',
+  'image/webp': 'paste.webp'
+}
 
 export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Props) {
   const [tab, setTab] = useState<Tab>('clipboard')
-  const [peek, setPeek] = useState<ClipboardPeek | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [pending, setPending] = useState<Pending | null>(null)
   const [picked, setPicked] = useState<{ path: string; name: string } | null>(null)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const nameEdited = useRef(false)
-  const alive = useRef(true)
+  const pendingUrl = useRef<string | null>(null)
 
-  async function refreshClipboard() {
-    setLoading(true); setError(null)
-    try {
-      const p = await api.peekClipboard()
-      if (!alive.current) return
-      setPeek(p)
-      if (!nameEdited.current) setName(p.name ?? '')
-    } catch (e) {
-      if (alive.current) setError(`读取剪贴板失败:${(e as Error).message}`)
-    } finally {
-      if (alive.current) setLoading(false)
-    }
+  function clearPending() {
+    if (pendingUrl.current) { URL.revokeObjectURL(pendingUrl.current); pendingUrl.current = null }
+    setPending(null)
   }
 
   useEffect(() => {
-    alive.current = true
-    if (!open) return () => { alive.current = false }
-    setTab('clipboard'); setPicked(null); setError(null); setPeek(null); setName('')
-    nameEdited.current = false
-    refreshClipboard()
-    return () => { alive.current = false }
+    if (!open) return
+    setTab('clipboard'); setPicked(null); setError(null); setName(''); nameEdited.current = false; clearPending()
+    return () => { clearPending() }
   }, [open])
+
+  useEffect(() => {
+    if (!open || tab !== 'clipboard') return
+    const handler = async (e: ClipboardEvent) => {
+      const dt = e.clipboardData
+      if (!dt) return
+      let file: File | null = null
+      let isImage = false
+      for (const it of Array.from(dt.items)) {
+        if (it.kind === 'file' && it.type.startsWith('image/')) { file = it.getAsFile(); isImage = true; break }
+      }
+      if (!file && dt.files.length > 0) { file = dt.files[0]; isImage = file.type.startsWith('image/') }
+      if (!file) { setError('未检测到可粘贴的图片或文件'); return }
+      e.preventDefault()
+      setError(null)
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      const fileName = isImage ? (IMG_NAME[file.type] ?? (file.name || 'paste.png')) : (file.name || 'file')
+      clearPending()
+      const previewUrl = isImage ? URL.createObjectURL(file) : undefined
+      pendingUrl.current = previewUrl ?? null
+      setPending({ fileName, bytes, previewUrl, isImage })
+      if (!nameEdited.current) setName(isImage ? '粘贴图片' : fileName.replace(/\.[^.]+$/, ''))
+    }
+    window.addEventListener('paste', handler)
+    return () => window.removeEventListener('paste', handler)
+  }, [open, tab])
 
   if (!open) return null
 
-  const valid = tab === 'clipboard' ? !loading && !!peek && peek.type !== 'empty' : !!picked
+  const valid = tab === 'clipboard' ? !!pending : !!picked
 
-  async function choose(next: Tab) {
-    setError(null)
-    setTab(next)
-    if (next === 'clipboard') { setPicked(null); nameEdited.current = false; await refreshClipboard() }
+  function choose(next: Tab) {
+    setError(null); setTab(next); nameEdited.current = false
+    if (next === 'clipboard') setPicked(null)
+    else clearPending()
   }
 
   async function pick() {
@@ -64,7 +84,7 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
     setBusy(true); setError(null)
     try {
       const payload = tab === 'clipboard'
-        ? { source: 'clipboard' as const, name }
+        ? { source: 'paste' as const, fileName: pending!.fileName, name, bytes: pending!.bytes }
         : { source: 'file' as const, path: picked!.path, name }
       const m = await api.createMaterial(aftersaleNo, payload)
       onCreated(m)
@@ -74,6 +94,8 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
       setBusy(false)
     }
   }
+
+  const pickedBase = picked ? picked.path.split(/[\\/]/).pop() : ''
 
   return (
     <div className="scrim">
@@ -88,14 +110,13 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
           <button className={`rounded-md px-3 py-1.5 ${tab === 'file' ? 'bg-surface text-ink shadow-sm' : 'text-muted'}`} onClick={() => choose('file')}>选择文件</button>
         </div>
 
-        <div className="mb-4 flex min-h-[88px] items-center justify-center rounded-lg border border-line bg-paper-2 p-3 text-center text-sm text-muted">
+        <div className="mb-4 flex min-h-[112px] items-center justify-center rounded-lg border border-dashed border-line-strong bg-paper-2 p-3 text-center text-sm text-muted">
           {tab === 'clipboard' ? (
-            loading ? <span>读取剪贴板中…</span>
-            : peek?.type === 'image' ? <img src={peek.thumbDataUrl} alt="" className="max-h-24 rounded" />
-            : peek?.type === 'file' ? <span className="font-mono text-xs text-ink-soft">{peek.path}</span>
-            : <div className="flex flex-col items-center gap-2"><span>剪贴板没有可用的图片或文件</span><button className="btn-ghost px-2.5 py-1 text-xs" onClick={refreshClipboard}>刷新</button></div>
+            pending?.isImage ? <img src={pending.previewUrl} alt="" className="max-h-28 rounded" />
+            : pending ? <span className="flex items-center gap-2 font-mono text-xs text-ink-soft"><IconBox className="text-[16px]" /><span>{pending.fileName}</span></span>
+            : <span className="text-muted">按 Cmd/Ctrl+V 粘贴图片或文件</span>
           ) : (
-            picked ? <span className="font-mono text-xs text-ink-soft">{picked.path}</span>
+            picked ? <span className="flex items-center gap-2 font-mono text-xs text-ink-soft"><IconBox className="text-[16px]" /><span>{pickedBase}</span></span>
             : <button className="btn-ghost" onClick={pick}>选择文件…</button>
           )}
         </div>
