@@ -7,7 +7,7 @@ import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose } from './icons'
 
-export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void }) {
+export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
   const [ticket, setTicket] = useState<Ticket | undefined>()
   const [materials, setMaterials] = useState<Material[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -55,6 +55,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted }: { aftersaleN
       {/* header */}
       <div className="border-b border-line bg-paper-2 px-6 pb-4 pt-5">
         <div className="flex items-start gap-3">
+          <button className="btn-ghost mt-0.5 px-2.5" onClick={onBack} aria-label="返回">← 返回</button>
           <div className="min-w-0">
             <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">售后单号</div>
             <h2 className="tnum mt-0.5 truncate font-display text-2xl font-extrabold tracking-tight text-ink">{ticket.aftersaleNo}</h2>

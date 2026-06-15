@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { NewTicket, Ticket } from '@shared/types'
 import { api } from './api'
 import { SearchBar } from './components/SearchBar'
-import { TicketList } from './components/TicketList'
+import { TicketTable } from './components/TicketTable'
 import { TicketDetail } from './components/TicketDetail'
 import { SettingsDialog } from './components/SettingsDialog'
 import { NewTicketDialog } from './components/NewTicketDialog'
@@ -10,6 +10,7 @@ import { IconSettings, IconClose, IconBox } from './components/icons'
 
 export default function App() {
   const [tickets, setTickets] = useState<Ticket[]>([])
+  const [view, setView] = useState<'list' | 'detail'>('list')
   const [selected, setSelected] = useState<string | undefined>()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
@@ -27,7 +28,6 @@ export default function App() {
       setNewOpen(false)
       setError(null)
       await load()
-      setSelected(t.aftersaleNo)
     } catch (e) {
       setError(`创建失败:${(e as Error).message}`)
     }
@@ -46,11 +46,7 @@ export default function App() {
           </div>
         </div>
         <div className="mx-auto w-full max-w-xl"><SearchBar onSearch={onSearch} /></div>
-        <button
-          className="btn-ghost shrink-0 px-3"
-          onClick={() => setSettingsOpen(true)}
-          aria-label="设置"
-        >
+        <button className="btn-ghost shrink-0 px-3" onClick={() => setSettingsOpen(true)} aria-label="设置">
           <IconSettings className="text-[16px]" />
           <span className="hidden sm:inline">设置</span>
         </button>
@@ -63,39 +59,26 @@ export default function App() {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-80 shrink-0 border-r border-line bg-paper-2">
-          <TicketList tickets={tickets} selected={selected} onSelect={setSelected} onNew={() => setNewOpen(true)} />
-        </aside>
-        <main className="flex-1 overflow-hidden">
-          {selected ? (
-            <TicketDetail
-              aftersaleNo={selected}
-              onChanged={() => load()}
-              onDeleted={() => { setSelected(undefined); load() }}
-            />
-          ) : (
-            <EmptyState />
-          )}
-        </main>
-      </div>
+      <main className="flex-1 overflow-auto">
+        {view === 'detail' && selected ? (
+          <TicketDetail
+            aftersaleNo={selected}
+            onBack={() => setView('list')}
+            onChanged={() => load()}
+            onDeleted={() => { setView('list'); load() }}
+          />
+        ) : (
+          <TicketTable
+            tickets={tickets}
+            query={query}
+            onOpen={(no) => { setSelected(no); setView('detail') }}
+            onNew={() => setNewOpen(true)}
+          />
+        )}
+      </main>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <NewTicketDialog open={newOpen} onCreate={createTicket} onCancel={() => setNewOpen(false)} />
-    </div>
-  )
-}
-
-function EmptyState() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-      <div className="grid h-16 w-16 place-items-center rounded-2xl border border-line bg-paper-2 text-muted shadow-card">
-        <IconBox className="text-[28px]" />
-      </div>
-      <div>
-        <div className="font-display text-lg font-bold text-ink">选择或新建一个售后单</div>
-        <p className="mt-1 max-w-xs text-sm text-muted">从左侧选择售后单查看材料,或新建一个开始归档视频与图片证据。</p>
-      </div>
     </div>
   )
 }
