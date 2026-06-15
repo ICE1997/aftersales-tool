@@ -57,6 +57,7 @@ function migrate(db: DB): void {
   `)
   ensureColumn(db, 'materials', 'name', "name TEXT NOT NULL DEFAULT ''")
   ensureColumn(db, 'tickets', 'customer_id', 'customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL')
+  db.exec('CREATE INDEX IF NOT EXISTS idx_tickets_customer ON tickets(customer_id)')
 }
 
 export function ensureColumn(db: DB, table: string, column: string, ddl: string): void {

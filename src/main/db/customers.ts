@@ -52,11 +52,12 @@ export class CustomerRepo {
   search(query: string): CustomerRow[] {
     const q = query.trim()
     if (!q) return this.list()
-    const like = `%${q}%`
+    const like = `%${q.replace(/[\\%_]/g, (m) => '\\' + m)}%`
     return this.db.prepare(
       `SELECT ${ROW}, (SELECT COUNT(*) FROM tickets t WHERE t.customer_id = customers.id) AS ticketCount
        FROM customers
-       WHERE nickname LIKE ? OR name LIKE ? OR province LIKE ? OR city LIKE ? OR district LIKE ? OR address_detail LIKE ?
+       WHERE nickname LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\' OR province LIKE ? ESCAPE '\\'
+         OR city LIKE ? ESCAPE '\\' OR district LIKE ? ESCAPE '\\' OR address_detail LIKE ? ESCAPE '\\'
        ORDER BY updated_at DESC`
     ).all(like, like, like, like, like, like) as CustomerRow[]
   }

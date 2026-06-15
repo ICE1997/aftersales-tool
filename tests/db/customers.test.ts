@@ -66,6 +66,14 @@ describe('CustomerRepo', () => {
     expect(tickets.get('AS-1')!.customerId).toBeNull()
   })
 
+  it('treats % and _ as literals in search (no wildcard match)', () => {
+    customers.create(baseCustomer) // nickname 小明, no % or _
+    expect(customers.search('%').length).toBe(0)
+    expect(customers.search('_').length).toBe(0)
+    customers.create({ ...baseCustomer, nickname: '95%好评' })
+    expect(customers.search('%').length).toBe(1) // matches the literal % only
+  })
+
   it('ticketsOf returns the customer linked tickets', () => {
     const id = customers.create(baseCustomer)
     const tickets = new TicketRepo(db, () => 1)
