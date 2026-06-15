@@ -39,8 +39,24 @@ function migrate(db: DB): void {
       aftersale_no, order_no, shipping_no, return_no, note,
       content='tickets', content_rowid='rowid'
     );
+
+    CREATE TABLE IF NOT EXISTS customers (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      nickname       TEXT NOT NULL DEFAULT '',
+      name           TEXT NOT NULL DEFAULT '',
+      province_code  TEXT NOT NULL DEFAULT '',
+      province       TEXT NOT NULL DEFAULT '',
+      city_code      TEXT NOT NULL DEFAULT '',
+      city           TEXT NOT NULL DEFAULT '',
+      district_code  TEXT NOT NULL DEFAULT '',
+      district       TEXT NOT NULL DEFAULT '',
+      address_detail TEXT NOT NULL DEFAULT '',
+      created_at     INTEGER NOT NULL,
+      updated_at     INTEGER NOT NULL
+    );
   `)
   ensureColumn(db, 'materials', 'name', "name TEXT NOT NULL DEFAULT ''")
+  ensureColumn(db, 'tickets', 'customer_id', 'customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL')
 }
 
 export function ensureColumn(db: DB, table: string, column: string, ddl: string): void {

@@ -46,3 +46,16 @@ describe('materials.name column', () => {
     expect(cols).toContain('name')
   })
 })
+
+describe('customers schema', () => {
+  it('creates the customers table on a fresh db', () => {
+    const db = createDatabase(':memory:')
+    const names = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name)
+    expect(names).toContain('customers')
+  })
+  it('tickets has a customer_id column', () => {
+    const db = createDatabase(':memory:')
+    const cols = (db.prepare('PRAGMA table_info(tickets)').all() as { name: string }[]).map((c) => c.name)
+    expect(cols).toContain('customer_id')
+  })
+})
