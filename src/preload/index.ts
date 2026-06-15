@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket } from '../shared/types'
+import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, Customer, NewCustomer, CustomerRow } from '../shared/types'
 
 const api = {
   listTickets: (): Promise<Ticket[]> => ipcRenderer.invoke('tickets:list'),
@@ -19,7 +19,15 @@ const api = {
   calibrate: (no: string): Promise<number> => ipcRenderer.invoke('scan:calibrate', no),
   getDataRoot: (): Promise<string> => ipcRenderer.invoke('settings:getDataRoot'),
   chooseDataRoot: (): Promise<boolean> => ipcRenderer.invoke('settings:chooseDataRoot'),
-  showItem: (relPath: string): Promise<void> => ipcRenderer.invoke('shell:showItem', relPath)
+  showItem: (relPath: string): Promise<void> => ipcRenderer.invoke('shell:showItem', relPath),
+  listCustomers: (): Promise<CustomerRow[]> => ipcRenderer.invoke('customers:list'),
+  searchCustomers: (q: string): Promise<CustomerRow[]> => ipcRenderer.invoke('customers:search', q),
+  getCustomer: (id: number): Promise<Customer | undefined> => ipcRenderer.invoke('customers:get', id),
+  createCustomer: (c: NewCustomer): Promise<number> => ipcRenderer.invoke('customers:create', c),
+  updateCustomer: (id: number, patch: Partial<NewCustomer>): Promise<void> => ipcRenderer.invoke('customers:update', id, patch),
+  deleteCustomer: (id: number): Promise<void> => ipcRenderer.invoke('customers:delete', id),
+  customerTickets: (id: number): Promise<Ticket[]> => ipcRenderer.invoke('customers:ticketsOf', id),
+  setTicketCustomer: (no: string, customerId: number | null): Promise<void> => ipcRenderer.invoke('tickets:setCustomer', no, customerId)
 }
 
 export type Api = typeof api

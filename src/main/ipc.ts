@@ -6,6 +6,7 @@ import { handleMediaProtocol } from './media-protocol'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
+import { CustomerRepo } from './db/customers'
 import { Settings } from './services/settings'
 import { Thumbnailer } from './services/thumbnails'
 import { Importer } from './services/importer'
@@ -24,6 +25,7 @@ export function registerIpc(): void {
 
   const tickets = new TicketRepo(db)
   const materials = new MaterialRepo(db)
+  const customerRepo = new CustomerRepo(db)
   const thumb = new Thumbnailer(dataRoot)
   const importer = new Importer(dataRoot, materials, thumb)
   const exporter = new Exporter(dataRoot)
@@ -44,6 +46,15 @@ export function registerIpc(): void {
     tickets.delete(no)
     return true
   })
+
+  ipcMain.handle('customers:list', () => customerRepo.list())
+  ipcMain.handle('customers:search', (_e, q: string) => customerRepo.search(q))
+  ipcMain.handle('customers:get', (_e, id: number) => customerRepo.get(id))
+  ipcMain.handle('customers:create', (_e, c: import('../shared/types').NewCustomer) => customerRepo.create(c))
+  ipcMain.handle('customers:update', (_e, id: number, patch: Partial<import('../shared/types').NewCustomer>) => customerRepo.update(id, patch))
+  ipcMain.handle('customers:delete', (_e, id: number) => customerRepo.delete(id))
+  ipcMain.handle('customers:ticketsOf', (_e, id: number) => customerRepo.ticketsOf(id))
+  ipcMain.handle('tickets:setCustomer', (_e, no: string, customerId: number | null) => tickets.setCustomer(no, customerId))
 
   ipcMain.handle('materials:list', (_e, no: string) => materials.listByTicket(no))
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
