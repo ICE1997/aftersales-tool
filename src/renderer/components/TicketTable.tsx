@@ -11,7 +11,7 @@ const SIZES = [10, 20, 50]
 export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  useEffect(() => { setPage(1) }, [query, pageSize])
+  useEffect(() => { setPage(1) }, [query])
 
   const total = tickets.length
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
@@ -48,7 +48,7 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
             </thead>
             <tbody>
               {rows.map((t, i) => {
-                const meta = STATUS_META[t.status]
+                const meta = STATUS_META[t.status] ?? STATUS_META.pending
                 return (
                   <tr
                     key={t.aftersaleNo}
@@ -71,7 +71,7 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
           <div className="flex items-center justify-between gap-3 border-t border-line bg-paper-2 px-4 py-2.5 text-sm">
             <div className="flex items-center gap-2 text-muted">
               <span>共 {total} 条</span>
-              <select className="rounded border border-line bg-surface px-1.5 py-1 text-xs" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+              <select className="rounded border border-line bg-surface px-1.5 py-1 text-xs" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}>
                 {SIZES.map((s) => <option key={s} value={s}>{s} / 页</option>)}
               </select>
             </div>
