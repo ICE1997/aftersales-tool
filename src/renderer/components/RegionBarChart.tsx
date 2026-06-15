@@ -27,7 +27,10 @@ export function RegionBarChart({ data }: { data: RegionCount[] }) {
   }, [])
 
   useEffect(() => {
-    chartRef.current?.setOption(barOption(data) as EChartsCoreOption, true)
+    const chart = chartRef.current
+    if (!chart) return
+    chart.setOption(barOption(data) as EChartsCoreOption, true)
+    chart.resize()
   }, [data])
 
   const height = Math.max(240, Math.min(data.length, 20) * 28 + 40)

@@ -13,9 +13,19 @@ export function StatsView() {
   const [level, setLevel] = useState<RegionLevel>('province')
   const [data, setData] = useState<RegionCount[]>([])
   const [summary, setSummary] = useState<StatsSummary>({ total: 0, classified: 0, unclassified: 0 })
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { api.statsSummary().then(setSummary) }, [])
-  useEffect(() => { api.regionCounts(level).then(setData) }, [level])
+  useEffect(() => {
+    api.statsSummary().then(setSummary).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    let stale = false
+    api.regionCounts(level)
+      .then((d) => { if (!stale) { setData(d); setError(null) } })
+      .catch((e) => { if (!stale) setError(`加载失败:${(e as Error).message}`) })
+    return () => { stale = true }
+  }, [level])
 
   return (
     <div className="flex h-full flex-col">
@@ -32,7 +42,9 @@ export function StatsView() {
 
       <div className="flex-1 overflow-auto p-6">
         <div className="mb-3 font-display text-sm font-bold tracking-tight text-ink">售后最多的地区(Top 20)</div>
-        {data.length === 0 ? (
+        {error ? (
+          <div className="rounded-xl2 border border-danger-soft bg-danger-soft py-20 text-center text-sm text-danger shadow-card">{error}</div>
+        ) : data.length === 0 ? (
           <div className="rounded-xl2 border border-line bg-surface py-20 text-center text-sm text-muted shadow-card">暂无可统计的数据(请先给售后单关联带地址的客户)</div>
         ) : (
           <div className="rounded-xl2 border border-line bg-surface p-4 shadow-card">
