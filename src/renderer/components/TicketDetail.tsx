@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Material, Ticket, TicketStatus } from '@shared/types'
+import type { Customer, Material, Ticket, TicketStatus } from '@shared/types'
 import { api } from '../api'
 import { STATUS_META, STATUS_ORDER } from '../status'
 import { MaterialGrid } from './MaterialGrid'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
+import { CustomerPicker } from './CustomerPicker'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose } from './icons'
 
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
@@ -15,6 +16,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
+  const [customer, setCustomer] = useState<Customer | undefined>()
+  const [pickerOpen, setPickerOpen] = useState(false)
   const currentNo = useRef(aftersaleNo)
 
   async function reload() {
@@ -22,6 +25,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     const [t, ms] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
     setTicket(t)
+    setCustomer(t && t.customerId != null ? await api.getCustomer(t.customerId) : undefined)
     setMaterials(ms)
     setSelected(new Set())
   }
@@ -49,6 +53,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     await api.deleteTicket(aftersaleNo)
     onDeleted()
   }
+  async function linkCustomer(id: number) { await api.setTicketCustomer(aftersaleNo, id); setPickerOpen(false); await reload() }
+  async function unlinkCustomer() { await api.setTicketCustomer(aftersaleNo, null); await reload() }
 
   return (
     <div className="flex h-full flex-col">
@@ -85,6 +91,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           <NumChip label="订单" value={ticket.orderNo} />
           <NumChip label="发货" value={ticket.shippingNo} />
           <NumChip label="退货" value={ticket.returnNo} />
+        </div>
+        <div className="mt-2 flex items-center gap-2 text-sm">
+          <span className="text-[11px] text-muted">客户</span>
+          <span className="text-ink-soft">{customer ? (customer.name || customer.nickname || '未命名') : '未关联'}</span>
+          <button className="btn-ghost px-2 py-0.5 text-xs" onClick={() => setPickerOpen(true)}>{customer ? '更换' : '关联'}</button>
+          {customer && <button className="btn-ghost px-2 py-0.5 text-xs" onClick={unlinkCustomer}>取消关联</button>}
         </div>
       </div>
 
@@ -125,6 +137,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
         onCancel={() => setNewOpen(false)}
         onCreated={async (m) => { setNewOpen(false); await reload(); setMsg(`已新建材料:${m.name || m.relPath.split('/').pop()}`) }}
       />
+      <CustomerPicker open={pickerOpen} onPick={linkCustomer} onCancel={() => setPickerOpen(false)} />
     </div>
   )
 }
