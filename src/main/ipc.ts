@@ -58,7 +58,8 @@ export function registerIpc(): void {
 
   ipcMain.handle('materials:create', async (_e, no: string, payload: import('../shared/types').CreateMaterialPayload) => {
     if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name)
-    return importer.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name)
+    if (payload.source === 'paste') return importer.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name)
+    throw new Error('unknown material source')
   })
 
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {

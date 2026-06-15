@@ -23,16 +23,20 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
   const [busy, setBusy] = useState(false)
   const nameEdited = useRef(false)
   const pendingUrl = useRef<string | null>(null)
+  const aliveRef = useRef(true)
+  const tokenRef = useRef<object | null>(null)
 
   function clearPending() {
+    tokenRef.current = null
     if (pendingUrl.current) { URL.revokeObjectURL(pendingUrl.current); pendingUrl.current = null }
     setPending(null)
   }
 
   useEffect(() => {
     if (!open) return
+    aliveRef.current = true
     setTab('clipboard'); setPicked(null); setError(null); setName(''); nameEdited.current = false; clearPending()
-    return () => { clearPending() }
+    return () => { aliveRef.current = false; clearPending() }
   }, [open])
 
   useEffect(() => {
@@ -49,9 +53,12 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
       if (!file) { setError('未检测到可粘贴的图片或文件'); return }
       e.preventDefault()
       setError(null)
+      const token = {}
+      tokenRef.current = token
       const bytes = new Uint8Array(await file.arrayBuffer())
+      if (!aliveRef.current || tokenRef.current !== token) return // dialog closed or superseded by a newer paste
       const fileName = isImage ? (IMG_NAME[file.type] ?? (file.name || 'paste.png')) : (file.name || 'file')
-      clearPending()
+      if (pendingUrl.current) { URL.revokeObjectURL(pendingUrl.current); pendingUrl.current = null }
       const previewUrl = isImage ? URL.createObjectURL(file) : undefined
       pendingUrl.current = previewUrl ?? null
       setPending({ fileName, bytes, previewUrl, isImage })
