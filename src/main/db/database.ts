@@ -80,18 +80,20 @@ export function migrate(db: DB): void {
 function rebuildFtsIfStale(db: DB): void {
   const cols = db.prepare(`PRAGMA table_info(tickets_fts)`).all() as { name: string }[]
   if (cols.some((c) => c.name === 'nickname')) return
-  db.exec(`
-    DROP TABLE IF EXISTS tickets_fts;
-    CREATE VIRTUAL TABLE tickets_fts USING fts5(
-      aftersale_no, order_no, shipping_no, return_no, note,
-      nickname, recipient_name, phone, province, city, district, address_detail,
-      content='tickets', content_rowid='rowid'
-    );
-    INSERT INTO tickets_fts(rowid, aftersale_no, order_no, shipping_no, return_no, note,
-      nickname, recipient_name, phone, province, city, district, address_detail)
-    SELECT rowid, aftersale_no, order_no, shipping_no, return_no, note,
-      nickname, recipient_name, phone, province, city, district, address_detail FROM tickets;
-  `)
+  db.transaction(() => {
+    db.exec(`
+      DROP TABLE IF EXISTS tickets_fts;
+      CREATE VIRTUAL TABLE tickets_fts USING fts5(
+        aftersale_no, order_no, shipping_no, return_no, note,
+        nickname, recipient_name, phone, province, city, district, address_detail,
+        content='tickets', content_rowid='rowid'
+      );
+      INSERT INTO tickets_fts(rowid, aftersale_no, order_no, shipping_no, return_no, note,
+        nickname, recipient_name, phone, province, city, district, address_detail)
+      SELECT rowid, aftersale_no, order_no, shipping_no, return_no, note,
+        nickname, recipient_name, phone, province, city, district, address_detail FROM tickets;
+    `)
+  })()
 }
 
 export function ensureColumn(db: DB, table: string, column: string, ddl: string): void {
