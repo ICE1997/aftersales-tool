@@ -10,7 +10,7 @@ export class Exporter {
     return join(this.dataRoot, m.relPath)
   }
 
-  private uniqueBasename(name: string, taken: (n: string) => boolean): string {
+  private uniqueName(name: string, taken: (n: string) => boolean): string {
     const ext = extname(name); const stem = basename(name, ext)
     let candidate = name; let i = 1
     while (taken(candidate)) { candidate = `${stem}-${i}${ext}`; i++ }
@@ -20,8 +20,10 @@ export class Exporter {
   async toFolder(materials: Material[], targetDir: string): Promise<void> {
     mkdirSync(targetDir, { recursive: true })
     for (const m of materials) {
-      const name = this.uniqueBasename(basename(m.relPath), (n) => existsSync(join(targetDir, n)))
-      copyFileSync(this.abs(m), join(targetDir, name))
+      const sub = m.folder ? join(targetDir, ...m.folder.split('/')) : targetDir
+      mkdirSync(sub, { recursive: true })
+      const name = this.uniqueName(basename(m.relPath), (n) => existsSync(join(sub, n)))
+      copyFileSync(this.abs(m), join(sub, name))
     }
   }
 
@@ -34,11 +36,14 @@ export class Exporter {
       archive.on('error', reject)
       archive.on('warning', (err) => reject(err))
       archive.pipe(output)
-      const used = new Set<string>()
+      const usedByDir = new Map<string, Set<string>>()
       for (const m of materials) {
-        const name = this.uniqueBasename(basename(m.relPath), (n) => used.has(n))
-        used.add(name)
-        archive.file(this.abs(m), { name })
+        const dir = m.folder ?? ''
+        const used = usedByDir.get(dir) ?? new Set<string>()
+        const name = this.uniqueName(basename(m.relPath), (n) => used.has(n))
+        used.add(name); usedByDir.set(dir, used)
+        const entry = dir ? `${dir}/${name}` : name
+        archive.file(this.abs(m), { name: entry })
       }
       archive.finalize().catch(reject)
     })

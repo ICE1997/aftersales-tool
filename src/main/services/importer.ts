@@ -44,11 +44,11 @@ export class Importer {
   }
 
   /** Generate thumbnail, insert the material row, return the created Material. */
-  private async record(aftersaleNo: string, kind: MaterialKind, destAbs: string, name: string): Promise<Material> {
+  private async record(aftersaleNo: string, kind: MaterialKind, destAbs: string, name: string, folder: string): Promise<Material> {
     const relPath = relative(this.dataRoot, destAbs).split('\\').join('/')
     const thumbPath = kind === 'image' ? await this.thumb.forImage(destAbs) : await this.thumb.forVideo(destAbs)
     const id = this.materials.add({
-      aftersaleNo, name, relPath, kind,
+      aftersaleNo, name, relPath, kind, folder,
       capturedAt: null,
       importedAt: this.now(),
       sizeBytes: statSync(destAbs).size,
@@ -60,23 +60,23 @@ export class Importer {
   }
 
   /** Copy one file into the ticket folder and record it. Throws on unsupported/missing. */
-  async addFile(aftersaleNo: string, srcPath: string, name: string): Promise<Material> {
+  async addFile(aftersaleNo: string, srcPath: string, name: string, folder = ''): Promise<Material> {
     const kind = this.kindOf(srcPath)
     if (!kind) throw new Error('unsupported file type')
     if (!existsSync(srcPath)) throw new Error('file not found')
     const dest = this.uniqueDest(this.destDirFor(aftersaleNo, kind), basename(srcPath))
     copyFileSync(srcPath, dest)
-    return this.record(aftersaleNo, kind, dest, name)
+    return this.record(aftersaleNo, kind, dest, name, folder)
   }
 
   /** Write file bytes (e.g. a pasted image/file) into the ticket folder and record it. */
-  async addBytes(aftersaleNo: string, fileName: string, buffer: Buffer, name: string): Promise<Material> {
+  async addBytes(aftersaleNo: string, fileName: string, buffer: Buffer, name: string, folder = ''): Promise<Material> {
     const kind = this.kindOf(fileName)
     if (!kind) throw new Error('unsupported file type')
     if (!buffer || buffer.length === 0) throw new Error('empty file')
     const dest = this.uniqueDest(this.destDirFor(aftersaleNo, kind), fileName)
     writeFileSync(dest, buffer)
-    return this.record(aftersaleNo, kind, dest, name)
+    return this.record(aftersaleNo, kind, dest, name, folder)
   }
 
   /** Batch import (used by older callers/tests). Delegates to addFile, never aborting the batch. */
@@ -84,7 +84,7 @@ export class Importer {
     const result: ImportResult = { imported: [], skipped: [] }
     for (const file of files) {
       try {
-        result.imported.push(await this.addFile(aftersaleNo, file, ''))
+        result.imported.push(await this.addFile(aftersaleNo, file, '', ''))
       } catch (e) {
         result.skipped.push({ file, reason: (e as Error).message })
       }
