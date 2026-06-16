@@ -20,8 +20,8 @@ export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) 
   const rows = paginate(tickets, current, pageSize)
 
   return (
-    <div className="p-6">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="flex h-full flex-col p-6">
+      <div className="mb-3 flex shrink-0 items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="font-display text-sm font-bold tracking-tight text-ink">售后单</span>
           <span className="tnum text-xs text-muted">{total}</span>
@@ -38,8 +38,8 @@ export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) 
           <p className="text-sm text-muted">暂无售后单</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl2 border border-line bg-surface shadow-card">
-          <div className="max-h-[calc(100vh-220px)] overflow-auto">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl2 border border-line bg-surface shadow-card">
+          <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[1240px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
             <thead className="sticky top-0 bg-paper-2 text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-line">
@@ -82,7 +82,7 @@ export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) 
           </table>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-line bg-paper-2 px-4 py-2.5 text-sm">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line bg-paper-2 px-4 py-2.5 text-sm">
             <div className="flex items-center gap-2 text-muted">
               <span>共 {total} 条</span>
               <select className="rounded border border-line bg-surface px-1.5 py-1 text-xs" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }}>
