@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
 
 const ticket = {
@@ -30,5 +30,6 @@ describe('TicketDetail aftersale fields', () => {
     expect(screen.getByText('已发货')).toBeTruthy()
     expect(screen.getByText('签收')).toBeTruthy()
     expect(screen.getByText('2026-05-28 14:27:38')).toBeTruthy()
+    expect(screen.getAllByText('24.99').length).toBeGreaterThanOrEqual(2)
   })
 })
