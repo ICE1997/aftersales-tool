@@ -10,11 +10,17 @@ const EMPTY_CUSTOMER = {
   cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
 }
 
+const EMPTY_AFTERSALE = {
+  aftersaleType: '', aftersaleReason: '', shippingStatus: '',
+  amount: '', refundAmount: '', appliedAt: '', returnLogistics: ''
+}
+
 function mk(over: Partial<Ticket> = {}): Ticket {
   return {
     aftersaleNo: 'AS-1', orderNo: 'O1', shippingNo: '', returnNo: '',
     status: '待商家处理' as const, note: '', createdAt: 0, updatedAt: 0,
     ...EMPTY_CUSTOMER,
+    ...EMPTY_AFTERSALE,
     ...over,
   }
 }
