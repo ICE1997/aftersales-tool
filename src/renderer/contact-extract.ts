@@ -49,7 +49,7 @@ export function extractContact(text: string): ExtractedContact {
   const lines = text.split(/\r?\n/).map((l) => stripLabel(stripBrackets(l))).filter((l) => l.length > 0)
 
   // 1) phone (+ optional extension)
-  const phoneRe = /(1[3-9]\d{9})(?:\s*(?:转|分机|ext\.?|[,，\-/])\s*(\d{1,6}))?/i
+  const phoneRe = /(?<!\d)(1[3-9]\d{9})(?:\s*(?:转|分机|ext\.?|[,，])\s*(\d{1,6}))?/i
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(phoneRe)
     if (!m) continue
@@ -74,7 +74,7 @@ export function extractContact(text: string): ExtractedContact {
     out.provinceCode = provHit.region.code
     out.province = provHit.region.name
 
-    const cities = childrenOf(provHit.region.code)
+    const cities = childrenOf(provHit.region.code).filter((c) => c.name.length > 1)
     const cityHit = findRegion(rest, cities)
     let city: Region | undefined = cityHit?.region
     if (cityHit) rest = cut(rest, cityHit.index, cityHit.region.name.length)

@@ -50,4 +50,24 @@ describe('extractContact', () => {
     expect(r.phone).toBe('')
     expect(r.province).toBe('')
   })
+
+  it('does not treat a hyphenated building number as an extension', () => {
+    const r = extractContact('王五\n13800138000-1栋303室\n广东省广州市天河区珠江新城')
+    expect(r.phone).toBe('13800138000')
+    expect(r.extension).toBe('')
+    expect(r.province).toBe('广东省')
+    expect(r.city).toBe('广州市')
+    expect(r.district).toBe('天河区')
+  })
+
+  it('does not pull a phone out of a longer digit run', () => {
+    expect(extractContact('213800138000').phone).toBe('')
+  })
+
+  it('does not false-match the single-char 县 proxy as a city (Chongqing county)', () => {
+    const r = extractContact('重庆市城口县新城街道1号')
+    expect(r.province).toBe('重庆市')
+    expect(r.city).not.toBe('县')
+    expect(r.addressDetail).toContain('城口县')
+  })
 })
