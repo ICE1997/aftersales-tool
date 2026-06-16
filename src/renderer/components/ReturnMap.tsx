@@ -68,7 +68,7 @@ export function ReturnMap() {
         chartRef.current.setOption({
           tooltip: { trigger: 'item', formatter: (p: { name?: string; value?: number }) => `${p.name}:${p.value || 0} 单` },
           visualMap: { min: 0, max: Math.max(1, max), inRange: { color: ['#f6e9e2', '#bd4f2a'] }, left: 8, bottom: 8 },
-          series: [{ type: 'map', map: current.adcode, data: rows, label: { show: false } }]
+          series: [{ type: 'map', map: current.adcode, roam: true, data: rows, label: { show: false } }]
         }, true)
         chartRef.current.resize()
         setStatus('ready')
