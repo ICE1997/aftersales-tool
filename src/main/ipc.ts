@@ -16,7 +16,9 @@ import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
 import { safeDir } from './services/paths'
 
-import type { Ticket } from '../shared/types'
+import { parseXlsx } from './services/ticket-importer'
+import { mapRows } from './services/ticket-import-map'
+import type { Ticket, ImportTicketsResult } from '../shared/types'
 
 // Open a URL in Google Chrome specifically, falling back to the default
 // browser if Chrome is not installed / cannot be launched.
@@ -58,6 +60,25 @@ export function registerIpc(): void {
   ipcMain.handle('tickets:get', (_e, no: string) => tickets.get(no))
   ipcMain.handle('tickets:create', (_e, t: NewTicket) => tickets.create(t))
   ipcMain.handle('tickets:update', (_e, no: string, patch: Partial<Ticket>) => tickets.update(no, patch))
+
+  ipcMain.handle('tickets:import', async (): Promise<ImportTicketsResult | null> => {
+    const r = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'Excel 工作簿', extensions: ['xlsx'] }]
+    })
+    if (r.canceled || r.filePaths.length === 0) return null
+    const mapped = mapRows(parseXlsx(r.filePaths[0]))
+    if (mapped.missingRequiredHeader) throw new Error('模板不正确:缺少「售后编号」列')
+    const existing = tickets.existingNos(mapped.tickets.map((t) => t.aftersaleNo))
+    const toInsert = mapped.tickets.filter((t) => !existing.has(t.aftersaleNo))
+    tickets.createMany(toInsert)
+    return {
+      imported: toInsert.length,
+      skippedExisting: mapped.tickets.length - toInsert.length,
+      duplicatedInFile: mapped.duplicatedInFile,
+      failed: mapped.failed
+    }
+  })
 
   ipcMain.handle('tickets:delete', (_e, no: string) => {
     // Remove on-disk thumbnails for this ticket's materials, then the ticket folder, then DB rows

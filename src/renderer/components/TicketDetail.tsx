@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { Material, Ticket, TicketStatus, CustomerFields } from '@shared/types'
+import type { Material, Ticket, TicketStatus, CustomerFields, AftersaleFields } from '@shared/types'
 import { api } from '../api'
 import { STATUS_META, STATUS_ORDER } from '../status'
 import { MaterialGrid } from './MaterialGrid'
@@ -8,6 +8,7 @@ import { NewMaterialDialog } from './NewMaterialDialog'
 import { RegionCascader, type RegionValue } from './RegionCascader'
 import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
+import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
 
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
   const [ticket, setTicket] = useState<Ticket | undefined>()
@@ -20,10 +21,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields>({
+  const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields & AftersaleFields>({
     orderNo: '', shippingNo: '', returnNo: '',
     recipientName: '', phone: '', provinceCode: '', province: '',
-    cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
+    cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: '',
+    aftersaleType: '', aftersaleReason: '', shippingStatus: '',
+    amount: '', refundAmount: '', appliedAt: '', returnLogistics: ''
   })
   const currentNo = useRef(aftersaleNo)
 
@@ -41,7 +44,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   if (!ticket) return null
   const ids = () => [...selected]
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
-  const meta = STATUS_META[ticket.status]
+  const meta = STATUS_META[ticket.status] ?? STATUS_META['待商家处理']
 
   async function exportFolder() {
     try { const ok = await api.exportFolder(ids()); setMsg(ok ? '已导出到文件夹' : null) }
@@ -92,7 +95,9 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       orderNo: ticket.orderNo, shippingNo: ticket.shippingNo, returnNo: ticket.returnNo,
       recipientName: ticket.recipientName, phone: ticket.phone,
       provinceCode: ticket.provinceCode, province: ticket.province, cityCode: ticket.cityCode, city: ticket.city,
-      districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail, extension: ticket.extension
+      districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail, extension: ticket.extension,
+      aftersaleType: ticket.aftersaleType, aftersaleReason: ticket.aftersaleReason, shippingStatus: ticket.shippingStatus,
+      amount: ticket.amount, refundAmount: ticket.refundAmount, appliedAt: ticket.appliedAt, returnLogistics: ticket.returnLogistics
     })
     setEditing(true)
   }
@@ -210,6 +215,51 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               {editing
                 ? <input className="field tnum py-1.5" value={form.returnNo} onChange={(e) => setForm((f) => ({ ...f, returnNo: e.target.value }))} placeholder="未填写" />
                 : <Value v={ticket.returnNo} />}
+            </InfoRow>
+            <div className="h-px bg-line" />
+            <InfoRow label="售后类型">
+              {editing
+                ? <select className="field py-1.5" value={form.aftersaleType} onChange={(e) => setForm((f) => ({ ...f, aftersaleType: e.target.value }))}>
+                    <option value="">未选择</option>
+                    {withCurrent(TYPE_OPTIONS, form.aftersaleType).map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                : <Value v={ticket.aftersaleType} />}
+            </InfoRow>
+            <InfoRow label="售后原因">
+              {editing
+                ? <select className="field py-1.5" value={form.aftersaleReason} onChange={(e) => setForm((f) => ({ ...f, aftersaleReason: e.target.value }))}>
+                    <option value="">未选择</option>
+                    {withCurrent(REASON_OPTIONS, form.aftersaleReason).map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                : <Value v={ticket.aftersaleReason} />}
+            </InfoRow>
+            <InfoRow label="发货状态">
+              {editing
+                ? <select className="field py-1.5" value={form.shippingStatus} onChange={(e) => setForm((f) => ({ ...f, shippingStatus: e.target.value }))}>
+                    <option value="">未选择</option>
+                    {withCurrent(SHIPPING_OPTIONS, form.shippingStatus).map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                : <Value v={ticket.shippingStatus} />}
+            </InfoRow>
+            <InfoRow label="交易金额">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.amount} />}
+            </InfoRow>
+            <InfoRow label="退款金额">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.refundAmount} onChange={(e) => setForm((f) => ({ ...f, refundAmount: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.refundAmount} />}
+            </InfoRow>
+            <InfoRow label="申请时间">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.appliedAt} onChange={(e) => setForm((f) => ({ ...f, appliedAt: e.target.value }))} placeholder="YYYY-MM-DD HH:mm:ss" />
+                : <Value v={ticket.appliedAt} />}
+            </InfoRow>
+            <InfoRow label="退货物流状态">
+              {editing
+                ? <input className="field py-1.5" value={form.returnLogistics} onChange={(e) => setForm((f) => ({ ...f, returnLogistics: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.returnLogistics} />}
             </InfoRow>
           </dl>
         </aside>

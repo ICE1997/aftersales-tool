@@ -1,5 +1,5 @@
 import type { Database } from 'better-sqlite3'
-import type { Ticket, NewTicket, CustomerFields } from '../../shared/types'
+import type { Ticket, NewTicket, CustomerFields, AftersaleFields } from '../../shared/types'
 
 export type { NewTicket }
 
@@ -9,18 +9,27 @@ const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS sh
   return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt,
   recipient_name AS recipientName, phone,
   province_code AS provinceCode, province, city_code AS cityCode, city,
-  district_code AS districtCode, district, address_detail AS addressDetail, extension`
+  district_code AS districtCode, district, address_detail AS addressDetail, extension,
+  aftersale_type AS aftersaleType, aftersale_reason AS aftersaleReason, shipping_status AS shippingStatus,
+  amount, refund_amount AS refundAmount, applied_at AS appliedAt, return_logistics AS returnLogistics`
 
 // Table-qualified version for JOIN queries to avoid ambiguous column names
 const TROW = `tickets.aftersale_no AS aftersaleNo, tickets.order_no AS orderNo, tickets.shipping_no AS shippingNo,
   tickets.return_no AS returnNo, tickets.status, tickets.note, tickets.created_at AS createdAt, tickets.updated_at AS updatedAt,
   tickets.recipient_name AS recipientName, tickets.phone,
   tickets.province_code AS provinceCode, tickets.province, tickets.city_code AS cityCode, tickets.city,
-  tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail, tickets.extension`
+  tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail, tickets.extension,
+  tickets.aftersale_type AS aftersaleType, tickets.aftersale_reason AS aftersaleReason, tickets.shipping_status AS shippingStatus,
+  tickets.amount, tickets.refund_amount AS refundAmount, tickets.applied_at AS appliedAt, tickets.return_logistics AS returnLogistics`
 
 const EMPTY_CUSTOMER: CustomerFields = {
   recipientName: '', phone: '', provinceCode: '', province: '',
   cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
+}
+
+const EMPTY_AFTERSALE: AftersaleFields = {
+  aftersaleType: '', aftersaleReason: '', shippingStatus: '',
+  amount: '', refundAmount: '', appliedAt: '', returnLogistics: ''
 }
 
 interface FtsRow {
@@ -37,13 +46,15 @@ export class TicketRepo {
 
   create(t: NewTicket): void {
     const ts = this.now()
-    const row = { ...EMPTY_CUSTOMER, ...t, ts }
+    const row = { ...EMPTY_CUSTOMER, ...EMPTY_AFTERSALE, ...t, status: t.status || '待商家处理', ts }
     const tx = this.db.transaction(() => {
       this.db.prepare(
         `INSERT INTO tickets (aftersale_no, order_no, shipping_no, return_no, status, note, created_at, updated_at,
-           recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail, extension)
-         VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, 'pending', @note, @ts, @ts,
-           @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail, @extension)`
+           recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail, extension,
+           aftersale_type, aftersale_reason, shipping_status, amount, refund_amount, applied_at, return_logistics)
+         VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, @status, @note, @ts, @ts,
+           @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail, @extension,
+           @aftersaleType, @aftersaleReason, @shippingStatus, @amount, @refundAmount, @appliedAt, @returnLogistics)`
       ).run(row)
       this.ftsInsert(t.aftersaleNo)
     })
@@ -52,7 +63,7 @@ export class TicketRepo {
 
   update(
     aftersaleNo: string,
-    patch: Partial<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo' | 'status' | 'note'> & CustomerFields>
+    patch: Partial<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo' | 'status' | 'note'> & CustomerFields & AftersaleFields>
   ): void {
     const cur = this.get(aftersaleNo)
     if (!cur) return
@@ -64,10 +75,32 @@ export class TicketRepo {
          status=@status, note=@note, updated_at=@updatedAt,
          recipient_name=@recipientName, phone=@phone,
          province_code=@provinceCode, province=@province, city_code=@cityCode, city=@city,
-         district_code=@districtCode, district=@district, address_detail=@addressDetail, extension=@extension
+         district_code=@districtCode, district=@district, address_detail=@addressDetail, extension=@extension,
+         aftersale_type=@aftersaleType, aftersale_reason=@aftersaleReason, shipping_status=@shippingStatus,
+         amount=@amount, refund_amount=@refundAmount, applied_at=@appliedAt, return_logistics=@returnLogistics
          WHERE aftersale_no=@aftersaleNo`
       ).run(next as any)
       this.ftsInsert(aftersaleNo)
+    })
+    tx()
+  }
+
+  existingNos(nos: string[]): Set<string> {
+    const found = new Set<string>()
+    const CHUNK = 500
+    for (let i = 0; i < nos.length; i += CHUNK) {
+      const slice = nos.slice(i, i + CHUNK)
+      if (slice.length === 0) continue
+      const ph = slice.map(() => '?').join(',')
+      const rows = this.db.prepare(`SELECT aftersale_no AS no FROM tickets WHERE aftersale_no IN (${ph})`).all(...slice) as { no: string }[]
+      for (const r of rows) found.add(r.no)
+    }
+    return found
+  }
+
+  createMany(tickets: NewTicket[]): void {
+    const tx = this.db.transaction(() => {
+      for (const t of tickets) this.create(t)
     })
     tx()
   }

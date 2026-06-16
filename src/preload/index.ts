@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary } from '../shared/types'
+import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary, ImportTicketsResult } from '../shared/types'
 
 const api = {
   listTickets: (): Promise<Ticket[]> => ipcRenderer.invoke('tickets:list'),
@@ -7,6 +7,7 @@ const api = {
   getTicket: (no: string): Promise<Ticket | undefined> => ipcRenderer.invoke('tickets:get', no),
   createTicket: (t: NewTicket): Promise<void> => ipcRenderer.invoke('tickets:create', t),
   updateTicket: (no: string, patch: Partial<Ticket>): Promise<void> => ipcRenderer.invoke('tickets:update', no, patch),
+  importTickets: (): Promise<ImportTicketsResult | null> => ipcRenderer.invoke('tickets:import'),
   deleteTicket: (no: string): Promise<void> => ipcRenderer.invoke('tickets:delete', no),
   listMaterials: (no: string): Promise<Material[]> => ipcRenderer.invoke('materials:list', no),
   removeMaterial: (id: number): Promise<void> => ipcRenderer.invoke('materials:remove', id),

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { Database } from 'better-sqlite3'
-import { createDatabase } from '../../src/main/db/database'
+import { createDatabase, migrateLegacyStatuses } from '../../src/main/db/database'
 import { TicketRepo } from '../../src/main/db/tickets'
 
 let db: Database
@@ -16,15 +16,15 @@ describe('TicketRepo', () => {
     repo.create({ aftersaleNo: 'AS-1', orderNo: 'O-9', shippingNo: '', returnNo: '', note: '' })
     const t = repo.get('AS-1')
     expect(t?.orderNo).toBe('O-9')
-    expect(t?.status).toBe('pending')
+    expect(t?.status).toBe('待商家处理')
     expect(t?.createdAt).toBe(1000)
   })
 
   it('updates fields and bumps updatedAt', () => {
     repo.create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
-    repo.update('AS-1', { status: 'resolved', note: 'done' })
+    repo.update('AS-1', { status: '退款成功', note: 'done' })
     const t = repo.get('AS-1')
-    expect(t?.status).toBe('resolved')
+    expect(t?.status).toBe('退款成功')
     expect(t?.note).toBe('done')
   })
 
@@ -109,5 +109,63 @@ describe('TicketRepo', () => {
   it('defaults extension to empty when omitted', () => {
     repo.create({ aftersaleNo: 'AS-Y', orderNo: '', shippingNo: '', returnNo: '', note: '' })
     expect(repo.get('AS-Y')!.extension).toBe('')
+  })
+
+  it('stores and reads the new aftersale fields', () => {
+    repo.create({
+      aftersaleNo: 'AS-AF', orderNo: '', shippingNo: '', returnNo: '', note: '',
+      status: '退款成功', aftersaleType: '退款退货', aftersaleReason: '质量问题',
+      shippingStatus: '已发货', amount: '24.99', refundAmount: '24.99',
+      appliedAt: '2026-05-28 14:27:38', returnLogistics: '签收',
+    })
+    const t = repo.get('AS-AF')!
+    expect(t.status).toBe('退款成功')
+    expect(t.aftersaleType).toBe('退款退货')
+    expect(t.aftersaleReason).toBe('质量问题')
+    expect(t.shippingStatus).toBe('已发货')
+    expect(t.amount).toBe('24.99')
+    expect(t.refundAmount).toBe('24.99')
+    expect(t.appliedAt).toBe('2026-05-28 14:27:38')
+    expect(t.returnLogistics).toBe('签收')
+  })
+
+  it('defaults status to 待商家处理 when not provided', () => {
+    repo.create({ aftersaleNo: 'AS-D', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    expect(repo.get('AS-D')!.status).toBe('待商家处理')
+  })
+
+  it('existingNos returns only the ones already in the DB', () => {
+    repo.create({ aftersaleNo: 'E1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    repo.create({ aftersaleNo: 'E2', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    const found = repo.existingNos(['E1', 'E3', 'E2'])
+    expect([...found].sort()).toEqual(['E1', 'E2'])
+  })
+
+  it('createMany bulk-inserts and keeps them searchable', () => {
+    repo.createMany([
+      { aftersaleNo: 'M1', orderNo: 'OM1', shippingNo: '', returnNo: '', note: '' },
+      { aftersaleNo: 'M2', orderNo: 'OM2', shippingNo: '', returnNo: '', note: '' },
+    ])
+    expect(repo.list().length).toBe(2)
+    expect(repo.search('OM1').map((t) => t.aftersaleNo)).toContain('M1')
+  })
+
+  it('update() round-trips a new aftersale field', () => {
+    repo.create({ aftersaleNo: 'UPD-AF', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    repo.update('UPD-AF', { aftersaleType: '换货', returnLogistics: '签收' })
+    const t = repo.get('UPD-AF')!
+    expect(t.aftersaleType).toBe('换货')
+    expect(t.returnLogistics).toBe('签收')
+  })
+
+  it('migrates legacy status values once and idempotently', () => {
+    // simulate a legacy row by writing the old value directly
+    repo.create({ aftersaleNo: 'L1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    db.prepare("UPDATE tickets SET status='resolved' WHERE aftersale_no='L1'").run()
+    // re-run the migration (imported at top from database.ts)
+    migrateLegacyStatuses(db)
+    expect(repo.get('L1')!.status).toBe('退款成功')
+    migrateLegacyStatuses(db) // idempotent
+    expect(repo.get('L1')!.status).toBe('退款成功')
   })
 })

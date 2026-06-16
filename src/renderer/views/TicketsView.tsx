@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { NewTicket, Ticket } from '@shared/types'
+import type { ImportTicketsResult } from '@shared/types'
 import { api } from '../api'
 import { SearchBar } from '../components/SearchBar'
 import { TicketTable } from '../components/TicketTable'
 import { TicketDetail } from '../components/TicketDetail'
 import { NewTicketDialog } from '../components/NewTicketDialog'
+import { ImportResultDialog } from '../components/ImportResultDialog'
 import { IconClose } from '../components/icons'
 
 export function TicketsView() {
@@ -14,6 +16,7 @@ export function TicketsView() {
   const [newOpen, setNewOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [importResult, setImportResult] = useState<ImportTicketsResult | null>(null)
 
   async function load(q = query) { setTickets(q ? await api.searchTickets(q) : await api.listTickets()) }
   useEffect(() => { load('') }, [])
@@ -23,6 +26,13 @@ export function TicketsView() {
   async function createTicket(t: NewTicket) {
     try { await api.createTicket(t); setNewOpen(false); setError(null); await load() }
     catch (e) { setError(`创建失败:${(e as Error).message}`) }
+  }
+
+  async function importTickets() {
+    try {
+      const r = await api.importTickets()
+      if (r) { setImportResult(r); setError(null); await load() }
+    } catch (e) { setError(`导入失败:${(e as Error).message}`) }
   }
 
   return (
@@ -46,11 +56,12 @@ export function TicketsView() {
         <>
           <div className="border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
           <div className="flex-1 overflow-auto">
-            <TicketTable tickets={tickets} query={query} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} />
+            <TicketTable tickets={tickets} query={query} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
           </div>
         </>
       )}
       <NewTicketDialog open={newOpen} onCreate={createTicket} onCancel={() => setNewOpen(false)} />
+      <ImportResultDialog result={importResult} onClose={() => setImportResult(null)} />
     </div>
   )
 }
