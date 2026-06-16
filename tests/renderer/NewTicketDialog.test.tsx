@@ -25,7 +25,6 @@ describe('NewTicketDialog', () => {
     const onCreate = vi.fn()
     render(<NewTicketDialog open onCreate={onCreate} onCancel={() => {}} />)
     fireEvent.change(screen.getByPlaceholderText('必填'), { target: { value: 'AS-9' } })
-    fireEvent.change(screen.getByPlaceholderText('买家昵称'), { target: { value: '小明' } })
     fireEvent.change(screen.getByLabelText('收货人姓名'), { target: { value: '张三' } })
     fireEvent.change(screen.getByLabelText('手机号'), { target: { value: '13800' } })
     fireEvent.change(screen.getByPlaceholderText('街道门牌等'), { target: { value: '科技园1号' } })
@@ -35,7 +34,7 @@ describe('NewTicketDialog', () => {
     fireEvent.change(prov, { target: { value: code } })
     fireEvent.click(screen.getByText('创建'))
     expect(onCreate).toHaveBeenCalledWith(expect.objectContaining({
-      aftersaleNo: 'AS-9', nickname: '小明', recipientName: '张三', phone: '13800',
+      aftersaleNo: 'AS-9', recipientName: '张三', phone: '13800',
       addressDetail: '科技园1号', provinceCode: code
     }))
     const payload = onCreate.mock.calls.at(-1)![0] as Record<string, string>

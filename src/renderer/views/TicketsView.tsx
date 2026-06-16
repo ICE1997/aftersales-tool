@@ -7,7 +7,7 @@ import { TicketDetail } from '../components/TicketDetail'
 import { NewTicketDialog } from '../components/NewTicketDialog'
 import { IconClose } from '../components/icons'
 
-export function TicketsView({ jumpTo, onJumpHandled }: { jumpTo?: string; onJumpHandled: () => void }) {
+export function TicketsView() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [view, setView] = useState<'list' | 'detail'>('list')
   const [selected, setSelected] = useState<string | undefined>()
@@ -17,10 +17,6 @@ export function TicketsView({ jumpTo, onJumpHandled }: { jumpTo?: string; onJump
 
   async function load(q = query) { setTickets(q ? await api.searchTickets(q) : await api.listTickets()) }
   useEffect(() => { load('') }, [])
-
-  useEffect(() => {
-    if (jumpTo) { setSelected(jumpTo); setView('detail'); onJumpHandled() }
-  }, [jumpTo])
 
   function onSearch(q: string) { setQuery(q); load(q) }
 

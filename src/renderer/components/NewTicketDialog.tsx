@@ -10,7 +10,6 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
   const [orderNo, setOrderNo] = useState('')
   const [shippingNo, setShippingNo] = useState('')
   const [returnNo, setReturnNo] = useState('')
-  const [nickname, setNickname] = useState('')
   const [recipientName, setRecipientName] = useState('')
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState<RegionValue>(EMPTY_REGION)
@@ -19,14 +18,14 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
   if (!open) return null
   const reset = () => {
     setAftersaleNo(''); setOrderNo(''); setShippingNo(''); setReturnNo('')
-    setNickname(''); setRecipientName(''); setPhone(''); setRegion(EMPTY_REGION); setAddressDetail('')
+    setRecipientName(''); setPhone(''); setRegion(EMPTY_REGION); setAddressDetail('')
   }
   const submit = () => {
     const no = aftersaleNo.trim()
     if (!no) return
     onCreate({
       aftersaleNo: no, orderNo: orderNo.trim(), shippingNo: shippingNo.trim(), returnNo: returnNo.trim(), note: '',
-      nickname: nickname.trim(), recipientName: recipientName.trim(), phone: phone.trim(),
+      recipientName: recipientName.trim(), phone: phone.trim(),
       ...region, addressDetail: addressDetail.trim()
     })
     reset()
@@ -59,10 +58,6 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
           </label>
 
           <div className="border-t border-line pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted">客户信息(选填)</div>
-          <label className="block">
-            <span className="mb-1 block text-[12px] font-medium text-ink-soft">昵称</span>
-            <input className="field" value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="买家昵称" />
-          </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">收货人姓名</span>

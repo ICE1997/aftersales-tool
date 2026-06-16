@@ -20,7 +20,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields>({
     orderNo: '', shippingNo: '', returnNo: '',
-    nickname: '', recipientName: '', phone: '', provinceCode: '', province: '',
+    recipientName: '', phone: '', provinceCode: '', province: '',
     cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
   })
   const currentNo = useRef(aftersaleNo)
@@ -67,7 +67,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     if (!ticket) return
     setForm({
       orderNo: ticket.orderNo, shippingNo: ticket.shippingNo, returnNo: ticket.returnNo,
-      nickname: ticket.nickname, recipientName: ticket.recipientName, phone: ticket.phone,
+      recipientName: ticket.recipientName, phone: ticket.phone,
       provinceCode: ticket.provinceCode, province: ticket.province, cityCode: ticket.cityCode, city: ticket.city,
       districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail
     })
@@ -148,11 +148,6 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             )}
           </div>
           <dl className="mt-4 space-y-4">
-            <InfoRow label="昵称">
-              {editing
-                ? <input className="field py-1.5" value={form.nickname} onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value }))} placeholder="买家昵称" />
-                : <Value v={ticket.nickname} />}
-            </InfoRow>
             <InfoRow label="收货人姓名">
               {editing
                 ? <input className="field py-1.5" value={form.recipientName} onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))} placeholder="未填写" />
