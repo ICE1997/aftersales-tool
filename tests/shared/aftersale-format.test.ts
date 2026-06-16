@@ -47,4 +47,9 @@ describe('datetime helpers', () => {
     expect(msToLocalInput(null)).toBe('')
     expect(localInputToMs('')).toBeNull()
   })
+  it('localInputToMs strips an optional fractional-seconds suffix', () => {
+    const base = localInputToMs('2026-05-28T14:27:38')
+    expect(localInputToMs('2026-05-28T14:27:38.000')).toBe(base)
+    expect(localInputToMs('2026-05-28T14:27:38.123')).toBe(base)
+  })
 })
