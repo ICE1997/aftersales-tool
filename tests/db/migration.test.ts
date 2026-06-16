@@ -64,6 +64,15 @@ describe('migrate (legacy customers → embedded ticket fields)', () => {
     expect(tableExists(db, 'customers')).toBe(false)
   })
 
+  it('makes backfilled customer info searchable via FTS', () => {
+    const db = legacyDb()
+    migrate(db)
+    const rows = db.prepare(
+      `SELECT t.aftersale_no AS no FROM tickets_fts f JOIN tickets t ON t.rowid = f.rowid WHERE tickets_fts MATCH ?`
+    ).all('"小明"*') as { no: string }[]
+    expect(rows.map((r) => r.no)).toContain('AS-1')
+  })
+
   it('leaves a fresh db (no customers table) untouched', () => {
     const db = new Database(':memory:')
     expect(() => migrate(db)).not.toThrow()

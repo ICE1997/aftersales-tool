@@ -109,6 +109,7 @@ function migrateLegacyCustomers(db: DB): void {
       db.exec('DROP INDEX IF EXISTS idx_tickets_customer')
       db.exec('ALTER TABLE tickets DROP COLUMN customer_id')
     }
+    db.exec('DROP TABLE IF EXISTS tickets_fts')
     db.exec('DROP TABLE IF EXISTS customers')
   })
   tx()
