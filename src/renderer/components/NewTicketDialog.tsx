@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import type { NewTicket } from '@shared/types'
+import type { NewTicket, TicketStatus } from '@shared/types'
+import { STATUS_ORDER } from '../status'
+import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS } from '../aftersale-options'
 import { IconClose } from './icons'
 import { RegionCascader, EMPTY_REGION, type RegionValue } from './RegionCascader'
 import { extractContact } from '../contact-extract'
@@ -17,18 +19,31 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
   const [addressDetail, setAddressDetail] = useState('')
   const [extension, setExtension] = useState('')
   const [pasteText, setPasteText] = useState('')
+  const [status, setStatus] = useState<TicketStatus>('待商家处理')
+  const [aftersaleType, setAftersaleType] = useState('')
+  const [aftersaleReason, setAftersaleReason] = useState('')
+  const [shippingStatus, setShippingStatus] = useState('')
+  const [amount, setAmount] = useState('')
+  const [refundAmount, setRefundAmount] = useState('')
+  const [appliedAt, setAppliedAt] = useState('')
+  const [returnLogistics, setReturnLogistics] = useState('')
 
   if (!open) return null
   const reset = () => {
     setAftersaleNo(''); setOrderNo(''); setShippingNo(''); setReturnNo('')
     setRecipientName(''); setPhone(''); setRegion(EMPTY_REGION); setAddressDetail('')
     setExtension(''); setPasteText('')
+    setStatus('待商家处理'); setAftersaleType(''); setAftersaleReason(''); setShippingStatus('')
+    setAmount(''); setRefundAmount(''); setAppliedAt(''); setReturnLogistics('')
   }
   const submit = () => {
     const no = aftersaleNo.trim()
     if (!no) return
     onCreate({
       aftersaleNo: no, orderNo: orderNo.trim(), shippingNo: shippingNo.trim(), returnNo: returnNo.trim(), note: '',
+      status,
+      aftersaleType, aftersaleReason, shippingStatus,
+      amount: amount.trim(), refundAmount: refundAmount.trim(), appliedAt: appliedAt.trim(), returnLogistics: returnLogistics.trim(),
       recipientName: recipientName.trim(), phone: phone.trim(), extension: extension.trim(),
       ...region, addressDetail: addressDetail.trim()
     })
@@ -71,6 +86,53 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
             <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货快递单号</span>
             <input className="field tnum" value={returnNo} onChange={(e) => setReturnNo(e.target.value)} />
           </label>
+
+          <div className="border-t border-line pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted">售后信息</div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">售后状态</span>
+              <select aria-label="售后状态" className="field" value={status} onChange={(e) => setStatus(e.target.value as TicketStatus)}>
+                {STATUS_ORDER.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">售后类型</span>
+              <select aria-label="售后类型" className="field" value={aftersaleType} onChange={(e) => setAftersaleType(e.target.value)}>
+                <option value="">未选择</option>
+                {TYPE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">售后原因</span>
+              <select aria-label="售后原因" className="field" value={aftersaleReason} onChange={(e) => setAftersaleReason(e.target.value)}>
+                <option value="">未选择</option>
+                {REASON_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">发货状态</span>
+              <select aria-label="发货状态" className="field" value={shippingStatus} onChange={(e) => setShippingStatus(e.target.value)}>
+                <option value="">未选择</option>
+                {SHIPPING_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">交易金额</span>
+              <input aria-label="交易金额" className="field tnum" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">退款金额</span>
+              <input aria-label="退款金额" className="field tnum" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">申请时间</span>
+              <input aria-label="申请时间" className="field tnum" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} placeholder="YYYY-MM-DD HH:mm:ss" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货物流状态</span>
+              <input aria-label="退货物流状态" className="field" value={returnLogistics} onChange={(e) => setReturnLogistics(e.target.value)} />
+            </label>
+          </div>
 
           <div className="border-t border-line pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted">客户信息(选填)</div>
           <div>

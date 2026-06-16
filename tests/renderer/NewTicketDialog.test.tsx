@@ -29,7 +29,8 @@ describe('NewTicketDialog', () => {
     fireEvent.change(screen.getByLabelText('手机号'), { target: { value: '13800' } })
     fireEvent.change(screen.getByPlaceholderText('街道门牌等'), { target: { value: '科技园1号' } })
     // pick the first real province option from the dataset → exercises the RegionCascader → region spread
-    const prov = screen.getAllByRole('combobox')[0] as HTMLSelectElement
+    const prov = (screen.getAllByRole('combobox') as HTMLSelectElement[])
+      .find((s) => Array.from(s.options).some((o) => o.text === '省'))!
     const code = Array.from(prov.options).find((o) => o.value !== '')!.value
     fireEvent.change(prov, { target: { value: code } })
     fireEvent.click(screen.getByText('创建'))
@@ -54,5 +55,29 @@ describe('NewTicketDialog', () => {
       aftersaleNo: 'AS-R', recipientName: '程玲', phone: '19592642954',
       province: '江苏省', city: '苏州市', district: '虎丘区', addressDetail: '龙湖时代100 8栋2207'
     }))
+  })
+
+  it('submits status + aftersale fields', () => {
+    const onCreate = vi.fn()
+    render(<NewTicketDialog open onCreate={onCreate} onCancel={() => {}} />)
+    fireEvent.change(screen.getByPlaceholderText('必填'), { target: { value: 'AS-NEW' } })
+    fireEvent.change(screen.getByLabelText('售后状态'), { target: { value: '退款成功' } })
+    fireEvent.change(screen.getByLabelText('售后类型'), { target: { value: '换货' } })
+    fireEvent.change(screen.getByLabelText('交易金额'), { target: { value: '24.99' } })
+    fireEvent.click(screen.getByText('创建'))
+    expect(onCreate).toHaveBeenCalledTimes(1)
+    const arg = onCreate.mock.calls[0][0]
+    expect(arg.aftersaleNo).toBe('AS-NEW')
+    expect(arg.status).toBe('退款成功')
+    expect(arg.aftersaleType).toBe('换货')
+    expect(arg.amount).toBe('24.99')
+  })
+
+  it('defaults status to 待商家处理', () => {
+    const onCreate = vi.fn()
+    render(<NewTicketDialog open onCreate={onCreate} onCancel={() => {}} />)
+    fireEvent.change(screen.getByPlaceholderText('必填'), { target: { value: 'AS-D' } })
+    fireEvent.click(screen.getByText('创建'))
+    expect(onCreate.mock.calls[0][0].status).toBe('待商家处理')
   })
 })
