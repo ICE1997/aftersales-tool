@@ -1,6 +1,7 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
 import { join, basename, extname } from 'node:path'
 import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { mediaUrl } from './media-url'
 import { handleMediaProtocol } from './media-protocol'
 import { createDatabase } from './db/database'
@@ -16,6 +17,25 @@ import { Scanner } from './services/scanner'
 import { safeDir } from './services/paths'
 
 import type { Ticket } from '../shared/types'
+
+// Open a URL in Google Chrome specifically, falling back to the default
+// browser if Chrome is not installed / cannot be launched.
+function openInChrome(url: string): void {
+  const fallback = () => { void shell.openExternal(url) }
+  try {
+    const child =
+      process.platform === 'darwin'
+        ? spawn('open', ['-a', 'Google Chrome', url], { stdio: 'ignore', detached: true })
+        : process.platform === 'win32'
+          ? spawn('cmd', ['/c', 'start', '', 'chrome', url], { stdio: 'ignore', detached: true, windowsHide: true })
+          : spawn('google-chrome', [url], { stdio: 'ignore', detached: true })
+    child.on('error', fallback)
+    child.on('exit', (code) => { if (code) fallback() })
+    child.unref()
+  } catch {
+    fallback()
+  }
+}
 
 export function registerIpc(): void {
   const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'vhelper-data'))
@@ -117,7 +137,7 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('shell:showItem', (_e, relPath: string) => shell.showItemInFolder(join(dataRoot, relPath)))
-  ipcMain.handle('shell:openExternal', (_e, url: string) => {
-    if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
+  ipcMain.handle('shell:openChrome', (_e, url: string) => {
+    if (/^https?:\/\//i.test(url)) openInChrome(url)
   })
 }

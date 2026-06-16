@@ -61,7 +61,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     if (!ticket) return
     const params = new URLSearchParams({ id: ticket.aftersaleNo })
     if (ticket.orderNo) params.set('orderSn', ticket.orderNo)
-    api.openExternal(`https://mms.pinduoduo.com/aftersales-ssr/detail?${params}`)
+    api.openInChrome(`https://mms.pinduoduo.com/aftersales-ssr/detail?${params}`)
   }
 
   const customerName = customer ? (customer.name || customer.nickname || '未命名') : ''
