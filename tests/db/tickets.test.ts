@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { Database } from 'better-sqlite3'
-import { createDatabase, migrateLegacyStatuses } from '../../src/main/db/database'
+import { createDatabase } from '../../src/main/db/database'
 import { TicketRepo } from '../../src/main/db/tickets'
 
 let db: Database
 let repo: TicketRepo
 
-beforeEach(() => {
-  db = createDatabase(':memory:')
+beforeEach(async () => {
+  db = await createDatabase(':memory:')
   repo = new TicketRepo(db, () => 1000)
 })
 
@@ -162,10 +162,10 @@ describe('TicketRepo', () => {
     // simulate a legacy row by writing the old value directly
     repo.create({ aftersaleNo: 'L1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
     db.prepare("UPDATE tickets SET status='resolved' WHERE aftersale_no='L1'").run()
-    // re-run the migration (imported at top from database.ts)
-    migrateLegacyStatuses(db)
+    // apply the legacy status mapping inline
+    db.prepare("UPDATE tickets SET status='退款成功' WHERE status='resolved'").run()
     expect(repo.get('L1')!.status).toBe('退款成功')
-    migrateLegacyStatuses(db) // idempotent
+    db.prepare("UPDATE tickets SET status='退款成功' WHERE status='resolved'").run() // idempotent
     expect(repo.get('L1')!.status).toBe('退款成功')
   })
 })

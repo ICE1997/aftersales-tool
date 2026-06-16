@@ -28,9 +28,9 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   try {
-    registerIpc()
+    await registerIpc()
   } catch (e) {
     dialog.showErrorBox('启动失败', `无法初始化数据存储:\n${(e as Error).message}`)
     app.quit()
