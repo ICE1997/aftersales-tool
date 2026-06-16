@@ -30,7 +30,7 @@ function openInChrome(url: string): void {
           ? spawn('cmd', ['/c', 'start', '', 'chrome', url], { stdio: 'ignore', detached: true, windowsHide: true })
           : spawn('google-chrome', [url], { stdio: 'ignore', detached: true })
     child.on('error', fallback)
-    child.on('exit', (code) => { if (code) fallback() })
+    child.on('exit', (code: number | null) => { if (code) fallback() })
     child.unref()
   } catch {
     fallback()
@@ -69,14 +69,9 @@ export function registerIpc(): void {
     return true
   })
 
-  ipcMain.handle('customers:list', () => customerRepo.list())
+  ipcMain.handle('customers:list', () => customerRepo.listByNickname())
   ipcMain.handle('customers:search', (_e, q: string) => customerRepo.search(q))
-  ipcMain.handle('customers:get', (_e, id: number) => customerRepo.get(id))
-  ipcMain.handle('customers:create', (_e, c: import('../shared/types').NewCustomer) => customerRepo.create(c))
-  ipcMain.handle('customers:update', (_e, id: number, patch: Partial<import('../shared/types').NewCustomer>) => customerRepo.update(id, patch))
-  ipcMain.handle('customers:delete', (_e, id: number) => customerRepo.delete(id))
-  ipcMain.handle('customers:ticketsOf', (_e, id: number) => customerRepo.ticketsOf(id))
-  ipcMain.handle('tickets:setCustomer', (_e, no: string, customerId: number | null) => tickets.setCustomer(no, customerId))
+  ipcMain.handle('customers:ticketsOf', (_e, nickname: string) => customerRepo.ticketsOfNickname(nickname))
 
   ipcMain.handle('stats:regionCounts', (_e, level: import('../shared/types').RegionLevel) => statsRepo.regionCounts(level))
   ipcMain.handle('stats:summary', () => statsRepo.summary())

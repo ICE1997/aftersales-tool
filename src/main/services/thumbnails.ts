@@ -36,7 +36,7 @@ export class Thumbnailer {
       if (!ffmpegPath) return resolve(null)
       const proc = spawn(ffmpegPath, ['-y', '-i', absSrc, '-ss', '00:00:01', '-vframes', '1', '-vf', `scale=${SIZE}:-1`, abs], { stdio: ['ignore', 'ignore', 'ignore'] })
       proc.on('error', () => resolve(null))
-      proc.on('close', (code) => resolve(code === 0 ? rel : null))
+      proc.on('close', (code: number | null) => resolve(code === 0 ? rel : null))
     })
   }
 }
