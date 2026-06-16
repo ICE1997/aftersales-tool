@@ -35,6 +35,9 @@
     },
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "artifactName": "aftersales-tool-${version}.${ext}"
     }
   },
   "type": "module",
