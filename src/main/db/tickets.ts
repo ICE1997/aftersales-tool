@@ -7,7 +7,6 @@ type Now = () => number
 
 const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS shippingNo,
   return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt,
-  customer_id AS customerId,
   nickname, recipient_name AS recipientName, phone,
   province_code AS provinceCode, province, city_code AS cityCode, city,
   district_code AS districtCode, district, address_detail AS addressDetail`
@@ -15,7 +14,6 @@ const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS sh
 // Table-qualified version for JOIN queries to avoid ambiguous column names
 const TROW = `tickets.aftersale_no AS aftersaleNo, tickets.order_no AS orderNo, tickets.shipping_no AS shippingNo,
   tickets.return_no AS returnNo, tickets.status, tickets.note, tickets.created_at AS createdAt, tickets.updated_at AS updatedAt,
-  tickets.customer_id AS customerId,
   tickets.nickname, tickets.recipient_name AS recipientName, tickets.phone,
   tickets.province_code AS provinceCode, tickets.province, tickets.city_code AS cityCode, tickets.city,
   tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail`
@@ -72,11 +70,6 @@ export class TicketRepo {
       this.ftsInsert(aftersaleNo)
     })
     tx()
-  }
-
-  setCustomer(aftersaleNo: string, customerId: number | null): void {
-    this.db.prepare('UPDATE tickets SET customer_id = ?, updated_at = ? WHERE aftersale_no = ?')
-      .run(customerId, this.now(), aftersaleNo)
   }
 
   delete(aftersaleNo: string): void {

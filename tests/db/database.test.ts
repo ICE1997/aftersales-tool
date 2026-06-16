@@ -47,15 +47,14 @@ describe('materials.name column', () => {
   })
 })
 
-describe('customers schema', () => {
-  it('creates the customers table on a fresh db', () => {
+describe('embedded customer columns', () => {
+  it('a fresh db has no customers table and tickets carries customer columns', () => {
     const db = createDatabase(':memory:')
     const names = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name)
-    expect(names).toContain('customers')
-  })
-  it('tickets has a customer_id column', () => {
-    const db = createDatabase(':memory:')
+    expect(names).not.toContain('customers')
     const cols = (db.prepare('PRAGMA table_info(tickets)').all() as { name: string }[]).map((c) => c.name)
-    expect(cols).toContain('customer_id')
+    expect(cols).toContain('nickname')
+    expect(cols).toContain('recipient_name')
+    expect(cols).not.toContain('customer_id')
   })
 })

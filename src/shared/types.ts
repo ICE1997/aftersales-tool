@@ -31,7 +31,6 @@ export type Ticket = {
   note: string
   createdAt: number
   updatedAt: number
-  customerId: number | null
 } & CustomerFields
 
 export interface CustomerSummary {

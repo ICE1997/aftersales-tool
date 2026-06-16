@@ -54,25 +54,10 @@ export function migrate(db: DB): void {
       content='tickets', content_rowid='rowid'
     );
 
-    CREATE TABLE IF NOT EXISTS customers (
-      id             INTEGER PRIMARY KEY AUTOINCREMENT,
-      nickname       TEXT NOT NULL DEFAULT '',
-      name           TEXT NOT NULL DEFAULT '',
-      province_code  TEXT NOT NULL DEFAULT '',
-      province       TEXT NOT NULL DEFAULT '',
-      city_code      TEXT NOT NULL DEFAULT '',
-      city           TEXT NOT NULL DEFAULT '',
-      district_code  TEXT NOT NULL DEFAULT '',
-      district       TEXT NOT NULL DEFAULT '',
-      address_detail TEXT NOT NULL DEFAULT '',
-      created_at     INTEGER NOT NULL,
-      updated_at     INTEGER NOT NULL
-    );
   `)
   ensureColumn(db, 'materials', 'name', "name TEXT NOT NULL DEFAULT ''")
-  ensureColumn(db, 'tickets', 'customer_id', 'customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL')
-  db.exec('CREATE INDEX IF NOT EXISTS idx_tickets_customer ON tickets(customer_id)')
   for (const [col, ddl] of TICKET_CUSTOMER_COLS) ensureColumn(db, 'tickets', col, ddl)
+  migrateLegacyCustomers(db)
   rebuildFtsIfStale(db)
 }
 
@@ -94,6 +79,39 @@ function rebuildFtsIfStale(db: DB): void {
         nickname, recipient_name, phone, province, city, district, address_detail FROM tickets;
     `)
   })()
+}
+
+function hasTable(db: DB, name: string): boolean {
+  return !!db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`).get(name)
+}
+function hasColumn(db: DB, table: string, column: string): boolean {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]
+  return cols.some((c) => c.name === column)
+}
+
+/** One-time: copy linked customer info onto tickets, then drop the legacy structure. */
+function migrateLegacyCustomers(db: DB): void {
+  if (!hasTable(db, 'customers')) return
+  const tx = db.transaction(() => {
+    if (hasColumn(db, 'tickets', 'customer_id')) {
+      const linked = db.prepare(
+        `SELECT t.aftersale_no AS no, c.nickname, c.name, c.province_code, c.province,
+                c.city_code, c.city, c.district_code, c.district, c.address_detail
+         FROM tickets t JOIN customers c ON c.id = t.customer_id`
+      ).all() as Record<string, string>[]
+      const upd = db.prepare(
+        `UPDATE tickets SET nickname=@nickname, recipient_name=@name,
+           province_code=@province_code, province=@province, city_code=@city_code, city=@city,
+           district_code=@district_code, district=@district, address_detail=@address_detail
+         WHERE aftersale_no=@no`
+      )
+      for (const r of linked) upd.run(r)
+      db.exec('DROP INDEX IF EXISTS idx_tickets_customer')
+      db.exec('ALTER TABLE tickets DROP COLUMN customer_id')
+    }
+    db.exec('DROP TABLE IF EXISTS customers')
+  })
+  tx()
 }
 
 export function ensureColumn(db: DB, table: string, column: string, ddl: string): void {
