@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { Customer, Material, Ticket, TicketStatus } from '@shared/types'
+import type { Material, Ticket, TicketStatus, CustomerFields } from '@shared/types'
 import { api } from '../api'
 import { STATUS_META, STATUS_ORDER } from '../status'
 import { MaterialGrid } from './MaterialGrid'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
-import { CustomerPicker } from './CustomerPicker'
+import { RegionCascader, type RegionValue } from './RegionCascader'
+import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
 
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
@@ -16,24 +17,23 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
-  const [customer, setCustomer] = useState<Customer | undefined>()
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ orderNo: '', shippingNo: '', returnNo: '' })
+  const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields>({
+    orderNo: '', shippingNo: '', returnNo: '',
+    nickname: '', recipientName: '', phone: '', provinceCode: '', province: '',
+    cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
+  })
   const currentNo = useRef(aftersaleNo)
 
   async function reload() {
     currentNo.current = aftersaleNo
     const [t, ms] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
-    const c = t && t.customerId != null ? await api.getCustomer(t.customerId) : undefined
-    if (currentNo.current !== aftersaleNo) return
     setTicket(t)
     setMaterials(ms)
     setSelected(new Set())
-    setCustomer(c)
   }
-  useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCustomer(undefined); reload() }, [aftersaleNo])
+  useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); reload() }, [aftersaleNo])
 
   if (!ticket) return null
   const ids = () => [...selected]
@@ -57,8 +57,6 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     await api.deleteTicket(aftersaleNo)
     onDeleted()
   }
-  async function linkCustomer(id: number) { await api.setTicketCustomer(aftersaleNo, id); setPickerOpen(false); await reload() }
-  async function unlinkCustomer() { await api.setTicketCustomer(aftersaleNo, null); await reload() }
   function openPdd() {
     if (!ticket) return
     const params = new URLSearchParams({ id: ticket.aftersaleNo })
@@ -67,18 +65,25 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   }
   function startEdit() {
     if (!ticket) return
-    setForm({ orderNo: ticket.orderNo, shippingNo: ticket.shippingNo, returnNo: ticket.returnNo })
+    setForm({
+      orderNo: ticket.orderNo, shippingNo: ticket.shippingNo, returnNo: ticket.returnNo,
+      nickname: ticket.nickname, recipientName: ticket.recipientName, phone: ticket.phone,
+      provinceCode: ticket.provinceCode, province: ticket.province, cityCode: ticket.cityCode, city: ticket.city,
+      districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail
+    })
     setEditing(true)
   }
   async function saveInfo() {
-    await api.updateTicket(aftersaleNo, { orderNo: form.orderNo.trim(), shippingNo: form.shippingNo.trim(), returnNo: form.returnNo.trim() })
+    await api.updateTicket(aftersaleNo, { ...form })
     setEditing(false)
     await reload()
     onChanged()
     setMsg('已保存基本信息')
   }
-
-  const customerName = customer ? (customer.name || customer.nickname || '未命名') : ''
+  const region: RegionValue = {
+    provinceCode: form.provinceCode, province: form.province, cityCode: form.cityCode,
+    city: form.city, districtCode: form.districtCode, district: form.district
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -143,12 +148,28 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             )}
           </div>
           <dl className="mt-4 space-y-4">
-            <InfoRow label="客户">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-                <span className={customer ? 'text-ink' : 'text-muted'}>{customer ? customerName : '未关联'}</span>
-                <button className="btn-ghost px-2 py-0.5 text-xs" onClick={() => setPickerOpen(true)}>{customer ? '更换' : '关联'}</button>
-                {customer && <button className="btn-ghost px-2 py-0.5 text-xs" onClick={unlinkCustomer}>取消关联</button>}
-              </div>
+            <InfoRow label="昵称">
+              {editing
+                ? <input className="field py-1.5" value={form.nickname} onChange={(e) => setForm((f) => ({ ...f, nickname: e.target.value }))} placeholder="买家昵称" />
+                : <Value v={ticket.nickname} />}
+            </InfoRow>
+            <InfoRow label="收货人姓名">
+              {editing
+                ? <input className="field py-1.5" value={form.recipientName} onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.recipientName} />}
+            </InfoRow>
+            <InfoRow label="手机号">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.phone} />}
+            </InfoRow>
+            <InfoRow label="联系地址">
+              {editing
+                ? <div className="space-y-2">
+                    <RegionCascader value={region} onChange={(v) => setForm((f) => ({ ...f, ...v }))} />
+                    <input className="field py-1.5" value={form.addressDetail} onChange={(e) => setForm((f) => ({ ...f, addressDetail: e.target.value }))} placeholder="详细地址" />
+                  </div>
+                : <Value v={[regionLabel(ticket), ticket.addressDetail].filter(Boolean).join(' ')} />}
             </InfoRow>
             <div className="h-px bg-line" />
             <InfoRow label="订单号">
@@ -201,7 +222,6 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
         onCancel={() => setNewOpen(false)}
         onCreated={async (m) => { setNewOpen(false); await reload(); setMsg(`已新建材料:${m.name || m.relPath.split('/').pop()}`) }}
       />
-      <CustomerPicker open={pickerOpen} onPick={linkCustomer} onCancel={() => setPickerOpen(false)} />
     </div>
   )
 }
