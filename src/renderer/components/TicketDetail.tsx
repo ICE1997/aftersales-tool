@@ -58,19 +58,22 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   async function linkCustomer(id: number) { await api.setTicketCustomer(aftersaleNo, id); setPickerOpen(false); await reload() }
   async function unlinkCustomer() { await api.setTicketCustomer(aftersaleNo, null); await reload() }
 
+  const noNumbers = !ticket.orderNo && !ticket.shippingNo && !ticket.returnNo
+
   return (
     <div className="flex h-full flex-col">
-      {/* header */}
-      <div className="border-b border-line bg-paper-2 px-6 pb-4 pt-5">
-        <div className="flex items-start gap-3">
-          <button className="btn-ghost mt-0.5 px-2.5" onClick={onBack} aria-label="返回">← 返回</button>
+      {/* unified header */}
+      <div className="border-b border-line bg-paper-2 px-6 py-5">
+        {/* title row */}
+        <div className="flex items-center gap-3">
+          <button className="btn-ghost px-2.5" onClick={onBack} aria-label="返回">← 返回</button>
           <div className="min-w-0">
             <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">售后单号</div>
-            <h2 className="tnum mt-0.5 truncate font-display text-2xl font-extrabold tracking-tight text-ink">{ticket.aftersaleNo}</h2>
+            <h2 className="tnum mt-0.5 truncate font-display text-2xl font-extrabold leading-tight tracking-tight text-ink">{ticket.aftersaleNo}</h2>
           </div>
 
           {/* status pill with invisible native select overlay */}
-          <label className={`chip ${meta.chip} relative ml-1 mt-1 cursor-pointer pr-6`}>
+          <label className={`chip ${meta.chip} relative ml-1 cursor-pointer pr-6`}>
             <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
             {meta.label}
             <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
@@ -83,22 +86,42 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             </select>
           </label>
 
-          <button className="btn-danger ml-auto mt-0.5 px-2.5" onClick={() => setConfirmDelete(true)}>
+          <button className="btn-danger ml-auto px-2.5" onClick={() => setConfirmDelete(true)}>
             <IconTrash className="text-[15px]" /> 删除
           </button>
         </div>
 
-        {/* number chips */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <NumChip label="订单" value={ticket.orderNo} />
-          <NumChip label="发货" value={ticket.shippingNo} />
-          <NumChip label="退货" value={ticket.returnNo} />
+        {/* meta: order numbers (non-empty only) + customer */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+          {ticket.orderNo && <Meta label="订单号" value={ticket.orderNo} />}
+          {ticket.shippingNo && <Meta label="发货单号" value={ticket.shippingNo} />}
+          {ticket.returnNo && <Meta label="退货单号" value={ticket.returnNo} />}
+          {noNumbers && <span className="text-xs text-muted">未填写单号</span>}
+          <span className="h-3.5 w-px bg-line-strong" />
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-[11px] uppercase tracking-wider text-muted">客户</span>
+            <span className="text-ink-soft">{customer ? (customer.name || customer.nickname || '未命名') : '未关联'}</span>
+            <button className="btn-ghost px-2 py-0.5 text-xs" onClick={() => setPickerOpen(true)}>{customer ? '更换' : '关联'}</button>
+            {customer && <button className="btn-ghost px-2 py-0.5 text-xs" onClick={unlinkCustomer}>取消关联</button>}
+          </div>
         </div>
-        <div className="mt-2 flex items-center gap-2 text-sm">
-          <span className="text-[11px] text-muted">客户</span>
-          <span className="text-ink-soft">{customer ? (customer.name || customer.nickname || '未命名') : '未关联'}</span>
-          <button className="btn-ghost px-2 py-0.5 text-xs" onClick={() => setPickerOpen(true)}>{customer ? '更换' : '关联'}</button>
-          {customer && <button className="btn-ghost px-2 py-0.5 text-xs" onClick={unlinkCustomer}>取消关联</button>}
+
+        {/* actions: primary + contextual selection group, maintenance demoted */}
+        <div className="mt-4 flex items-center gap-2">
+          <button className="btn-primary" onClick={() => setNewOpen(true)}><IconImport className="text-[16px]" /> 新建材料</button>
+          {selected.size > 0 ? (
+            <div className="flex animate-slidedown items-center gap-1 rounded-lg bg-accent-soft px-2 py-1">
+              <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}</span>
+              <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
+              <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
+              <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => setSelected(new Set())}>取消选择</button>
+            </div>
+          ) : materials.length > 0 ? (
+            <span className="text-xs text-muted">勾选材料可导出或打包</span>
+          ) : null}
+          <button className="btn-ghost ml-auto px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
+            <IconRefresh className="text-[15px]" />
+          </button>
         </div>
       </div>
 
@@ -111,16 +134,6 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           </span>
         </div>
       )}
-
-      {/* toolbar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-line px-6 py-3">
-        <button className="btn-primary" onClick={() => setNewOpen(true)}><IconImport className="text-[16px]" /> 新建材料</button>
-        <span className="mx-1 h-5 w-px bg-line" />
-        <button className="btn-ghost" disabled={!selected.size} onClick={exportFolder}><IconFolder className="text-[16px]" /> 导出到文件夹</button>
-        <button className="btn-ghost" disabled={!selected.size} onClick={exportZip}><IconArchive className="text-[16px]" /> 打包 zip</button>
-        {selected.size > 0 && <span className="tnum text-xs text-muted">已选 {selected.size}</span>}
-        <button className="btn-ghost ml-auto" onClick={calibrate}><IconRefresh className="text-[15px]" /> 校准索引</button>
-      </div>
 
       {msg && (
         <div className="flex animate-slidedown items-center justify-between gap-3 border-b border-warn-soft bg-warn-soft px-6 py-2 text-sm text-warn">
@@ -144,11 +157,11 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   )
 }
 
-function NumChip({ label, value }: { label: string; value: string }) {
+function Meta({ label, value }: { label: string; value: string }) {
   return (
-    <span className="numchip">
-      <span className="text-[11px] text-muted">{label}</span>
-      <span className="tnum text-xs font-medium text-ink-soft">{value || '—'}</span>
+    <span className="inline-flex items-baseline gap-1.5">
+      <span className="text-[11px] uppercase tracking-wider text-muted">{label}</span>
+      <span className="tnum text-[13px] font-medium text-ink">{value}</span>
     </span>
   )
 }

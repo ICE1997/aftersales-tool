@@ -30,7 +30,7 @@ export function MaterialGrid({ materials, selectedIds, onToggle, onOpen }: Props
         <div className="grid h-14 w-14 place-items-center rounded-2xl border border-line bg-paper-2 text-muted">
           <IconImage className="text-2xl" />
         </div>
-        <p className="text-sm text-muted">还没有材料 — 点击「导入材料」添加视频或图片</p>
+        <p className="text-sm text-muted">还没有材料 — 点击「新建材料」添加视频或图片</p>
       </div>
     )
   }
