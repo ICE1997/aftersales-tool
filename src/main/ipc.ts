@@ -7,6 +7,7 @@ import { handleMediaProtocol } from './media-protocol'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
+import { FolderRepo } from './db/folders'
 import { StatsRepo } from './db/stats'
 import { Settings } from './services/settings'
 import { Thumbnailer } from './services/thumbnails'
@@ -45,6 +46,7 @@ export function registerIpc(): void {
 
   const tickets = new TicketRepo(db)
   const materials = new MaterialRepo(db)
+  const folderRepo = new FolderRepo(db)
   const statsRepo = new StatsRepo(db)
   const thumb = new Thumbnailer(dataRoot)
   const importer = new Importer(dataRoot, materials, thumb)
@@ -82,10 +84,22 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('materials:create', async (_e, no: string, payload: import('../shared/types').CreateMaterialPayload) => {
-    if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name)
-    if (payload.source === 'paste') return importer.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name)
+    const folder = payload.folder ?? ''
+    if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name, folder)
+    if (payload.source === 'paste') return importer.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name, folder)
     throw new Error('unknown material source')
   })
+
+  ipcMain.handle('folders:list', (_e, no: string) => folderRepo.list(no))
+  ipcMain.handle('folders:create', (_e, no: string, path: string) => folderRepo.create(no, path))
+  ipcMain.handle('folders:rename', (_e, no: string, path: string, newName: string) => folderRepo.rename(no, path, newName))
+  ipcMain.handle('folders:remove', (_e, no: string, path: string) => {
+    for (const m of folderRepo.remove(no, path)) {
+      try { unlinkSync(join(dataRoot, m.relPath)) } catch { /* ignore */ }
+      if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
+    }
+  })
+  ipcMain.handle('materials:move', (_e, id: number, folder: string) => materials.setFolder(id, folder))
 
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })

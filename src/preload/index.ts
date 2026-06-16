@@ -22,7 +22,12 @@ const api = {
   showItem: (relPath: string): Promise<void> => ipcRenderer.invoke('shell:showItem', relPath),
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke('shell:openChrome', url),
   regionCounts: (level: RegionLevel): Promise<RegionCount[]> => ipcRenderer.invoke('stats:regionCounts', level),
-  statsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke('stats:summary')
+  statsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke('stats:summary'),
+  listFolders: (no: string): Promise<string[]> => ipcRenderer.invoke('folders:list', no),
+  createFolder: (no: string, path: string): Promise<void> => ipcRenderer.invoke('folders:create', no, path),
+  renameFolder: (no: string, path: string, newName: string): Promise<void> => ipcRenderer.invoke('folders:rename', no, path, newName),
+  removeFolder: (no: string, path: string): Promise<void> => ipcRenderer.invoke('folders:remove', no, path),
+  moveMaterial: (id: number, folder: string): Promise<void> => ipcRenderer.invoke('materials:move', id, folder),
 }
 
 export type Api = typeof api
