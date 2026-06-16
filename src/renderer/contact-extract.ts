@@ -46,6 +46,9 @@ export function extractContact(text: string): ExtractedContact {
   const out: ExtractedContact = { ...EMPTY }
   if (!text || !text.trim()) return out
 
+  // PDD shows the virtual-number 分机号 as a bracketed code, e.g. 大潘[0106]
+  const bracketExt = text.match(/[[【]\s*(\d{2,6})\s*[\]】]/)
+
   const lines = text.split(/\r?\n/).map((l) => stripLabel(stripBrackets(l))).filter((l) => l.length > 0)
 
   // 1) phone (+ optional extension)
@@ -58,6 +61,7 @@ export function extractContact(text: string): ExtractedContact {
     lines[i] = lines[i].replace(m[0], ' ').replace(/\s+/g, ' ').trim()
     break
   }
+  if (!out.extension && bracketExt) out.extension = bracketExt[1]
 
   // 2) address: first line containing a province name
   const provinces = childrenOf('')

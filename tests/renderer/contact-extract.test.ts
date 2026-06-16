@@ -6,7 +6,7 @@ describe('extractContact', () => {
     const r = extractContact('程玲[2817]\n19592642954\n江苏省苏州市虎丘区 龙湖时代100 8栋2207[2817]')
     expect(r.name).toBe('程玲')
     expect(r.phone).toBe('19592642954')
-    expect(r.extension).toBe('')
+    expect(r.extension).toBe('2817')
     expect(r.province).toBe('江苏省')
     expect(r.city).toBe('苏州市')
     expect(r.district).toBe('虎丘区')
@@ -66,6 +66,21 @@ describe('extractContact', () => {
 
   it('does not extract a phone from a long glued digit run', () => {
     expect(extractContact('13800138000123').phone).toBe('')
+  })
+
+  it('captures a bracketed code as the extension (PDD virtual number)', () => {
+    const r = extractContact('大潘[0106]\n17821552870\n山东省青岛市城阳区 高新区世茂璀璨珑园48号楼1单元1901[0106]')
+    expect(r.name).toBe('大潘')
+    expect(r.phone).toBe('17821552870')
+    expect(r.extension).toBe('0106')
+    expect(r.province).toBe('山东省')
+    expect(r.city).toBe('青岛市')
+    expect(r.district).toBe('城阳区')
+    expect(r.addressDetail).toBe('高新区世茂璀璨珑园48号楼1单元1901')
+  })
+
+  it('inline extension takes priority over bracketed code', () => {
+    expect(extractContact('张三[0106] 17012345678转5678').extension).toBe('5678')
   })
 
   it('does not false-match the single-char 县 proxy as a city (Chongqing county)', () => {
