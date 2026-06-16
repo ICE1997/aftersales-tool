@@ -20,6 +20,7 @@ const api = {
   getDataRoot: (): Promise<string> => ipcRenderer.invoke('settings:getDataRoot'),
   chooseDataRoot: (): Promise<boolean> => ipcRenderer.invoke('settings:chooseDataRoot'),
   showItem: (relPath: string): Promise<void> => ipcRenderer.invoke('shell:showItem', relPath),
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('shell:openExternal', url),
   listCustomers: (): Promise<CustomerRow[]> => ipcRenderer.invoke('customers:list'),
   searchCustomers: (q: string): Promise<CustomerRow[]> => ipcRenderer.invoke('customers:search', q),
   getCustomer: (id: number): Promise<Customer | undefined> => ipcRenderer.invoke('customers:get', id),

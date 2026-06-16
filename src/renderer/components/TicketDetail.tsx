@@ -6,7 +6,7 @@ import { MaterialGrid } from './MaterialGrid'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
 import { CustomerPicker } from './CustomerPicker'
-import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose } from './icons'
+import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
 
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
   const [ticket, setTicket] = useState<Ticket | undefined>()
@@ -57,6 +57,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   }
   async function linkCustomer(id: number) { await api.setTicketCustomer(aftersaleNo, id); setPickerOpen(false); await reload() }
   async function unlinkCustomer() { await api.setTicketCustomer(aftersaleNo, null); await reload() }
+  function openPdd() {
+    if (!ticket) return
+    const params = new URLSearchParams({ id: ticket.aftersaleNo })
+    if (ticket.orderNo) params.set('orderSn', ticket.orderNo)
+    api.openExternal(`https://mms.pinduoduo.com/aftersales-ssr/detail?${params}`)
+  }
 
   const customerName = customer ? (customer.name || customer.nickname || '未命名') : ''
 
@@ -81,9 +87,14 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             {STATUS_ORDER.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
           </select>
         </label>
-        <button className="btn-danger ml-auto px-2.5" onClick={() => setConfirmDelete(true)}>
-          <IconTrash className="text-[15px]" /> 删除
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button className="btn-ghost px-2.5" onClick={openPdd} title="在拼多多商家后台打开此售后单">
+            <IconExternal className="text-[15px]" /> 拼多多
+          </button>
+          <button className="btn-danger px-2.5" onClick={() => setConfirmDelete(true)}>
+            <IconTrash className="text-[15px]" /> 删除
+          </button>
+        </div>
       </div>
 
       {confirmDelete && (

@@ -117,4 +117,7 @@ export function registerIpc(): void {
   })
 
   ipcMain.handle('shell:showItem', (_e, relPath: string) => shell.showItemInFolder(join(dataRoot, relPath)))
+  ipcMain.handle('shell:openExternal', (_e, url: string) => {
+    if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
+  })
 }
