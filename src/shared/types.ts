@@ -1,15 +1,28 @@
 export type MaterialKind = 'image' | 'video'
 export type TicketStatus = 'pending' | 'processing' | 'resolved'
 
-export interface NewTicket {
+export interface CustomerFields {
+  nickname: string
+  recipientName: string
+  phone: string
+  provinceCode: string
+  province: string
+  cityCode: string
+  city: string
+  districtCode: string
+  district: string
+  addressDetail: string
+}
+
+export type NewTicket = {
   aftersaleNo: string
   orderNo: string
   shippingNo: string
   returnNo: string
   note: string
-}
+} & Partial<CustomerFields>
 
-export interface Ticket {
+export type Ticket = {
   aftersaleNo: string
   orderNo: string
   shippingNo: string
@@ -19,6 +32,17 @@ export interface Ticket {
   createdAt: number
   updatedAt: number
   customerId: number | null
+} & CustomerFields
+
+export interface CustomerSummary {
+  nickname: string
+  ticketCount: number
+  recipientName: string
+  phone: string
+  province: string
+  city: string
+  district: string
+  lastUpdatedAt: number
 }
 
 export interface Material {
