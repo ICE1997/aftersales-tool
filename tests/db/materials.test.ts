@@ -50,4 +50,13 @@ describe('MaterialRepo', () => {
     const id = materials.add({ aftersaleNo: 'AS-1', relPath: 'AS-1/images/b.jpg', kind: 'image', capturedAt: null, importedAt: 5, sizeBytes: 100, thumbPath: null })
     expect(materials.getByIds([id])[0].name).toBe('')
   })
+
+  it('stores folder (default empty) and moves a material', () => {
+    const id = materials.add({ aftersaleNo: 'AS-1', name: 'a', relPath: 'AS-1/images/a.jpg', kind: 'image', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    expect(materials.getByIds([id])[0].folder).toBe('')
+    const id2 = materials.add({ aftersaleNo: 'AS-1', name: 'b', relPath: 'AS-1/images/b.jpg', kind: 'image', folder: '凭证', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    expect(materials.getByIds([id2])[0].folder).toBe('凭证')
+    materials.setFolder(id, '凭证/聊天')
+    expect(materials.getByIds([id])[0].folder).toBe('凭证/聊天')
+  })
 })

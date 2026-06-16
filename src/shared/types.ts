@@ -43,6 +43,7 @@ export interface Material {
   importedAt: number
   sizeBytes: number
   thumbPath: string | null
+  folder: string
 }
 
 export interface ImportResult {
@@ -55,9 +56,10 @@ export interface PickedFile {
   name: string
 }
 
-export type CreateMaterialPayload =
+export type CreateMaterialPayload = (
   | { source: 'file'; path: string; name: string }
   | { source: 'paste'; fileName: string; name: string; bytes: Uint8Array }
+) & { folder?: string }
 
 export type RegionLevel = 'province' | 'city' | 'district'
 export interface RegionCount { code: string; name: string; count: number }

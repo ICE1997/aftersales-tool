@@ -48,6 +48,15 @@ export function migrate(db: DB): void {
     );
     CREATE INDEX IF NOT EXISTS idx_materials_ticket ON materials(aftersale_no);
 
+    CREATE TABLE IF NOT EXISTS material_folders (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      aftersale_no TEXT NOT NULL REFERENCES tickets(aftersale_no) ON DELETE CASCADE,
+      path         TEXT NOT NULL,
+      created_at   INTEGER NOT NULL,
+      UNIQUE(aftersale_no, path)
+    );
+    CREATE INDEX IF NOT EXISTS idx_folders_ticket ON material_folders(aftersale_no);
+
     CREATE VIRTUAL TABLE IF NOT EXISTS tickets_fts USING fts5(
       aftersale_no, order_no, shipping_no, return_no, note,
       recipient_name, phone, province, city, district, address_detail,
@@ -56,6 +65,7 @@ export function migrate(db: DB): void {
 
   `)
   ensureColumn(db, 'materials', 'name', "name TEXT NOT NULL DEFAULT ''")
+  ensureColumn(db, 'materials', 'folder', "folder TEXT NOT NULL DEFAULT ''")
   for (const [col, ddl] of TICKET_CUSTOMER_COLS) ensureColumn(db, 'tickets', col, ddl)
   migrateLegacyCustomers(db)
   rebuildFtsIfStale(db)

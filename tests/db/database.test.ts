@@ -47,6 +47,16 @@ describe('materials.name column', () => {
   })
 })
 
+describe('material folders schema', () => {
+  it('fresh db has material_folders table and materials.folder column', () => {
+    const db = createDatabase(':memory:')
+    const names = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name)
+    expect(names).toContain('material_folders')
+    const cols = (db.prepare('PRAGMA table_info(materials)').all() as { name: string }[]).map((c) => c.name)
+    expect(cols).toContain('folder')
+  })
+})
+
 describe('embedded customer columns', () => {
   it('a fresh db has no customers table and tickets carries customer columns', () => {
     const db = createDatabase(':memory:')
