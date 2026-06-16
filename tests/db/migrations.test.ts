@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import BetterSqlite3 from 'better-sqlite3'
 import { runMigrations, backupBeforeMigrate, MIGRATIONS, type CodeMigration } from '../../src/main/db/migrations'
+import { parseDateTimeToMs } from '../../src/shared/aftersale-format'
 
 let dir: string
 beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'vh-mig-')) })
@@ -68,5 +69,63 @@ describe('runMigrations', () => {
     db.close()
     expect(names).toEqual(expect.arrayContaining(['aftersale_type', 'aftersale_reason', 'shipping_status', 'amount', 'refund_amount', 'applied_at', 'return_logistics', 'extension']))
     expect(status.dflt_value).toContain('待商家处理')
+  })
+
+  it('migration 0002 converts text amounts to cents and applied_at to epoch ms', async () => {
+    const dbPath = join(dir, 'conv.db')
+    // apply baseline only (text columns), then seed a row with text values
+    await runMigrations(dbPath, join(dir, 'backups'), Date.now, [MIGRATIONS[0]])
+    const seed = new BetterSqlite3(dbPath)
+    seed.prepare(
+      `INSERT INTO tickets (aftersale_no, created_at, updated_at, amount, refund_amount, applied_at)
+       VALUES (?, 0, 0, ?, ?, ?)`
+    ).run('C1', '24.99', '', '2026-05-28 14:27:38')
+    seed.close()
+    // now apply the full migration set (includes 0002)
+    await runMigrations(dbPath, join(dir, 'backups'), Date.now, MIGRATIONS)
+    const db = new BetterSqlite3(dbPath)
+    const row = db.prepare('SELECT amount, refund_amount, applied_at FROM tickets WHERE aftersale_no=?').get('C1') as { amount: number | null; refund_amount: number | null; applied_at: number | null }
+    const info = db.prepare('PRAGMA table_info(tickets)').all() as { name: string; type: string }[]
+    db.close()
+    expect(row.amount).toBe(2499)
+    expect(row.refund_amount).toBeNull()           // empty text -> null
+    expect(row.applied_at).toBe(parseDateTimeToMs('2026-05-28 14:27:38'))
+    const typeOf = (n: string) => info.find((c) => c.name === n)!.type
+    expect(typeOf('amount')).toBe('INTEGER')
+    expect(typeOf('applied_at')).toBe('INTEGER')
+  })
+
+  it('migration 0002 runs cleanly on an empty fresh db', async () => {
+    const dbPath = join(dir, 'fresh.db')
+    await runMigrations(dbPath, join(dir, 'backups'), Date.now, MIGRATIONS)
+    const db = new BetterSqlite3(dbPath)
+    const info = db.prepare('PRAGMA table_info(tickets)').all() as { name: string; type: string }[]
+    db.close()
+    expect(info.find((c) => c.name === 'amount')!.type).toBe('INTEGER')
+  })
+
+  it('migration 0002 preserves FTS rowids so search still works on pre-existing rows', async () => {
+    const dbPath = join(dir, 'fts.db')
+    // Apply baseline only, seed a row with a searchable order_no
+    await runMigrations(dbPath, join(dir, 'backups'), Date.now, [MIGRATIONS[0]])
+    const seed = new BetterSqlite3(dbPath)
+    const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail'
+    seed.prepare(
+      `INSERT INTO tickets (aftersale_no, order_no, created_at, updated_at, amount, refund_amount, applied_at)
+       VALUES (?, ?, 0, 0, ?, ?, ?)`
+    ).run('FTS-1', 'ORD-FTS-9999', '10.00', '', '2026-01-01 00:00:00')
+    // Insert into FTS using the same pattern as TicketRepo.ftsInsert
+    seed.prepare(`INSERT INTO tickets_fts (rowid, ${FTS_COLS}) SELECT rowid, ${FTS_COLS} FROM tickets WHERE aftersale_no = ?`).run('FTS-1')
+    seed.close()
+    // Now apply the full MIGRATIONS (adds 0002 via ALTER TABLE — rowids preserved)
+    await runMigrations(dbPath, join(dir, 'backups'), Date.now, MIGRATIONS)
+    const db = new BetterSqlite3(dbPath)
+    // Use the same search pattern as TicketRepo.search
+    const match = '"ORD-FTS-9999"*'
+    const hits = db.prepare(
+      `SELECT tickets.aftersale_no FROM tickets_fts f JOIN tickets ON tickets.rowid = f.rowid WHERE tickets_fts MATCH ?`
+    ).all(match) as { aftersale_no: string }[]
+    db.close()
+    expect(hits.map((r) => r.aftersale_no)).toContain('FTS-1')
   })
 })
