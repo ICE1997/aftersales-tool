@@ -39,7 +39,7 @@ export function migrate(db: DB): void {
       order_no     TEXT NOT NULL DEFAULT '',
       shipping_no  TEXT NOT NULL DEFAULT '',
       return_no    TEXT NOT NULL DEFAULT '',
-      status       TEXT NOT NULL DEFAULT 'pending',
+      status       TEXT NOT NULL DEFAULT '待商家处理',
       note         TEXT NOT NULL DEFAULT '',
       created_at   INTEGER NOT NULL,
       updated_at   INTEGER NOT NULL

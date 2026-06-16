@@ -150,6 +150,14 @@ describe('TicketRepo', () => {
     expect(repo.search('OM1').map((t) => t.aftersaleNo)).toContain('M1')
   })
 
+  it('update() round-trips a new aftersale field', () => {
+    repo.create({ aftersaleNo: 'UPD-AF', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    repo.update('UPD-AF', { aftersaleType: '换货', returnLogistics: '签收' })
+    const t = repo.get('UPD-AF')!
+    expect(t.aftersaleType).toBe('换货')
+    expect(t.returnLogistics).toBe('签收')
+  })
+
   it('migrates legacy status values once and idempotently', () => {
     // simulate a legacy row by writing the old value directly
     repo.create({ aftersaleNo: 'L1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
