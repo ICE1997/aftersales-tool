@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Ticket } from '@shared/types'
 import { STATUS_META } from '../status'
 import { paginate, formatTime } from '../table'
+import { regionLabel } from '../region'
 import { IconBox, IconPlus } from './icons'
 
 interface Props { tickets: Ticket[]; query: string; onOpen: (no: string) => void; onNew: () => void }
@@ -41,6 +42,8 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
               <tr className="border-b border-line">
                 <th className="px-4 py-2.5 text-left font-medium">售后单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">状态</th>
+                <th className="px-4 py-2.5 text-left font-medium">收件人</th>
+                <th className="px-4 py-2.5 text-left font-medium">地区</th>
                 <th className="px-4 py-2.5 text-left font-medium">订单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">发货快递单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">退货快递单号</th>
@@ -59,6 +62,8 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
                   >
                     <td className="tnum px-4 py-3 font-medium text-ink">{t.aftersaleNo}</td>
                     <td className="px-4 py-3"><span className={`chip ${meta.chip}`}><span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />{meta.label}</span></td>
+                    <td className="px-4 py-3 text-ink-soft">{t.recipientName || '—'}</td>
+                    <td className="px-4 py-3 text-ink-soft">{regionLabel(t) || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.orderNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.shippingNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.returnNo || '—'}</td>
