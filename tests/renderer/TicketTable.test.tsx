@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import type { Ticket } from '../../src/shared/types'
 import { TicketTable } from '../../src/renderer/components/TicketTable'
+import { parseDateTimeToMs } from '../../src/shared/aftersale-format'
 
 afterEach(() => cleanup())
 
@@ -12,7 +13,7 @@ const EMPTY_CUSTOMER = {
 
 const EMPTY_AFTERSALE = {
   aftersaleType: '', aftersaleReason: '', shippingStatus: '',
-  amount: '', refundAmount: '', appliedAt: '', returnLogistics: ''
+  amount: null, refundAmount: null, appliedAt: null, returnLogistics: ''
 }
 
 function mk(over: Partial<Ticket> = {}): Ticket {
@@ -79,7 +80,7 @@ describe('TicketTable', () => {
 
   it('renders the new aftersale columns and the status chip', () => {
     render(<TicketTable
-      tickets={[mk({ aftersaleType: '退款退货', returnLogistics: '签收', appliedAt: '2026-05-28 14:27:38', status: '退款成功' })]}
+      tickets={[mk({ aftersaleType: '退款退货', returnLogistics: '签收', appliedAt: parseDateTimeToMs('2026-05-28 14:27:38'), status: '退款成功' })]}
       query="" onOpen={() => {}} onNew={() => {}} onImport={() => {}} />)
     expect(screen.getByText('退款退货')).toBeTruthy()
     expect(screen.getByText('签收')).toBeTruthy()

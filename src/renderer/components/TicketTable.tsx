@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Ticket } from '@shared/types'
+import { formatMs } from '@shared/aftersale-format'
 import { STATUS_META } from '../status'
 import { paginate } from '../table'
 import { regionLabel } from '../region'
@@ -74,7 +75,7 @@ export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) 
                     <td className="tnum px-4 py-3 text-ink-soft">{t.shippingNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.returnNo || '—'}</td>
                     <td className="px-4 py-3 text-ink-soft">{t.returnLogistics || '—'}</td>
-                    <td className="tnum px-4 py-3 text-muted">{t.appliedAt || '—'}</td>
+                    <td className="tnum px-4 py-3 text-muted">{formatMs(t.appliedAt) || '—'}</td>
                   </tr>
                 )
               })}
