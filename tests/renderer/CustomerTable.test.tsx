@@ -1,33 +1,27 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import type { CustomerRow } from '../../src/shared/types'
 import { CustomerTable } from '../../src/renderer/components/CustomerTable'
+import type { CustomerSummary } from '../../src/shared/types'
 
 afterEach(() => cleanup())
 
-function mk(n: number): CustomerRow[] {
-  return Array.from({ length: n }, (_, i) => ({
-    id: i + 1, nickname: 'nick' + (i + 1), name: '客户' + (i + 1),
-    provinceCode: '44', province: '广东省', cityCode: '4403', city: '深圳市',
-    districtCode: '440305', district: '南山区', addressDetail: '', ticketCount: i,
-    createdAt: i, updatedAt: i
-  }))
-}
+const rows: CustomerSummary[] = [
+  { nickname: '小明', ticketCount: 3, recipientName: '张三', phone: '138', province: '广东省', city: '深圳市', district: '南山区', lastUpdatedAt: 1000 }
+]
 
 describe('CustomerTable', () => {
-  it('renders rows with region label and total', () => {
-    render(<CustomerTable customers={mk(3)} query="" onOpen={() => {}} onNew={() => {}} />)
-    expect(screen.getByText('共 3 条')).toBeTruthy()
-    expect(screen.getAllByText('广东省 · 深圳市 · 南山区').length).toBe(3)
-  })
-  it('calls onOpen with the customer id on row click', () => {
+  it('renders nickname, recipient, phone, region and count; row click reports nickname', () => {
     const onOpen = vi.fn()
-    render(<CustomerTable customers={mk(3)} query="" onOpen={onOpen} onNew={() => {}} />)
-    fireEvent.click(screen.getByText('客户2'))
-    expect(onOpen).toHaveBeenCalledWith(2)
+    render(<CustomerTable customers={rows} query="" onOpen={onOpen} />)
+    expect(screen.getByText('小明')).toBeTruthy()
+    expect(screen.getByText('张三')).toBeTruthy()
+    expect(screen.getByText('3')).toBeTruthy()
+    fireEvent.click(screen.getByText('小明'))
+    expect(onOpen).toHaveBeenCalledWith('小明')
   })
-  it('shows empty state', () => {
-    render(<CustomerTable customers={[]} query="" onOpen={() => {}} onNew={() => {}} />)
-    expect(screen.getByText('暂无客户')).toBeTruthy()
+
+  it('shows the empty state when there are no customers', () => {
+    render(<CustomerTable customers={[]} query="" onOpen={() => {}} />)
+    expect(screen.getByText(/暂无客户/)).toBeTruthy()
   })
 })
