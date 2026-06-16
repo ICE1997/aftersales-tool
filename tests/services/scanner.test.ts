@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Database } from 'better-sqlite3'
-import { createDatabase } from '../../src/main/db/database'
+import { makeTempDb } from '../db/helpers'
 import { TicketRepo } from '../../src/main/db/tickets'
 import { MaterialRepo } from '../../src/main/db/materials'
 import { Scanner } from '../../src/main/services/scanner'
@@ -12,15 +12,16 @@ let root: string
 let db: Database
 let materials: MaterialRepo
 let scanner: Scanner
+let cleanupDb: () => void
 
-beforeEach(() => {
+beforeEach(async () => {
   root = mkdtempSync(join(tmpdir(), 'vh-scan-'))
-  db = createDatabase(':memory:')
+  ;({ db, cleanup: cleanupDb } = await makeTempDb())
   new TicketRepo(db, () => 1).create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
   materials = new MaterialRepo(db)
   scanner = new Scanner(root, materials)
 })
-afterEach(() => rmSync(root, { recursive: true, force: true }))
+afterEach(() => { rmSync(root, { recursive: true, force: true }); cleanupDb() })
 
 describe('Scanner', () => {
   it('drops material rows whose files no longer exist', () => {

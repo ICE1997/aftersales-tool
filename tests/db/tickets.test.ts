@@ -1,15 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import type { Database } from 'better-sqlite3'
-import { createDatabase } from '../../src/main/db/database'
+import { makeTempDb } from './helpers'
 import { TicketRepo } from '../../src/main/db/tickets'
 
 let db: Database
 let repo: TicketRepo
+let cleanup: () => void
 
 beforeEach(async () => {
-  db = await createDatabase(':memory:')
+  ;({ db, cleanup } = await makeTempDb())
   repo = new TicketRepo(db, () => 1000)
 })
+afterEach(() => cleanup())
 
 describe('TicketRepo', () => {
   it('creates and reads a ticket', () => {

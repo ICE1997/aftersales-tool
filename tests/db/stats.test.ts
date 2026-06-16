@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import type { Database } from 'better-sqlite3'
-import { createDatabase } from '../../src/main/db/database'
+import { makeTempDb } from './helpers'
 import { TicketRepo } from '../../src/main/db/tickets'
 import { StatsRepo } from '../../src/main/db/stats'
 
@@ -8,6 +8,7 @@ let db: Database
 let stats: StatsRepo
 let tickets: TicketRepo
 let n = 0
+let cleanup: () => void
 
 function ticket(region: Partial<{ provinceCode: string; province: string; cityCode: string; city: string; districtCode: string; district: string }>) {
   const no = `AS-${++n}`
@@ -15,12 +16,13 @@ function ticket(region: Partial<{ provinceCode: string; province: string; cityCo
   return no
 }
 
-beforeEach(() => {
-  db = createDatabase(':memory:')
+beforeEach(async () => {
+  ;({ db, cleanup } = await makeTempDb())
   stats = new StatsRepo(db)
   tickets = new TicketRepo(db, () => 1)
   n = 0
 })
+afterEach(() => cleanup())
 
 describe('StatsRepo.regionCounts', () => {
   it('counts tickets by province (desc), excluding no-region', () => {
