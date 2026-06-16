@@ -20,11 +20,23 @@ describe('mapRows', () => {
     expect(t.aftersaleType).toBe('退货退款')
     expect(t.aftersaleReason).toBe('质量问题')
     expect(t.shippingStatus).toBe('已发货')
-    expect(t.amount).toBe('24.99')
-    expect(t.refundAmount).toBe('24.99')
-    expect(t.appliedAt).toBe('2026-05-28 14:27:38')
+    expect(t.amount).toBe(2499)
+    expect(t.refundAmount).toBe(2499)
+    expect(t.appliedAt).toBe(new Date(2026, 4, 28, 14, 27, 38).getTime())
     expect(t.returnLogistics).toBe('签收')
     expect((t as Record<string, unknown>).recipientName).toBeUndefined()
+  })
+
+  it('parses empty amount/refundAmount/appliedAt to null', () => {
+    const r = mapRows([
+      HEADER,
+      ['AS2', 'O2', '', '', '', '', '', '', '', '', '', '', ''],
+    ])
+    expect(r.tickets).toHaveLength(1)
+    const t = r.tickets[0]
+    expect(t.amount).toBeNull()
+    expect(t.refundAmount).toBeNull()
+    expect(t.appliedAt).toBeNull()
   })
 
   it('flags a missing 售后编号 header', () => {

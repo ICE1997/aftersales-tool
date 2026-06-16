@@ -1,4 +1,5 @@
 import type { NewTicket } from '../../shared/types'
+import { parseAmountToCents, parseDateTimeToMs } from '../../shared/aftersale-format'
 
 // Excel 表头中文名 → NewTicket 字段。未列出的列(商品ID/买家/备注等)一律忽略。
 const HEADER_MAP: Record<string, keyof NewTicket> = {
@@ -60,9 +61,9 @@ export function mapRows(matrix: string[][]): MapResult {
       aftersaleType: rec.aftersaleType ?? '',
       aftersaleReason: rec.aftersaleReason ?? '',
       shippingStatus: rec.shippingStatus ?? '',
-      amount: rec.amount ?? '',
-      refundAmount: rec.refundAmount ?? '',
-      appliedAt: rec.appliedAt ?? '',
+      amount: parseAmountToCents(rec.amount ?? ''),
+      refundAmount: parseAmountToCents(rec.refundAmount ?? ''),
+      appliedAt: parseDateTimeToMs(rec.appliedAt ?? ''),
       returnLogistics: rec.returnLogistics ?? ''
     })
   }
