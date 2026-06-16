@@ -42,8 +42,8 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
                 <th className="px-4 py-2.5 text-left font-medium">售后单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">状态</th>
                 <th className="px-4 py-2.5 text-left font-medium">订单号</th>
-                <th className="px-4 py-2.5 text-left font-medium">发货单号</th>
-                <th className="px-4 py-2.5 text-left font-medium">退货单号</th>
+                <th className="px-4 py-2.5 text-left font-medium">发货快递单号</th>
+                <th className="px-4 py-2.5 text-left font-medium">退货快递单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">更新时间</th>
               </tr>
             </thead>

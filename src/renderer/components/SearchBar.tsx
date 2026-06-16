@@ -8,7 +8,7 @@ export function SearchBar({ onSearch }: Props) {
       <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[15px] text-muted transition-colors group-focus-within:text-accent" />
       <input
         className="field pl-9"
-        placeholder="搜索售后单号 / 订单号 / 发货单号 / 退货单号"
+        placeholder="搜索售后单号 / 订单号 / 发货快递单号 / 退货快递单号"
         onChange={(e) => onSearch(e.target.value)}
       />
     </div>

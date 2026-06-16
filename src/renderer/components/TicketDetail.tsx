@@ -128,8 +128,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             </InfoRow>
             <div className="h-px bg-line" />
             <InfoRow label="订单号"><Value v={ticket.orderNo} /></InfoRow>
-            <InfoRow label="发货单号"><Value v={ticket.shippingNo} /></InfoRow>
-            <InfoRow label="退货单号"><Value v={ticket.returnNo} /></InfoRow>
+            <InfoRow label="发货快递单号"><Value v={ticket.shippingNo} /></InfoRow>
+            <InfoRow label="退货快递单号"><Value v={ticket.returnNo} /></InfoRow>
           </dl>
         </aside>
 

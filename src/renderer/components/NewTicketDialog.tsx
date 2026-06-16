@@ -35,11 +35,11 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
             <input className="field tnum" value={orderNo} onChange={(e) => setOrderNo(e.target.value)} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[12px] font-medium text-ink-soft">发货单号</span>
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">发货快递单号</span>
             <input className="field tnum" value={shippingNo} onChange={(e) => setShippingNo(e.target.value)} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货单号</span>
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货快递单号</span>
             <input className="field tnum" value={returnNo} onChange={(e) => setReturnNo(e.target.value)} />
           </label>
         </div>
