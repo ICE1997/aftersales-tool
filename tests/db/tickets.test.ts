@@ -70,4 +70,48 @@ describe('TicketRepo', () => {
     repo.setCustomer('C-2', null)
     expect(repo.get('C-2')!.customerId).toBeNull()
   })
+
+  it('stores and reads embedded customer fields', () => {
+    repo.create({
+      aftersaleNo: 'AS-C', orderNo: '', shippingNo: '', returnNo: '', note: '',
+      nickname: '小明买家', recipientName: '张三', phone: '13800001111',
+      provinceCode: '44', province: '广东省', cityCode: '4403', city: '深圳市',
+      districtCode: '440305', district: '南山区', addressDetail: '科技园1号'
+    })
+    const t = repo.get('AS-C')!
+    expect(t.nickname).toBe('小明买家')
+    expect(t.recipientName).toBe('张三')
+    expect(t.phone).toBe('13800001111')
+    expect(t.province).toBe('广东省')
+    expect(t.districtCode).toBe('440305')
+    expect(t.addressDetail).toBe('科技园1号')
+  })
+
+  it('defaults customer fields to empty when omitted', () => {
+    repo.create({ aftersaleNo: 'AS-E', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    const t = repo.get('AS-E')!
+    expect(t.nickname).toBe('')
+    expect(t.phone).toBe('')
+    expect(t.province).toBe('')
+  })
+
+  it('searches by customer fields via FTS', () => {
+    repo.create({
+      aftersaleNo: 'AS-S', orderNo: '', shippingNo: '', returnNo: '', note: '',
+      nickname: '小明买家', recipientName: '张三', phone: '13800001111', addressDetail: '科技园路'
+    })
+    expect(repo.search('小明').map((t) => t.aftersaleNo)).toContain('AS-S')
+    expect(repo.search('张三').map((t) => t.aftersaleNo)).toContain('AS-S')
+    expect(repo.search('13800001111').map((t) => t.aftersaleNo)).toContain('AS-S')
+    expect(repo.search('科技园').map((t) => t.aftersaleNo)).toContain('AS-S')
+  })
+
+  it('updates embedded customer fields', () => {
+    repo.create({ aftersaleNo: 'AS-U', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    repo.update('AS-U', { nickname: '阿强', phone: '139', provinceCode: '33', province: '浙江省' })
+    const t = repo.get('AS-U')!
+    expect(t.nickname).toBe('阿强')
+    expect(t.province).toBe('浙江省')
+    expect(repo.search('阿强').map((x) => x.aftersaleNo)).toContain('AS-U')
+  })
 })

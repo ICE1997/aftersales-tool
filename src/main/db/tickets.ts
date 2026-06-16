@@ -1,50 +1,74 @@
 import type { Database } from 'better-sqlite3'
-import type { Ticket } from '../../shared/types'
-import type { NewTicket } from '../../shared/types'
+import type { Ticket, NewTicket, CustomerFields } from '../../shared/types'
 
 export type { NewTicket }
 
 type Now = () => number
 
 const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS shippingNo,
-  return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt, customer_id AS customerId`
+  return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt,
+  customer_id AS customerId,
+  nickname, recipient_name AS recipientName, phone,
+  province_code AS provinceCode, province, city_code AS cityCode, city,
+  district_code AS districtCode, district, address_detail AS addressDetail`
+
+// Table-qualified version for JOIN queries to avoid ambiguous column names
+const TROW = `tickets.aftersale_no AS aftersaleNo, tickets.order_no AS orderNo, tickets.shipping_no AS shippingNo,
+  tickets.return_no AS returnNo, tickets.status, tickets.note, tickets.created_at AS createdAt, tickets.updated_at AS updatedAt,
+  tickets.customer_id AS customerId,
+  tickets.nickname, tickets.recipient_name AS recipientName, tickets.phone,
+  tickets.province_code AS provinceCode, tickets.province, tickets.city_code AS cityCode, tickets.city,
+  tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail`
+
+const EMPTY_CUSTOMER: CustomerFields = {
+  nickname: '', recipientName: '', phone: '', provinceCode: '', province: '',
+  cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
+}
 
 interface FtsRow {
   rowid: number
-  aftersale_no: string
-  order_no: string
-  shipping_no: string
-  return_no: string
-  note: string
+  aftersale_no: string; order_no: string; shipping_no: string; return_no: string; note: string
+  nickname: string; recipient_name: string; phone: string
+  province: string; city: string; district: string; address_detail: string
 }
+
+const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, nickname, recipient_name, phone, province, city, district, address_detail'
 
 export class TicketRepo {
   constructor(private db: Database, private now: Now = () => Date.now()) {}
 
   create(t: NewTicket): void {
     const ts = this.now()
+    const row = { ...EMPTY_CUSTOMER, ...t, ts }
     const tx = this.db.transaction(() => {
       this.db.prepare(
-        `INSERT INTO tickets (aftersale_no, order_no, shipping_no, return_no, status, note, created_at, updated_at)
-         VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, 'pending', @note, @ts, @ts)`
-      ).run({ ...t, ts })
+        `INSERT INTO tickets (aftersale_no, order_no, shipping_no, return_no, status, note, created_at, updated_at,
+           nickname, recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail)
+         VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, 'pending', @note, @ts, @ts,
+           @nickname, @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail)`
+      ).run(row)
       this.ftsInsert(t.aftersaleNo)
     })
     tx()
   }
 
-  update(aftersaleNo: string, patch: Partial<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo' | 'status' | 'note'>>): void {
+  update(
+    aftersaleNo: string,
+    patch: Partial<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo' | 'status' | 'note'> & CustomerFields>
+  ): void {
     const cur = this.get(aftersaleNo)
     if (!cur) return
     const next = { ...cur, ...patch, updatedAt: this.now() }
     const tx = this.db.transaction(() => {
-      // Delete old FTS entry before modifying the content table
       this.ftsDelete(aftersaleNo)
       this.db.prepare(
         `UPDATE tickets SET order_no=@orderNo, shipping_no=@shippingNo, return_no=@returnNo,
-         status=@status, note=@note, updated_at=@updatedAt WHERE aftersale_no=@aftersaleNo`
+         status=@status, note=@note, updated_at=@updatedAt,
+         nickname=@nickname, recipient_name=@recipientName, phone=@phone,
+         province_code=@provinceCode, province=@province, city_code=@cityCode, city=@city,
+         district_code=@districtCode, district=@district, address_detail=@addressDetail
+         WHERE aftersale_no=@aftersaleNo`
       ).run(next as any)
-      // Insert updated FTS entry
       this.ftsInsert(aftersaleNo)
     })
     tx()
@@ -76,29 +100,28 @@ export class TicketRepo {
     if (!q) return this.list()
     const match = `"${q.replace(/"/g, '""')}"*`
     return this.db.prepare(
-      `SELECT t.aftersale_no AS aftersaleNo, t.order_no AS orderNo, t.shipping_no AS shippingNo,
-       t.return_no AS returnNo, t.status, t.note, t.created_at AS createdAt, t.updated_at AS updatedAt, t.customer_id AS customerId
-       FROM tickets_fts f
-       JOIN tickets t ON t.rowid = f.rowid
-       WHERE tickets_fts MATCH ? ORDER BY t.updated_at DESC`
+      `SELECT ${TROW} FROM tickets_fts f
+       JOIN tickets ON tickets.rowid = f.rowid
+       WHERE tickets_fts MATCH ? ORDER BY tickets.updated_at DESC`
     ).all(match) as Ticket[]
   }
 
   private ftsInsert(aftersaleNo: string): void {
     this.db.prepare(
-      `INSERT INTO tickets_fts (rowid, aftersale_no, order_no, shipping_no, return_no, note)
-       SELECT rowid, aftersale_no, order_no, shipping_no, return_no, note FROM tickets WHERE aftersale_no = ?`
+      `INSERT INTO tickets_fts (rowid, ${FTS_COLS})
+       SELECT rowid, ${FTS_COLS} FROM tickets WHERE aftersale_no = ?`
     ).run(aftersaleNo)
   }
 
   private ftsDelete(aftersaleNo: string): void {
     const row = this.db.prepare(
-      'SELECT rowid, aftersale_no, order_no, shipping_no, return_no, note FROM tickets WHERE aftersale_no = ?'
+      `SELECT rowid, ${FTS_COLS} FROM tickets WHERE aftersale_no = ?`
     ).get(aftersaleNo) as FtsRow | undefined
     if (!row) return
     this.db.prepare(
-      `INSERT INTO tickets_fts(tickets_fts, rowid, aftersale_no, order_no, shipping_no, return_no, note)
-       VALUES('delete', ?, ?, ?, ?, ?, ?)`
-    ).run(row.rowid, row.aftersale_no, row.order_no, row.shipping_no, row.return_no, row.note)
+      `INSERT INTO tickets_fts(tickets_fts, rowid, ${FTS_COLS})
+       VALUES('delete', @rowid, @aftersale_no, @order_no, @shipping_no, @return_no, @note,
+         @nickname, @recipient_name, @phone, @province, @city, @district, @address_detail)`
+    ).run(row)
   }
 }
