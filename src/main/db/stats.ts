@@ -13,10 +13,10 @@ export class StatsRepo {
   regionCounts(level: RegionLevel): RegionCount[] {
     const col = COLS[level] // fixed mapping — never interpolate arbitrary input
     return this.db.prepare(
-      `SELECT c.${col.code} AS code, c.${col.name} AS name, COUNT(*) AS count
-       FROM tickets t JOIN customers c ON t.customer_id = c.id
-       WHERE c.${col.code} != ''
-       GROUP BY c.${col.code}, c.${col.name}
+      `SELECT ${col.code} AS code, ${col.name} AS name, COUNT(*) AS count
+       FROM tickets
+       WHERE ${col.code} != ''
+       GROUP BY ${col.code}, ${col.name}
        ORDER BY count DESC, name ASC`
     ).all() as RegionCount[]
   }
@@ -24,7 +24,7 @@ export class StatsRepo {
   summary(): StatsSummary {
     const total = (this.db.prepare('SELECT COUNT(*) AS n FROM tickets').get() as { n: number }).n
     const classified = (this.db.prepare(
-      `SELECT COUNT(*) AS n FROM tickets t JOIN customers c ON t.customer_id = c.id WHERE c.province_code != ''`
+      `SELECT COUNT(*) AS n FROM tickets WHERE province_code != ''`
     ).get() as { n: number }).n
     return { total, classified, unclassified: total - classified }
   }
