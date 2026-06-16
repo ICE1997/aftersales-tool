@@ -12,6 +12,8 @@ import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose,
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
   const [ticket, setTicket] = useState<Ticket | undefined>()
   const [materials, setMaterials] = useState<Material[]>([])
+  const [folders, setFolders] = useState<string[]>([])
+  const [currentFolder, setCurrentFolder] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [preview, setPreview] = useState<Material | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -27,13 +29,14 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
 
   async function reload() {
     currentNo.current = aftersaleNo
-    const [t, ms] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo)])
+    const [t, ms, fs] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo), api.listFolders(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
     setTicket(t)
     setMaterials(ms)
+    setFolders(fs)
     setSelected(new Set())
   }
-  useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); reload() }, [aftersaleNo])
+  useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
 
   if (!ticket) return null
   const ids = () => [...selected]
@@ -51,6 +54,22 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   async function calibrate() {
     const n = await api.calibrate(aftersaleNo)
     setMsg(`校准完成,清理 ${n} 条失效索引`)
+    await reload()
+  }
+  async function createFolder(name: string) {
+    const path = currentFolder ? `${currentFolder}/${name.trim()}` : name.trim()
+    try { await api.createFolder(aftersaleNo, path); await reload() } catch (e) { setMsg(`新建文件夹失败:${(e as Error).message}`) }
+  }
+  async function renameFolder(path: string, newName: string) {
+    try { await api.renameFolder(aftersaleNo, path, newName); await reload() } catch (e) { setMsg(`重命名失败:${(e as Error).message}`) }
+  }
+  async function deleteFolder(path: string) {
+    await api.removeFolder(aftersaleNo, path)
+    if (currentFolder === path || currentFolder.startsWith(path + '/')) setCurrentFolder('')
+    await reload()
+  }
+  async function moveSelected(folder: string) {
+    for (const id of selected) await api.moveMaterial(id, folder)
     await reload()
   }
   async function remove() {
@@ -204,6 +223,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
                 <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}</span>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
+                <select className="rounded border border-line bg-surface px-1.5 py-1 text-xs" defaultValue="__none"
+                  onChange={(e) => { const v = e.target.value; e.currentTarget.value = '__none'; if (v !== '__none') void moveSelected(v === '__root' ? '' : v) }}>
+                  <option value="__none">移动到…</option>
+                  <option value="__root">根目录</option>
+                  {folders.map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
                 <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => setSelected(new Set())}>取消选择</button>
               </div>
             ) : materials.length > 0 ? (
@@ -215,7 +240,18 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
-            <MaterialGrid materials={materials} selectedIds={selected} onToggle={toggle} onOpen={setPreview} />
+            <MaterialGrid
+              materials={materials}
+              folders={folders}
+              currentFolder={currentFolder}
+              selectedIds={selected}
+              onToggle={toggle}
+              onOpen={setPreview}
+              onEnterFolder={setCurrentFolder}
+              onCreateFolder={createFolder}
+              onRenameFolder={renameFolder}
+              onDeleteFolder={deleteFolder}
+            />
           </div>
         </div>
       </div>
@@ -224,6 +260,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       <NewMaterialDialog
         open={newOpen}
         aftersaleNo={aftersaleNo}
+        targetFolder={currentFolder}
         onCancel={() => setNewOpen(false)}
         onCreated={async (m) => { setNewOpen(false); await reload(); setMsg(`已新建材料:${m.name || m.relPath.split('/').pop()}`) }}
       />

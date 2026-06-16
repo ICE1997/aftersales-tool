@@ -3,7 +3,7 @@ import type { Material } from '@shared/types'
 import { api } from '../api'
 import { IconClose, IconBox } from './icons'
 
-interface Props { open: boolean; aftersaleNo: string; onCreated: (m: Material) => void; onCancel: () => void }
+interface Props { open: boolean; aftersaleNo: string; targetFolder: string; onCreated: (m: Material) => void; onCancel: () => void }
 type Tab = 'clipboard' | 'file'
 interface Pending { fileName: string; bytes: Uint8Array; previewUrl?: string; isImage: boolean }
 
@@ -14,7 +14,7 @@ const IMG_NAME: Record<string, string> = {
   'image/webp': 'paste.webp'
 }
 
-export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Props) {
+export function NewMaterialDialog({ open, aftersaleNo, targetFolder, onCreated, onCancel }: Props) {
   const [tab, setTab] = useState<Tab>('clipboard')
   const [pending, setPending] = useState<Pending | null>(null)
   const [picked, setPicked] = useState<{ path: string; name: string } | null>(null)
@@ -91,8 +91,8 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
     setBusy(true); setError(null)
     try {
       const payload = tab === 'clipboard'
-        ? { source: 'paste' as const, fileName: pending!.fileName, name, bytes: pending!.bytes }
-        : { source: 'file' as const, path: picked!.path, name }
+        ? { source: 'paste' as const, fileName: pending!.fileName, name, bytes: pending!.bytes, folder: targetFolder }
+        : { source: 'file' as const, path: picked!.path, name, folder: targetFolder }
       const m = await api.createMaterial(aftersaleNo, payload)
       onCreated(m)
     } catch (e) {
@@ -111,6 +111,7 @@ export function NewMaterialDialog({ open, aftersaleNo, onCreated, onCancel }: Pr
           <h3 className="font-display text-lg font-extrabold tracking-tight">新建材料</h3>
           <button className="rounded-lg p-1.5 text-muted hover:bg-paper-2 hover:text-ink" onClick={onCancel} aria-label="关闭"><IconClose className="text-[16px]" /></button>
         </div>
+        <div className="mb-3 text-xs text-muted">将添加到:<span className="text-ink-soft">{targetFolder === '' ? '根目录' : targetFolder}</span></div>
 
         <div className="mb-4 inline-flex rounded-lg border border-line bg-paper-2 p-0.5 text-sm">
           <button className={`rounded-md px-3 py-1.5 ${tab === 'clipboard' ? 'bg-surface text-ink shadow-sm' : 'text-muted'}`} onClick={() => choose('clipboard')}>从剪贴板</button>
