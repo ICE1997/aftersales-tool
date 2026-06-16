@@ -1,0 +1,73 @@
+{
+  "name": "shouhou-jiang",
+  "version": "0.1.0",
+  "description": "售后酱 — 售后材料管理工具(订单、媒体、归档)",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "dist": "electron-vite build && electron-builder",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gen:icon": "node scripts/gen-icon.mjs",
+    "rebuild:electron": "electron-rebuild -f -w better-sqlite3 sharp",
+    "rebuild:node": "npm rebuild better-sqlite3 sharp"
+  },
+  "keywords": [],
+  "author": "售后酱",
+  "license": "ISC",
+  "build": {
+    "appId": "com.shouhoujiang.app",
+    "productName": "售后酱",
+    "icon": "build/icon.png",
+    "files": [
+      "out/**/*"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**",
+      "**/node_modules/sharp/**",
+      "**/node_modules/ffmpeg-static/**"
+    ],
+    "mac": {
+      "target": "dmg",
+      "identity": null
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "type": "module",
+  "dependencies": {
+    "archiver": "^8.0.0",
+    "better-sqlite3": "^12.10.1",
+    "echarts": "^6.1.0",
+    "ffmpeg-static": "^5.3.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "sharp": "^0.35.1"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/archiver": "^8.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/ui": "^4.1.8",
+    "autoprefixer": "^10.5.0",
+    "china-division": "^2.7.0",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "jsdom": "^29.1.1",
+    "postcss": "^8.5.15",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

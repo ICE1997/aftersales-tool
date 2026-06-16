@@ -1,0 +1,73 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import type { Ticket } from '../../src/shared/types'
+import { TicketTable } from '../../src/renderer/components/TicketTable'
+
+afterEach(() => cleanup())
+
+const EMPTY_CUSTOMER = {
+  recipientName: '', phone: '', provinceCode: '', province: '',
+  cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
+}
+
+function mk(over: Partial<Ticket> = {}): Ticket {
+  return {
+    aftersaleNo: 'AS-1', orderNo: 'O1', shippingNo: '', returnNo: '',
+    status: 'pending' as const, note: '', createdAt: 0, updatedAt: 0,
+    ...EMPTY_CUSTOMER,
+    ...over,
+  }
+}
+
+function mks(n: number): Ticket[] {
+  return Array.from({ length: n }, (_, i) => mk({ aftersaleNo: `AS-${i + 1}`, orderNo: `O${i + 1}`, createdAt: i, updatedAt: i }))
+}
+
+describe('TicketTable', () => {
+  it('shows the first page (default 20 rows) and the total count', () => {
+    render(<TicketTable tickets={mks(25)} query="" onOpen={() => {}} onNew={() => {}} />)
+    expect(screen.getByText('共 25 条')).toBeTruthy()
+    expect(screen.getAllByRole('row').length).toBe(1 + 20) // header + 20 body rows
+  })
+
+  it('goes to the next page', () => {
+    render(<TicketTable tickets={mks(25)} query="" onOpen={() => {}} onNew={() => {}} />)
+    fireEvent.click(screen.getByText('下一页'))
+    expect(screen.getAllByRole('row').length).toBe(1 + 5)
+    expect(screen.getByText('AS-21')).toBeTruthy()
+  })
+
+  it('calls onOpen with the row aftersaleNo when a row is clicked', () => {
+    const onOpen = vi.fn()
+    render(<TicketTable tickets={mks(3)} query="" onOpen={onOpen} onNew={() => {}} />)
+    fireEvent.click(screen.getByText('AS-2'))
+    expect(onOpen).toHaveBeenCalledWith('AS-2')
+  })
+
+  it('hides the pager when everything fits on one page', () => {
+    render(<TicketTable tickets={mks(5)} query="" onOpen={() => {}} onNew={() => {}} />)
+    expect(screen.queryByText('下一页')).toBeNull()
+    expect(screen.getByText('共 5 条')).toBeTruthy()
+  })
+
+  it('shows the empty state when there are no tickets', () => {
+    render(<TicketTable tickets={[]} query="" onOpen={() => {}} onNew={() => {}} />)
+    expect(screen.getByText('暂无售后单')).toBeTruthy()
+  })
+
+  it('resets to page 1 when the query changes', () => {
+    const { rerender } = render(<TicketTable tickets={mks(25)} query="" onOpen={() => {}} onNew={() => {}} />)
+    fireEvent.click(screen.getByText('下一页'))
+    expect(screen.getByText('AS-21')).toBeTruthy()
+    rerender(<TicketTable tickets={mks(25)} query="x" onOpen={() => {}} onNew={() => {}} />)
+    expect(screen.getByText('AS-1')).toBeTruthy()
+    expect(screen.queryByText('AS-21')).toBeNull()
+  })
+
+  it('shows recipient name and region columns', () => {
+    const onOpen = vi.fn()
+    render(<TicketTable tickets={[mk({ aftersaleNo: 'AS-1', recipientName: '程玲', province: '江苏省', city: '苏州市', district: '虎丘区' })]} query="" onOpen={onOpen} onNew={() => {}} />)
+    expect(screen.getByText('程玲')).toBeTruthy()
+    expect(screen.getByText('江苏省 · 苏州市 · 虎丘区')).toBeTruthy()
+  })
+})
