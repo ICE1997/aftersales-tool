@@ -18,7 +18,8 @@ const TICKET_CUSTOMER_COLS: [string, string][] = [
   ['city', "city TEXT NOT NULL DEFAULT ''"],
   ['district_code', "district_code TEXT NOT NULL DEFAULT ''"],
   ['district', "district TEXT NOT NULL DEFAULT ''"],
-  ['address_detail', "address_detail TEXT NOT NULL DEFAULT ''"]
+  ['address_detail', "address_detail TEXT NOT NULL DEFAULT ''"],
+  ['extension', "extension TEXT NOT NULL DEFAULT ''"]
 ]
 
 export function migrate(db: DB): void {

@@ -9,18 +9,18 @@ const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS sh
   return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt,
   recipient_name AS recipientName, phone,
   province_code AS provinceCode, province, city_code AS cityCode, city,
-  district_code AS districtCode, district, address_detail AS addressDetail`
+  district_code AS districtCode, district, address_detail AS addressDetail, extension`
 
 // Table-qualified version for JOIN queries to avoid ambiguous column names
 const TROW = `tickets.aftersale_no AS aftersaleNo, tickets.order_no AS orderNo, tickets.shipping_no AS shippingNo,
   tickets.return_no AS returnNo, tickets.status, tickets.note, tickets.created_at AS createdAt, tickets.updated_at AS updatedAt,
   tickets.recipient_name AS recipientName, tickets.phone,
   tickets.province_code AS provinceCode, tickets.province, tickets.city_code AS cityCode, tickets.city,
-  tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail`
+  tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail, tickets.extension`
 
 const EMPTY_CUSTOMER: CustomerFields = {
   recipientName: '', phone: '', provinceCode: '', province: '',
-  cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
+  cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
 }
 
 interface FtsRow {
@@ -41,9 +41,9 @@ export class TicketRepo {
     const tx = this.db.transaction(() => {
       this.db.prepare(
         `INSERT INTO tickets (aftersale_no, order_no, shipping_no, return_no, status, note, created_at, updated_at,
-           recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail)
+           recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail, extension)
          VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, 'pending', @note, @ts, @ts,
-           @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail)`
+           @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail, @extension)`
       ).run(row)
       this.ftsInsert(t.aftersaleNo)
     })
@@ -64,7 +64,7 @@ export class TicketRepo {
          status=@status, note=@note, updated_at=@updatedAt,
          recipient_name=@recipientName, phone=@phone,
          province_code=@provinceCode, province=@province, city_code=@cityCode, city=@city,
-         district_code=@districtCode, district=@district, address_detail=@addressDetail
+         district_code=@districtCode, district=@district, address_detail=@addressDetail, extension=@extension
          WHERE aftersale_no=@aftersaleNo`
       ).run(next as any)
       this.ftsInsert(aftersaleNo)

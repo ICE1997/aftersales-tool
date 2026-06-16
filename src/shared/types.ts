@@ -11,6 +11,7 @@ export interface CustomerFields {
   districtCode: string
   district: string
   addressDetail: string
+  extension: string
 }
 
 export type NewTicket = {

@@ -98,4 +98,16 @@ describe('TicketRepo', () => {
     expect(t.province).toBe('浙江省')
     expect(repo.search('阿强').map((x) => x.aftersaleNo)).toContain('AS-U')
   })
+
+  it('stores and reads the extension field', () => {
+    repo.create({ aftersaleNo: 'AS-X', orderNo: '', shippingNo: '', returnNo: '', note: '', phone: '17012345678', extension: '5678' })
+    expect(repo.get('AS-X')!.extension).toBe('5678')
+    repo.update('AS-X', { extension: '9999' })
+    expect(repo.get('AS-X')!.extension).toBe('9999')
+  })
+
+  it('defaults extension to empty when omitted', () => {
+    repo.create({ aftersaleNo: 'AS-Y', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    expect(repo.get('AS-Y')!.extension).toBe('')
+  })
 })
