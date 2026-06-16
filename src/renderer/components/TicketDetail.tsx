@@ -6,6 +6,7 @@ import { MaterialGrid } from './MaterialGrid'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
 import { RegionCascader, type RegionValue } from './RegionCascader'
+import { extractContact } from '../contact-extract'
 import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
@@ -21,6 +22,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [pasteText, setPasteText] = useState('')
   const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields & AftersaleFields>({
     orderNo: '', shippingNo: '', returnNo: '',
     recipientName: '', phone: '', provinceCode: '', province: '',
@@ -99,7 +101,21 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       aftersaleType: ticket.aftersaleType, aftersaleReason: ticket.aftersaleReason, shippingStatus: ticket.shippingStatus,
       amount: ticket.amount, refundAmount: ticket.refundAmount, appliedAt: ticket.appliedAt, returnLogistics: ticket.returnLogistics
     })
+    setPasteText('')
     setEditing(true)
+  }
+  function recognize() {
+    const r = extractContact(pasteText)
+    setForm((f) => ({
+      ...f,
+      recipientName: r.name || f.recipientName,
+      phone: r.phone || f.phone,
+      extension: r.extension || f.extension,
+      addressDetail: r.addressDetail || f.addressDetail,
+      ...(r.provinceCode
+        ? { provinceCode: r.provinceCode, province: r.province, cityCode: r.cityCode, city: r.city, districtCode: r.districtCode, district: r.district }
+        : {})
+    }))
   }
   async function saveInfo() {
     await api.updateTicket(aftersaleNo, { ...form })
@@ -178,6 +194,18 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               <button className="btn-ghost px-2.5 py-1 text-xs" onClick={startEdit}>编辑</button>
             )}
           </div>
+          {editing && (
+            <div className="mt-4">
+              <span className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-muted">粘贴识别</span>
+              <textarea
+                className="field h-16 resize-none"
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                placeholder="粘贴收货地址,自动识别姓名/电话/地址"
+              />
+              <button className="btn-ghost mt-1.5 px-3 py-1 text-xs disabled:opacity-50" disabled={!pasteText.trim()} onClick={recognize}>识别</button>
+            </div>
+          )}
           <dl className="mt-4 space-y-4">
             <InfoRow label="收货人姓名">
               {editing
