@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Ticket } from '@shared/types'
 import { STATUS_META } from '../status'
-import { paginate, formatTime } from '../table'
+import { paginate } from '../table'
 import { regionLabel } from '../region'
 import { IconBox, IconPlus } from './icons'
 
@@ -37,7 +37,7 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
       ) : (
         <div className="overflow-hidden rounded-xl2 border border-line bg-surface shadow-card">
           <div className="max-h-[calc(100vh-220px)] overflow-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[980px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
             <thead className="sticky top-0 bg-paper-2 text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-line">
                 <th className="px-4 py-2.5 text-left font-medium">售后单号</th>
@@ -47,7 +47,6 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
                 <th className="px-4 py-2.5 text-left font-medium">订单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">发货快递单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">退货快递单号</th>
-                <th className="px-4 py-2.5 text-left font-medium">更新时间</th>
               </tr>
             </thead>
             <tbody>
@@ -67,7 +66,6 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
                     <td className="tnum px-4 py-3 text-ink-soft">{t.orderNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.shippingNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.returnNo || '—'}</td>
-                    <td className="px-4 py-3 text-muted">{formatTime(t.updatedAt)}</td>
                   </tr>
                 )
               })}

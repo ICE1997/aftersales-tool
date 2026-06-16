@@ -10,8 +10,10 @@ registerMediaScheme()
 
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1320,
+    height: 820,
+    minWidth: 1040,
+    minHeight: 640,
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
