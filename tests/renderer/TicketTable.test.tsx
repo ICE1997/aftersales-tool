@@ -13,7 +13,7 @@ const EMPTY_CUSTOMER = {
 function mk(over: Partial<Ticket> = {}): Ticket {
   return {
     aftersaleNo: 'AS-1', orderNo: 'O1', shippingNo: '', returnNo: '',
-    status: 'pending' as const, note: '', createdAt: 0, updatedAt: 0,
+    status: '待商家处理' as const, note: '', createdAt: 0, updatedAt: 0,
     ...EMPTY_CUSTOMER,
     ...over,
   }
@@ -69,5 +69,22 @@ describe('TicketTable', () => {
     render(<TicketTable tickets={[mk({ aftersaleNo: 'AS-1', recipientName: '程玲', province: '江苏省', city: '苏州市', district: '虎丘区' })]} query="" onOpen={onOpen} onNew={() => {}} />)
     expect(screen.getByText('程玲')).toBeTruthy()
     expect(screen.getByText('江苏省 · 苏州市 · 虎丘区')).toBeTruthy()
+  })
+
+  it('renders the new aftersale columns and the status chip', () => {
+    render(<TicketTable
+      tickets={[mk({ aftersaleType: '退款退货', returnLogistics: '签收', appliedAt: '2026-05-28 14:27:38', status: '退款成功' })]}
+      query="" onOpen={() => {}} onNew={() => {}} onImport={() => {}} />)
+    expect(screen.getByText('退款退货')).toBeTruthy()
+    expect(screen.getByText('签收')).toBeTruthy()
+    expect(screen.getByText('2026-05-28 14:27:38')).toBeTruthy()
+    expect(screen.getByText('退款成功')).toBeTruthy()
+  })
+
+  it('calls onImport when the import button is clicked', () => {
+    const onImport = vi.fn()
+    render(<TicketTable tickets={mks(1)} query="" onOpen={() => {}} onNew={() => {}} onImport={onImport} />)
+    fireEvent.click(screen.getByText('导入 Excel'))
+    expect(onImport).toHaveBeenCalledTimes(1)
   })
 })

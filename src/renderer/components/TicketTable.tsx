@@ -3,13 +3,13 @@ import type { Ticket } from '@shared/types'
 import { STATUS_META } from '../status'
 import { paginate } from '../table'
 import { regionLabel } from '../region'
-import { IconBox, IconPlus } from './icons'
+import { IconBox, IconImport, IconPlus } from './icons'
 
-interface Props { tickets: Ticket[]; query: string; onOpen: (no: string) => void; onNew: () => void }
+interface Props { tickets: Ticket[]; query: string; onOpen: (no: string) => void; onNew: () => void; onImport?: () => void }
 
 const SIZES = [10, 20, 50]
 
-export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
+export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   useEffect(() => { setPage(1) }, [query])
@@ -26,7 +26,10 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
           <span className="font-display text-sm font-bold tracking-tight text-ink">售后单</span>
           <span className="tnum text-xs text-muted">{total}</span>
         </div>
-        <button className="btn-primary px-3 py-1.5 text-sm" onClick={onNew}><IconPlus className="text-[15px]" /> 新建售后单</button>
+        <div className="flex items-center gap-2">
+          <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => onImport?.()}><IconImport className="text-[15px]" /> 导入 Excel</button>
+          <button className="btn-primary px-3 py-1.5 text-sm" onClick={onNew}><IconPlus className="text-[15px]" /> 新建售后单</button>
+        </div>
       </div>
 
       {total === 0 ? (
@@ -37,21 +40,24 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
       ) : (
         <div className="overflow-hidden rounded-xl2 border border-line bg-surface shadow-card">
           <div className="max-h-[calc(100vh-220px)] overflow-auto">
-          <table className="w-full min-w-[980px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+          <table className="w-full min-w-[1240px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
             <thead className="sticky top-0 bg-paper-2 text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-line">
                 <th className="px-4 py-2.5 text-left font-medium">售后单号</th>
-                <th className="px-4 py-2.5 text-left font-medium">状态</th>
+                <th className="px-4 py-2.5 text-left font-medium">售后状态</th>
+                <th className="px-4 py-2.5 text-left font-medium">售后类型</th>
                 <th className="px-4 py-2.5 text-left font-medium">收件人</th>
                 <th className="px-4 py-2.5 text-left font-medium">地区</th>
                 <th className="px-4 py-2.5 text-left font-medium">订单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">发货快递单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">退货快递单号</th>
+                <th className="px-4 py-2.5 text-left font-medium">退货物流状态</th>
+                <th className="px-4 py-2.5 text-left font-medium">申请时间</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((t, i) => {
-                const meta = STATUS_META[t.status] ?? STATUS_META.pending
+                const meta = STATUS_META[t.status] ?? STATUS_META['待商家处理']
                 return (
                   <tr
                     key={t.aftersaleNo}
@@ -61,11 +67,14 @@ export function TicketTable({ tickets, query, onOpen, onNew }: Props) {
                   >
                     <td className="tnum px-4 py-3 font-medium text-ink">{t.aftersaleNo}</td>
                     <td className="px-4 py-3"><span className={`chip ${meta.chip}`}><span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />{meta.label}</span></td>
+                    <td className="px-4 py-3 text-ink-soft">{t.aftersaleType || '—'}</td>
                     <td className="px-4 py-3 text-ink-soft">{t.recipientName || '—'}</td>
                     <td className="px-4 py-3 text-ink-soft">{regionLabel(t) || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.orderNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.shippingNo || '—'}</td>
                     <td className="tnum px-4 py-3 text-ink-soft">{t.returnNo || '—'}</td>
+                    <td className="px-4 py-3 text-ink-soft">{t.returnLogistics || '—'}</td>
+                    <td className="tnum px-4 py-3 text-muted">{t.appliedAt || '—'}</td>
                   </tr>
                 )
               })}
