@@ -36,6 +36,12 @@ describe('FolderRepo', () => {
     expect(() => folders.rename('AS-1', '物流', '凭证')).toThrow()
   })
 
+  it('create rejects path segments containing / . .. or empty', () => {
+    expect(() => folders.create('AS-1', '..')).toThrow()
+    expect(() => folders.create('AS-1', '凭证/..')).toThrow()
+    expect(() => folders.create('AS-1', '凭证//聊天')).toThrow()
+  })
+
   it('remove deletes the subtree and returns affected materials', () => {
     folders.create('AS-1', '凭证/聊天')
     folders.create('AS-1', '物流')

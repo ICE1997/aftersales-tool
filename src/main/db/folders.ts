@@ -8,6 +8,7 @@ export class FolderRepo {
   constructor(private db: Database, private now: Now = () => Date.now()) {}
 
   create(aftersaleNo: string, path: string): void {
+    for (const seg of path.split('/')) normalizeSegment(seg) // throws on empty / '/' / '.' / '..'
     const ts = this.now()
     const ins = this.db.prepare('INSERT OR IGNORE INTO material_folders (aftersale_no, path, created_at) VALUES (?, ?, ?)')
     this.db.transaction(() => {
