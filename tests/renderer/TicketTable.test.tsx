@@ -5,10 +5,16 @@ import { TicketTable } from '../../src/renderer/components/TicketTable'
 
 afterEach(() => cleanup())
 
+const EMPTY_CUSTOMER = {
+  nickname: '', recipientName: '', phone: '', provinceCode: '', province: '',
+  cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
+}
+
 function mk(n: number): Ticket[] {
   return Array.from({ length: n }, (_, i) => ({
     aftersaleNo: `AS-${i + 1}`, orderNo: `O${i + 1}`, shippingNo: '', returnNo: '',
-    status: 'pending' as const, note: '', createdAt: i, updatedAt: i
+    status: 'pending' as const, note: '', createdAt: i, updatedAt: i,
+    ...EMPTY_CUSTOMER
   }))
 }
 
