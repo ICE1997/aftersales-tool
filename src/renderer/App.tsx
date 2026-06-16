@@ -3,7 +3,8 @@ import { SettingsDialog } from './components/SettingsDialog'
 import { TicketsView } from './views/TicketsView'
 import { CustomersView } from './views/CustomersView'
 import { StatsView } from './views/StatsView'
-import { IconSettings, IconBox } from './components/icons'
+import { IconSettings } from './components/icons'
+import { Logo } from './components/Logo'
 
 type Tab = 'tickets' | 'customers' | 'stats'
 
@@ -16,9 +17,9 @@ export default function App() {
     <div className="flex h-screen flex-col bg-paper text-ink">
       <header className="flex items-center gap-4 border-b border-line bg-paper-2 px-4 py-3">
         <div className="flex shrink-0 items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl2 bg-accent text-white shadow-sm"><IconBox className="text-[18px]" /></span>
+          <Logo size={36} className="shrink-0 rounded-xl2 shadow-sm" />
           <div className="leading-tight">
-            <div className="font-display text-[17px] font-extrabold tracking-tight">vhelper</div>
+            <div className="font-display text-[17px] font-extrabold tracking-tight">售后酱</div>
             <div className="-mt-0.5 text-[11px] text-muted">售后材料管理</div>
           </div>
         </div>

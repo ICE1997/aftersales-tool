@@ -1,7 +1,7 @@
 {
-  "name": "vhelper",
+  "name": "shouhou-jiang",
   "version": "0.1.0",
-  "description": "Aftersales helper tool for managing orders, media, and archiving",
+  "description": "售后酱 — 售后材料管理工具(订单、媒体、归档)",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -10,15 +10,17 @@
     "dist": "electron-vite build && electron-builder",
     "test": "vitest run",
     "test:watch": "vitest",
+    "gen:icon": "node scripts/gen-icon.mjs",
     "rebuild:electron": "electron-rebuild -f -w better-sqlite3 sharp",
     "rebuild:node": "npm rebuild better-sqlite3 sharp"
   },
   "keywords": [],
-  "author": "vhelper",
+  "author": "售后酱",
   "license": "ISC",
   "build": {
-    "appId": "com.vhelper.app",
-    "productName": "vhelper",
+    "appId": "com.shouhoujiang.app",
+    "productName": "售后酱",
+    "icon": "build/icon.png",
     "files": [
       "out/**/*"
     ],
