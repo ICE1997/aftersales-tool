@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Customer, Material, Ticket, TicketStatus } from '@shared/types'
 import { api } from '../api'
 import { STATUS_META, STATUS_ORDER } from '../status'
@@ -58,71 +58,32 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   async function linkCustomer(id: number) { await api.setTicketCustomer(aftersaleNo, id); setPickerOpen(false); await reload() }
   async function unlinkCustomer() { await api.setTicketCustomer(aftersaleNo, null); await reload() }
 
-  const noNumbers = !ticket.orderNo && !ticket.shippingNo && !ticket.returnNo
+  const customerName = customer ? (customer.name || customer.nickname || '未命名') : ''
 
   return (
     <div className="flex h-full flex-col">
-      {/* unified header */}
-      <div className="border-b border-line bg-paper-2 px-6 py-5">
-        {/* title row */}
-        <div className="flex items-center gap-3">
-          <button className="btn-ghost px-2.5" onClick={onBack} aria-label="返回">← 返回</button>
-          <div className="min-w-0">
-            <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">售后单号</div>
-            <h2 className="tnum mt-0.5 truncate font-display text-2xl font-extrabold leading-tight tracking-tight text-ink">{ticket.aftersaleNo}</h2>
-          </div>
-
-          {/* status pill with invisible native select overlay */}
-          <label className={`chip ${meta.chip} relative ml-1 cursor-pointer pr-6`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-            {meta.label}
-            <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-            <select
-              className="absolute inset-0 cursor-pointer opacity-0"
-              value={ticket.status}
-              onChange={async (e) => { await api.updateTicket(aftersaleNo, { status: e.target.value as TicketStatus }); await reload(); onChanged() }}
-            >
-              {STATUS_ORDER.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
-            </select>
-          </label>
-
-          <button className="btn-danger ml-auto px-2.5" onClick={() => setConfirmDelete(true)}>
-            <IconTrash className="text-[15px]" /> 删除
-          </button>
+      {/* slim header: identity + status + delete */}
+      <div className="flex items-center gap-3 border-b border-line bg-paper-2 px-6 py-4">
+        <button className="btn-ghost px-2.5" onClick={onBack} aria-label="返回">← 返回</button>
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">售后单号</div>
+          <h2 className="tnum mt-0.5 truncate font-display text-xl font-extrabold leading-tight tracking-tight text-ink">{ticket.aftersaleNo}</h2>
         </div>
-
-        {/* meta: order numbers (non-empty only) + customer */}
-        <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-          {ticket.orderNo && <Meta label="订单号" value={ticket.orderNo} />}
-          {ticket.shippingNo && <Meta label="发货单号" value={ticket.shippingNo} />}
-          {ticket.returnNo && <Meta label="退货单号" value={ticket.returnNo} />}
-          {noNumbers && <span className="text-xs text-muted">未填写单号</span>}
-          <span className="h-3.5 w-px bg-line-strong" />
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-[11px] uppercase tracking-wider text-muted">客户</span>
-            <span className="text-ink-soft">{customer ? (customer.name || customer.nickname || '未命名') : '未关联'}</span>
-            <button className="btn-ghost px-2 py-0.5 text-xs" onClick={() => setPickerOpen(true)}>{customer ? '更换' : '关联'}</button>
-            {customer && <button className="btn-ghost px-2 py-0.5 text-xs" onClick={unlinkCustomer}>取消关联</button>}
-          </div>
-        </div>
-
-        {/* actions: primary + contextual selection group, maintenance demoted */}
-        <div className="mt-4 flex items-center gap-2">
-          <button className="btn-primary" onClick={() => setNewOpen(true)}><IconImport className="text-[16px]" /> 新建材料</button>
-          {selected.size > 0 ? (
-            <div className="flex animate-slidedown items-center gap-1 rounded-lg bg-accent-soft px-2 py-1">
-              <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}</span>
-              <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
-              <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
-              <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => setSelected(new Set())}>取消选择</button>
-            </div>
-          ) : materials.length > 0 ? (
-            <span className="text-xs text-muted">勾选材料可导出或打包</span>
-          ) : null}
-          <button className="btn-ghost ml-auto px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
-            <IconRefresh className="text-[15px]" />
-          </button>
-        </div>
+        <label className={`chip ${meta.chip} relative ml-1 cursor-pointer pr-6`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+          {meta.label}
+          <svg className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          <select
+            className="absolute inset-0 cursor-pointer opacity-0"
+            value={ticket.status}
+            onChange={async (e) => { await api.updateTicket(aftersaleNo, { status: e.target.value as TicketStatus }); await reload(); onChanged() }}
+          >
+            {STATUS_ORDER.map((s) => <option key={s} value={s}>{STATUS_META[s].label}</option>)}
+          </select>
+        </label>
+        <button className="btn-danger ml-auto px-2.5" onClick={() => setConfirmDelete(true)}>
+          <IconTrash className="text-[15px]" /> 删除
+        </button>
       </div>
 
       {confirmDelete && (
@@ -142,9 +103,50 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
         </div>
       )}
 
-      <div className="flex-1 overflow-auto">
-        <MaterialGrid materials={materials} selectedIds={selected} onToggle={toggle} onOpen={setPreview} />
+      {/* body: 基本信息 rail + materials */}
+      <div className="flex min-h-0 flex-1">
+        <aside className="w-[300px] shrink-0 overflow-auto border-r border-line bg-paper-2 px-5 py-5">
+          <h3 className="font-display text-sm font-bold tracking-tight text-ink">基本信息</h3>
+          <dl className="mt-4 space-y-4">
+            <InfoRow label="客户">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                <span className={customer ? 'text-ink' : 'text-muted'}>{customer ? customerName : '未关联'}</span>
+                <button className="btn-ghost px-2 py-0.5 text-xs" onClick={() => setPickerOpen(true)}>{customer ? '更换' : '关联'}</button>
+                {customer && <button className="btn-ghost px-2 py-0.5 text-xs" onClick={unlinkCustomer}>取消关联</button>}
+              </div>
+            </InfoRow>
+            <div className="h-px bg-line" />
+            <InfoRow label="订单号"><Value v={ticket.orderNo} /></InfoRow>
+            <InfoRow label="发货单号"><Value v={ticket.shippingNo} /></InfoRow>
+            <InfoRow label="退货单号"><Value v={ticket.returnNo} /></InfoRow>
+          </dl>
+        </aside>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* materials toolbar */}
+          <div className="flex items-center gap-2 border-b border-line px-6 py-3">
+            <button className="btn-primary" onClick={() => setNewOpen(true)}><IconImport className="text-[16px]" /> 新建材料</button>
+            {selected.size > 0 ? (
+              <div className="flex animate-slidedown items-center gap-1 rounded-lg bg-accent-soft px-2 py-1">
+                <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}</span>
+                <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
+                <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
+                <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => setSelected(new Set())}>取消选择</button>
+              </div>
+            ) : materials.length > 0 ? (
+              <span className="text-xs text-muted">勾选材料可导出或打包</span>
+            ) : null}
+            <button className="btn-ghost ml-auto px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
+              <IconRefresh className="text-[15px]" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto">
+            <MaterialGrid materials={materials} selectedIds={selected} onToggle={toggle} onOpen={setPreview} />
+          </div>
+        </div>
       </div>
+
       <PreviewModal material={preview} onClose={() => setPreview(null)} />
       <NewMaterialDialog
         open={newOpen}
@@ -157,11 +159,15 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   )
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function InfoRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <span className="inline-flex items-baseline gap-1.5">
-      <span className="text-[11px] uppercase tracking-wider text-muted">{label}</span>
-      <span className="tnum text-[13px] font-medium text-ink">{value}</span>
-    </span>
+    <div>
+      <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="mt-1 text-sm">{children}</dd>
+    </div>
   )
+}
+
+function Value({ v }: { v: string }) {
+  return v ? <span className="tnum break-all font-medium text-ink">{v}</span> : <span className="text-muted">—</span>
 }
