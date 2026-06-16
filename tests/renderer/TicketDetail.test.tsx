@@ -21,6 +21,7 @@ vi.mock('../../src/renderer/api', () => ({
 afterEach(() => cleanup())
 
 import { TicketDetail } from '../../src/renderer/components/TicketDetail'
+import { api } from '../../src/renderer/api'
 
 describe('TicketDetail aftersale fields', () => {
   it('shows the imported aftersale field values', async () => {
@@ -31,5 +32,11 @@ describe('TicketDetail aftersale fields', () => {
     expect(screen.getByText('签收')).toBeTruthy()
     expect(screen.getByText('2026-05-28 14:27:38')).toBeTruthy()
     expect(screen.getAllByText('24.99').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('does not crash when ticket has an off-enum status', async () => {
+    ;(api.getTicket as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ...ticket, status: '某未知状态' })
+    render(<TicketDetail aftersaleNo="AS-1" onChanged={() => {}} onDeleted={() => {}} onBack={() => {}} />)
+    await waitFor(() => expect(screen.getByText('AS-1')).toBeTruthy())
   })
 })
