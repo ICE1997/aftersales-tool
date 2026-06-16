@@ -57,4 +57,16 @@ describe('runMigrations', () => {
     expect(backupBeforeMigrate(join(dir, 'nope.db'), join(dir, 'backups'))).toBeNull()
     expect(existsSync(join(dir, 'backups'))).toBe(false)
   })
+
+  it('baseline tickets has the Spec C columns and the 待商家处理 status default', async () => {
+    const dbPath = join(dir, 'cols.db')
+    await runMigrations(dbPath, join(dir, 'backups'))
+    const db = new BetterSqlite3(dbPath)
+    const cols = (db.prepare('PRAGMA table_info(tickets)').all() as { name: string; dflt_value: string | null }[])
+    const names = cols.map((c) => c.name)
+    const status = cols.find((c) => c.name === 'status')!
+    db.close()
+    expect(names).toEqual(expect.arrayContaining(['aftersale_type', 'aftersale_reason', 'shipping_status', 'amount', 'refund_amount', 'applied_at', 'return_logistics', 'extension']))
+    expect(status.dflt_value).toContain('待商家处理')
+  })
 })

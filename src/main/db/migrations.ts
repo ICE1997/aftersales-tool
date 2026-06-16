@@ -10,7 +10,7 @@ export const BASELINE_STATEMENTS: string[] = [
      order_no TEXT NOT NULL DEFAULT '',
      shipping_no TEXT NOT NULL DEFAULT '',
      return_no TEXT NOT NULL DEFAULT '',
-     status TEXT NOT NULL DEFAULT 'pending',
+     status TEXT NOT NULL DEFAULT '待商家处理',
      note TEXT NOT NULL DEFAULT '',
      created_at INTEGER NOT NULL,
      updated_at INTEGER NOT NULL,
@@ -23,7 +23,14 @@ export const BASELINE_STATEMENTS: string[] = [
      district_code TEXT NOT NULL DEFAULT '',
      district TEXT NOT NULL DEFAULT '',
      address_detail TEXT NOT NULL DEFAULT '',
-     extension TEXT NOT NULL DEFAULT ''
+     extension TEXT NOT NULL DEFAULT '',
+     aftersale_type TEXT NOT NULL DEFAULT '',
+     aftersale_reason TEXT NOT NULL DEFAULT '',
+     shipping_status TEXT NOT NULL DEFAULT '',
+     amount TEXT NOT NULL DEFAULT '',
+     refund_amount TEXT NOT NULL DEFAULT '',
+     applied_at TEXT NOT NULL DEFAULT '',
+     return_logistics TEXT NOT NULL DEFAULT ''
    )`,
   `CREATE TABLE IF NOT EXISTS materials (
      id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +57,10 @@ export const BASELINE_STATEMENTS: string[] = [
      aftersale_no, order_no, shipping_no, return_no, note,
      recipient_name, phone, province, city, district, address_detail,
      content='tickets', content_rowid='rowid'
-   )`
+   )`,
+  `UPDATE tickets SET status='待商家处理' WHERE status='pending'`,
+  `UPDATE tickets SET status='平台处理中' WHERE status='processing'`,
+  `UPDATE tickets SET status='退款成功' WHERE status='resolved'`
 ]
 
 export interface CodeMigration { name: string; up: (knex: KnexType) => Promise<void> }
