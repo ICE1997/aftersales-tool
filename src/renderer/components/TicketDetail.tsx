@@ -18,6 +18,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [newOpen, setNewOpen] = useState(false)
   const [customer, setCustomer] = useState<Customer | undefined>()
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ orderNo: '', shippingNo: '', returnNo: '' })
   const currentNo = useRef(aftersaleNo)
 
   async function reload() {
@@ -31,7 +33,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     setSelected(new Set())
     setCustomer(c)
   }
-  useEffect(() => { setMsg(null); setConfirmDelete(false); setCustomer(undefined); reload() }, [aftersaleNo])
+  useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCustomer(undefined); reload() }, [aftersaleNo])
 
   if (!ticket) return null
   const ids = () => [...selected]
@@ -62,6 +64,18 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     const params = new URLSearchParams({ id: ticket.aftersaleNo })
     if (ticket.orderNo) params.set('orderSn', ticket.orderNo)
     api.openInChrome(`https://mms.pinduoduo.com/aftersales-ssr/detail?${params}`)
+  }
+  function startEdit() {
+    if (!ticket) return
+    setForm({ orderNo: ticket.orderNo, shippingNo: ticket.shippingNo, returnNo: ticket.returnNo })
+    setEditing(true)
+  }
+  async function saveInfo() {
+    await api.updateTicket(aftersaleNo, { orderNo: form.orderNo.trim(), shippingNo: form.shippingNo.trim(), returnNo: form.returnNo.trim() })
+    setEditing(false)
+    await reload()
+    onChanged()
+    setMsg('已保存基本信息')
   }
 
   const customerName = customer ? (customer.name || customer.nickname || '未命名') : ''
@@ -117,7 +131,17 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       {/* body: 基本信息 rail + materials */}
       <div className="flex min-h-0 flex-1">
         <aside className="w-[300px] shrink-0 overflow-auto border-r border-line bg-paper-2 px-5 py-5">
-          <h3 className="font-display text-sm font-bold tracking-tight text-ink">基本信息</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-sm font-bold tracking-tight text-ink">基本信息</h3>
+            {editing ? (
+              <span className="flex gap-1.5">
+                <button className="btn-primary px-2.5 py-1 text-xs" onClick={saveInfo}>保存</button>
+                <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => setEditing(false)}>取消</button>
+              </span>
+            ) : (
+              <button className="btn-ghost px-2.5 py-1 text-xs" onClick={startEdit}>编辑</button>
+            )}
+          </div>
           <dl className="mt-4 space-y-4">
             <InfoRow label="客户">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
@@ -127,9 +151,21 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               </div>
             </InfoRow>
             <div className="h-px bg-line" />
-            <InfoRow label="订单号"><Value v={ticket.orderNo} /></InfoRow>
-            <InfoRow label="发货快递单号"><Value v={ticket.shippingNo} /></InfoRow>
-            <InfoRow label="退货快递单号"><Value v={ticket.returnNo} /></InfoRow>
+            <InfoRow label="订单号">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.orderNo} onChange={(e) => setForm((f) => ({ ...f, orderNo: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.orderNo} />}
+            </InfoRow>
+            <InfoRow label="发货快递单号">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.shippingNo} onChange={(e) => setForm((f) => ({ ...f, shippingNo: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.shippingNo} />}
+            </InfoRow>
+            <InfoRow label="退货快递单号">
+              {editing
+                ? <input className="field tnum py-1.5" value={form.returnNo} onChange={(e) => setForm((f) => ({ ...f, returnNo: e.target.value }))} placeholder="未填写" />
+                : <Value v={ticket.returnNo} />}
+            </InfoRow>
           </dl>
         </aside>
 
