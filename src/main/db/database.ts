@@ -22,6 +22,16 @@ const TICKET_CUSTOMER_COLS: [string, string][] = [
   ['extension', "extension TEXT NOT NULL DEFAULT ''"]
 ]
 
+const TICKET_AFTERSALE_COLS: [string, string][] = [
+  ['aftersale_type', "aftersale_type TEXT NOT NULL DEFAULT ''"],
+  ['aftersale_reason', "aftersale_reason TEXT NOT NULL DEFAULT ''"],
+  ['shipping_status', "shipping_status TEXT NOT NULL DEFAULT ''"],
+  ['amount', "amount TEXT NOT NULL DEFAULT ''"],
+  ['refund_amount', "refund_amount TEXT NOT NULL DEFAULT ''"],
+  ['applied_at', "applied_at TEXT NOT NULL DEFAULT ''"],
+  ['return_logistics', "return_logistics TEXT NOT NULL DEFAULT ''"],
+]
+
 export function migrate(db: DB): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS tickets (
@@ -57,6 +67,8 @@ export function migrate(db: DB): void {
   `)
   ensureColumn(db, 'materials', 'name', "name TEXT NOT NULL DEFAULT ''")
   for (const [col, ddl] of TICKET_CUSTOMER_COLS) ensureColumn(db, 'tickets', col, ddl)
+  for (const [col, ddl] of TICKET_AFTERSALE_COLS) ensureColumn(db, 'tickets', col, ddl)
+  migrateLegacyStatuses(db)
   migrateLegacyCustomers(db)
   rebuildFtsIfStale(db)
 }
@@ -117,4 +129,11 @@ export function ensureColumn(db: DB, table: string, column: string, ddl: string)
   if (!cols.some((c) => c.name === column)) {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`)
   }
+}
+
+/** One-time, idempotent: map the old 3-state status values to the new PDD set. */
+export function migrateLegacyStatuses(db: DB): void {
+  db.prepare("UPDATE tickets SET status='待商家处理' WHERE status='pending'").run()
+  db.prepare("UPDATE tickets SET status='平台处理中' WHERE status='processing'").run()
+  db.prepare("UPDATE tickets SET status='退款成功' WHERE status='resolved'").run()
 }

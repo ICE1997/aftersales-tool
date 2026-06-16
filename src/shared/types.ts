@@ -1,5 +1,17 @@
 export type MaterialKind = 'image' | 'video'
-export type TicketStatus = 'pending' | 'processing' | 'resolved'
+export type TicketStatus =
+  | '待商家处理' | '待商家收货' | '待消费者发货' | '平台处理中'
+  | '退款成功' | '退款关闭' | '换货/补寄成功' | '换货/补寄关闭' | '维修成功' | '维修关闭'
+
+export interface AftersaleFields {
+  aftersaleType: string
+  aftersaleReason: string
+  shippingStatus: string
+  amount: string
+  refundAmount: string
+  appliedAt: string
+  returnLogistics: string
+}
 
 export interface CustomerFields {
   recipientName: string
@@ -20,7 +32,8 @@ export type NewTicket = {
   shippingNo: string
   returnNo: string
   note: string
-} & Partial<CustomerFields>
+  status?: TicketStatus
+} & Partial<CustomerFields> & Partial<AftersaleFields>
 
 export type Ticket = {
   aftersaleNo: string
@@ -31,7 +44,7 @@ export type Ticket = {
   note: string
   createdAt: number
   updatedAt: number
-} & CustomerFields
+} & CustomerFields & AftersaleFields
 
 export interface Material {
   id: number
@@ -62,3 +75,10 @@ export type CreateMaterialPayload =
 export type RegionLevel = 'province' | 'city' | 'district'
 export interface RegionCount { code: string; name: string; count: number }
 export interface StatsSummary { total: number; classified: number; unclassified: number }
+
+export interface ImportTicketsResult {
+  imported: number
+  skippedExisting: number
+  duplicatedInFile: number
+  failed: { row: number; reason: string }[]
+}
