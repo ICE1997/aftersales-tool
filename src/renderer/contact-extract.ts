@@ -22,7 +22,7 @@ function stripBrackets(s: string): string {
 
 // Remove a leading field label like 收货人: / 电话: / 收货地址: etc.
 function stripLabel(s: string): string {
-  return s.replace(/^(收货人|收件人|姓名|联系人|联系电话|联系方式|电话|手机号|手机|收货地址|所在地区|地址)[:：\s]*/, '').trim()
+  return s.replace(/^(收货人|收件人|寄件人|姓名|联系人|联系电话|联系方式|电话|手机号|手机|收货地址|地址|所在地区)[:：\s]*/, '').trim()
 }
 
 // Earliest (then longest) region whose name appears in `text`.
@@ -49,7 +49,7 @@ export function extractContact(text: string): ExtractedContact {
   const lines = text.split(/\r?\n/).map((l) => stripLabel(stripBrackets(l))).filter((l) => l.length > 0)
 
   // 1) phone (+ optional extension)
-  const phoneRe = /(?<!\d)(1[3-9]\d{9})(?:\s*(?:转|分机|ext\.?|[,，])\s*(\d{1,6}))?/i
+  const phoneRe = /(?<!\d)(1[3-9]\d{9})(?!\d)(?:\s*(?:转|分机|ext\.?|[,，])\s*(\d{1,6}))?/i
   for (let i = 0; i < lines.length; i++) {
     const m = lines[i].match(phoneRe)
     if (!m) continue
@@ -76,17 +76,28 @@ export function extractContact(text: string): ExtractedContact {
 
     const cities = childrenOf(provHit.region.code).filter((c) => c.name.length > 1)
     const cityHit = findRegion(rest, cities)
-    let city: Region | undefined = cityHit?.region
-    if (cityHit) rest = cut(rest, cityHit.index, cityHit.region.name.length)
-    else city = cities.find((c) => c.name === '市辖区') // 直辖市: single 市辖区 child
-    if (city) {
-      out.cityCode = city.code
-      out.city = city.name
-      const distHit = findRegion(rest, childrenOf(city.code))
+    if (cityHit) {
+      out.cityCode = cityHit.region.code
+      out.city = cityHit.region.name
+      rest = cut(rest, cityHit.index, cityHit.region.name.length)
+      const distHit = findRegion(rest, childrenOf(cityHit.region.code).filter((d) => d.name.length > 1))
       if (distHit) {
         out.districtCode = distHit.region.code
         out.district = distHit.region.name
         rest = cut(rest, distHit.index, distHit.region.name.length)
+      }
+    } else {
+      // 直辖市: no city named in text; use the 市辖区 proxy only if it actually yields a district
+      const muni = cities.find((c) => c.name === '市辖区')
+      if (muni) {
+        const distHit = findRegion(rest, childrenOf(muni.code).filter((d) => d.name.length > 1))
+        if (distHit) {
+          out.cityCode = muni.code
+          out.city = muni.name
+          out.districtCode = distHit.region.code
+          out.district = distHit.region.name
+          rest = cut(rest, distHit.index, distHit.region.name.length)
+        }
       }
     }
     out.addressDetail = rest.replace(/^[\s,，、]+/, '').replace(/\s+/g, ' ').trim()

@@ -64,10 +64,15 @@ describe('extractContact', () => {
     expect(extractContact('213800138000').phone).toBe('')
   })
 
+  it('does not extract a phone from a long glued digit run', () => {
+    expect(extractContact('13800138000123').phone).toBe('')
+  })
+
   it('does not false-match the single-char 县 proxy as a city (Chongqing county)', () => {
     const r = extractContact('重庆市城口县新城街道1号')
     expect(r.province).toBe('重庆市')
-    expect(r.city).not.toBe('县')
+    expect(r.city).toBe('')
+    expect(r.district).toBe('')
     expect(r.addressDetail).toContain('城口县')
   })
 })
