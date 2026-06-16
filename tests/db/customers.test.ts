@@ -5,80 +5,55 @@ import { TicketRepo } from '../../src/main/db/tickets'
 import { CustomerRepo } from '../../src/main/db/customers'
 
 let db: Database
+let tickets: TicketRepo
 let customers: CustomerRepo
-
-const baseCustomer = {
-  nickname: '小明', name: '张三',
-  provinceCode: '44', province: '广东省',
-  cityCode: '4403', city: '深圳市',
-  districtCode: '440305', district: '南山区',
-  addressDetail: '科技园1号'
-}
+let clock = 1000
 
 beforeEach(() => {
+  clock = 1000
   db = createDatabase(':memory:')
-  customers = new CustomerRepo(db, () => 1000)
+  tickets = new TicketRepo(db, () => ++clock)
+  customers = new CustomerRepo(db)
 })
 
-describe('CustomerRepo', () => {
-  it('creates and reads a customer with address fields', () => {
-    const id = customers.create(baseCustomer)
-    const c = customers.get(id)!
-    expect(c.nickname).toBe('小明')
-    expect(c.province).toBe('广东省')
-    expect(c.districtCode).toBe('440305')
-    expect(c.addressDetail).toBe('科技园1号')
-    expect(c.createdAt).toBe(1000)
+function add(no: string, over: Record<string, string> = {}) {
+  tickets.create({ aftersaleNo: no, orderNo: '', shippingNo: '', returnNo: '', note: '',
+    nickname: '小明', recipientName: '张三', phone: '138', provinceCode: '44', province: '广东省',
+    cityCode: '4403', city: '深圳市', districtCode: '440305', district: '南山区', addressDetail: '', ...over })
+}
+
+describe('CustomerRepo (derived from tickets)', () => {
+  it('groups tickets by nickname with复诉 count, newest-first', () => {
+    add('AS-1')
+    add('AS-2')
+    add('AS-3', { nickname: '阿强', recipientName: '李四', province: '浙江省', provinceCode: '33' })
+    const rows = customers.listByNickname()
+    expect(rows.map((r) => [r.nickname, r.ticketCount])).toEqual([['小明', 2], ['阿强', 1]])
   })
 
-  it('updates fields', () => {
-    const id = customers.create(baseCustomer)
-    customers.update(id, { name: '李四', addressDetail: '高新南' })
-    const c = customers.get(id)!
-    expect(c.name).toBe('李四')
-    expect(c.addressDetail).toBe('高新南')
+  it('representative values come from the most recently updated ticket', () => {
+    add('AS-1', { phone: '111' })
+    add('AS-2', { phone: '222' }) // 更晚创建 → updated_at 更大
+    const xm = customers.listByNickname().find((r) => r.nickname === '小明')!
+    expect(xm.phone).toBe('222')
   })
 
-  it('list returns ticketCount per customer', () => {
-    const id = customers.create(baseCustomer)
-    const tickets = new TicketRepo(db, () => 1)
-    tickets.create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
-    tickets.setCustomer('AS-1', id)
-    const row = customers.list().find((r) => r.id === id)!
-    expect(row.ticketCount).toBe(1)
+  it('excludes tickets with empty nickname', () => {
+    add('AS-1', { nickname: '' })
+    expect(customers.listByNickname()).toEqual([])
   })
 
-  it('searches by nickname/name/region/detail', () => {
-    customers.create(baseCustomer)
-    expect(customers.search('张三').length).toBe(1)
-    expect(customers.search('南山').length).toBe(1)
-    expect(customers.search('科技园').length).toBe(1)
-    expect(customers.search('不存在').length).toBe(0)
+  it('ticketsOfNickname returns that buyer tickets newest-first', () => {
+    add('AS-1'); add('AS-2')
+    expect(customers.ticketsOfNickname('小明').map((t) => t.aftersaleNo)).toEqual(['AS-2', 'AS-1'])
   })
 
-  it('delete nulls the customer_id of linked tickets', () => {
-    const id = customers.create(baseCustomer)
-    const tickets = new TicketRepo(db, () => 1)
-    tickets.create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
-    tickets.setCustomer('AS-1', id)
-    customers.delete(id)
-    expect(customers.get(id)).toBeUndefined()
-    expect(tickets.get('AS-1')!.customerId).toBeNull()
-  })
-
-  it('treats % and _ as literals in search (no wildcard match)', () => {
-    customers.create(baseCustomer) // nickname 小明, no % or _
-    expect(customers.search('%').length).toBe(0)
-    expect(customers.search('_').length).toBe(0)
-    customers.create({ ...baseCustomer, nickname: '95%好评' })
-    expect(customers.search('%').length).toBe(1) // matches the literal % only
-  })
-
-  it('ticketsOf returns the customer linked tickets', () => {
-    const id = customers.create(baseCustomer)
-    const tickets = new TicketRepo(db, () => 1)
-    tickets.create({ aftersaleNo: 'AS-9', orderNo: '', shippingNo: '', returnNo: '', note: '' })
-    tickets.setCustomer('AS-9', id)
-    expect(customers.ticketsOf(id).map((t) => t.aftersaleNo)).toEqual(['AS-9'])
+  it('search filters by nickname / recipient / phone, escaping % and _', () => {
+    add('AS-1', { nickname: '小明', recipientName: '张三', phone: '13800' })
+    add('AS-2', { nickname: '阿强', recipientName: '李四', phone: '13911' })
+    expect(customers.search('阿强').map((r) => r.nickname)).toEqual(['阿强'])
+    expect(customers.search('张三').map((r) => r.nickname)).toEqual(['小明'])
+    expect(customers.search('139').map((r) => r.nickname)).toEqual(['阿强'])
+    expect(customers.search('%')).toEqual([]) // 通配符按字面量,不匹配
   })
 })
