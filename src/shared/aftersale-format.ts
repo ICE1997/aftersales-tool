@@ -41,5 +41,8 @@ export function msToLocalInput(ms: number | null): string {
 }
 
 export function localInputToMs(v: string): number | null {
-  return parseDateTimeToMs(v)
+  // datetime-local inputs normalise to e.g. "2026-05-28T14:27:38.000" in some
+  // environments (jsdom, certain browsers). Strip optional fractional seconds
+  // so parseDateTimeToMs can match.
+  return parseDateTimeToMs((v ?? '').replace(/(\d{2}:\d{2}:\d{2})\.\d+$/, '$1'))
 }

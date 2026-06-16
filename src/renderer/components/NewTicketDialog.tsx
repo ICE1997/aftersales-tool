@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { NewTicket, TicketStatus } from '@shared/types'
+import { parseAmountToCents, localInputToMs } from '@shared/aftersale-format'
 import { STATUS_ORDER } from '../status'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS } from '../aftersale-options'
 import { IconClose } from './icons'
@@ -43,7 +44,7 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
       aftersaleNo: no, orderNo: orderNo.trim(), shippingNo: shippingNo.trim(), returnNo: returnNo.trim(), note: '',
       status,
       aftersaleType, aftersaleReason, shippingStatus,
-      amount: amount.trim(), refundAmount: refundAmount.trim(), appliedAt: appliedAt.trim(), returnLogistics: returnLogistics.trim(),
+      amount: parseAmountToCents(amount), refundAmount: parseAmountToCents(refundAmount), appliedAt: localInputToMs(appliedAt), returnLogistics: returnLogistics.trim(),
       recipientName: recipientName.trim(), phone: phone.trim(), extension: extension.trim(),
       ...region, addressDetail: addressDetail.trim()
     })
@@ -118,15 +119,15 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">交易金额</span>
-              <input aria-label="交易金额" className="field tnum" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <input aria-label="交易金额" type="number" step="0.01" className="field tnum" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">退款金额</span>
-              <input aria-label="退款金额" className="field tnum" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} />
+              <input aria-label="退款金额" type="number" step="0.01" className="field tnum" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} />
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">申请时间</span>
-              <input aria-label="申请时间" className="field tnum" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} placeholder="YYYY-MM-DD HH:mm:ss" />
+              <input aria-label="申请时间" type="datetime-local" step="1" className="field tnum" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} />
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货物流状态</span>

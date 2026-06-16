@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { NewTicketDialog } from '../../src/renderer/components/NewTicketDialog'
+import { parseDateTimeToMs } from '../../src/shared/aftersale-format'
 
 afterEach(() => cleanup())
 
@@ -67,7 +68,7 @@ describe('NewTicketDialog', () => {
     fireEvent.change(screen.getByLabelText('发货状态'), { target: { value: '已发货' } })
     fireEvent.change(screen.getByLabelText('交易金额'), { target: { value: '24.99' } })
     fireEvent.change(screen.getByLabelText('退款金额'), { target: { value: '20.00' } })
-    fireEvent.change(screen.getByLabelText('申请时间'), { target: { value: '2026-05-28 14:27:38' } })
+    fireEvent.change(screen.getByLabelText('申请时间'), { target: { value: '2026-05-28T14:27:38' } })
     fireEvent.change(screen.getByLabelText('退货物流状态'), { target: { value: '签收' } })
     fireEvent.click(screen.getByText('创建'))
     expect(onCreate).toHaveBeenCalledTimes(1)
@@ -77,9 +78,9 @@ describe('NewTicketDialog', () => {
     expect(arg.aftersaleType).toBe('换货')
     expect(arg.aftersaleReason).toBe('质量问题')
     expect(arg.shippingStatus).toBe('已发货')
-    expect(arg.amount).toBe('24.99')
-    expect(arg.refundAmount).toBe('20.00')
-    expect(arg.appliedAt).toBe('2026-05-28 14:27:38')
+    expect(arg.amount).toBe(2499)
+    expect(arg.refundAmount).toBe(2000)
+    expect(arg.appliedAt).toBe(parseDateTimeToMs('2026-05-28 14:27:38'))
     expect(arg.returnLogistics).toBe('签收')
   })
 
