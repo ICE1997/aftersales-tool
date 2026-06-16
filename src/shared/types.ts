@@ -2,7 +2,6 @@ export type MaterialKind = 'image' | 'video'
 export type TicketStatus = 'pending' | 'processing' | 'resolved'
 
 export interface CustomerFields {
-  nickname: string
   recipientName: string
   phone: string
   provinceCode: string
@@ -32,17 +31,6 @@ export type Ticket = {
   createdAt: number
   updatedAt: number
 } & CustomerFields
-
-export interface CustomerSummary {
-  nickname: string
-  ticketCount: number
-  recipientName: string
-  phone: string
-  province: string
-  city: string
-  district: string
-  lastUpdatedAt: number
-}
 
 export interface Material {
   id: number

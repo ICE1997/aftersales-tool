@@ -7,30 +7,30 @@ type Now = () => number
 
 const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS shippingNo,
   return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt,
-  nickname, recipient_name AS recipientName, phone,
+  recipient_name AS recipientName, phone,
   province_code AS provinceCode, province, city_code AS cityCode, city,
   district_code AS districtCode, district, address_detail AS addressDetail`
 
 // Table-qualified version for JOIN queries to avoid ambiguous column names
 const TROW = `tickets.aftersale_no AS aftersaleNo, tickets.order_no AS orderNo, tickets.shipping_no AS shippingNo,
   tickets.return_no AS returnNo, tickets.status, tickets.note, tickets.created_at AS createdAt, tickets.updated_at AS updatedAt,
-  tickets.nickname, tickets.recipient_name AS recipientName, tickets.phone,
+  tickets.recipient_name AS recipientName, tickets.phone,
   tickets.province_code AS provinceCode, tickets.province, tickets.city_code AS cityCode, tickets.city,
   tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail`
 
 const EMPTY_CUSTOMER: CustomerFields = {
-  nickname: '', recipientName: '', phone: '', provinceCode: '', province: '',
+  recipientName: '', phone: '', provinceCode: '', province: '',
   cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
 }
 
 interface FtsRow {
   rowid: number
   aftersale_no: string; order_no: string; shipping_no: string; return_no: string; note: string
-  nickname: string; recipient_name: string; phone: string
+  recipient_name: string; phone: string
   province: string; city: string; district: string; address_detail: string
 }
 
-const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, nickname, recipient_name, phone, province, city, district, address_detail'
+const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail'
 
 export class TicketRepo {
   constructor(private db: Database, private now: Now = () => Date.now()) {}
@@ -41,9 +41,9 @@ export class TicketRepo {
     const tx = this.db.transaction(() => {
       this.db.prepare(
         `INSERT INTO tickets (aftersale_no, order_no, shipping_no, return_no, status, note, created_at, updated_at,
-           nickname, recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail)
+           recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail)
          VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, 'pending', @note, @ts, @ts,
-           @nickname, @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail)`
+           @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail)`
       ).run(row)
       this.ftsInsert(t.aftersaleNo)
     })
@@ -62,7 +62,7 @@ export class TicketRepo {
       this.db.prepare(
         `UPDATE tickets SET order_no=@orderNo, shipping_no=@shippingNo, return_no=@returnNo,
          status=@status, note=@note, updated_at=@updatedAt,
-         nickname=@nickname, recipient_name=@recipientName, phone=@phone,
+         recipient_name=@recipientName, phone=@phone,
          province_code=@provinceCode, province=@province, city_code=@cityCode, city=@city,
          district_code=@districtCode, district=@district, address_detail=@addressDetail
          WHERE aftersale_no=@aftersaleNo`
@@ -114,7 +114,7 @@ export class TicketRepo {
     this.db.prepare(
       `INSERT INTO tickets_fts(tickets_fts, rowid, ${FTS_COLS})
        VALUES('delete', @rowid, @aftersale_no, @order_no, @shipping_no, @return_no, @note,
-         @nickname, @recipient_name, @phone, @province, @city, @district, @address_detail)`
+         @recipient_name, @phone, @province, @city, @district, @address_detail)`
     ).run(row)
   }
 }

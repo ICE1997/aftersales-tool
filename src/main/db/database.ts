@@ -10,7 +10,6 @@ export function createDatabase(path: string): DB {
 }
 
 const TICKET_CUSTOMER_COLS: [string, string][] = [
-  ['nickname', "nickname TEXT NOT NULL DEFAULT ''"],
   ['recipient_name', "recipient_name TEXT NOT NULL DEFAULT ''"],
   ['phone', "phone TEXT NOT NULL DEFAULT ''"],
   ['province_code', "province_code TEXT NOT NULL DEFAULT ''"],
@@ -50,7 +49,7 @@ export function migrate(db: DB): void {
 
     CREATE VIRTUAL TABLE IF NOT EXISTS tickets_fts USING fts5(
       aftersale_no, order_no, shipping_no, return_no, note,
-      nickname, recipient_name, phone, province, city, district, address_detail,
+      recipient_name, phone, province, city, district, address_detail,
       content='tickets', content_rowid='rowid'
     );
 
@@ -61,22 +60,19 @@ export function migrate(db: DB): void {
   rebuildFtsIfStale(db)
 }
 
-/** Rebuild tickets_fts when its schema predates the customer columns. */
+const FTS_COLS_ARR = ['aftersale_no', 'order_no', 'shipping_no', 'return_no', 'note', 'recipient_name', 'phone', 'province', 'city', 'district', 'address_detail']
+
+/** Rebuild tickets_fts when its column set doesn't exactly match the expected set. */
 function rebuildFtsIfStale(db: DB): void {
-  const cols = db.prepare(`PRAGMA table_info(tickets_fts)`).all() as { name: string }[]
-  if (cols.some((c) => c.name === 'nickname')) return
+  const cols = (db.prepare(`PRAGMA table_info(tickets_fts)`).all() as { name: string }[]).map((c) => c.name)
+  const same = cols.length === FTS_COLS_ARR.length && FTS_COLS_ARR.every((c, i) => cols[i] === c)
+  if (same) return
+  const list = FTS_COLS_ARR.join(', ')
   db.transaction(() => {
     db.exec(`
       DROP TABLE IF EXISTS tickets_fts;
-      CREATE VIRTUAL TABLE tickets_fts USING fts5(
-        aftersale_no, order_no, shipping_no, return_no, note,
-        nickname, recipient_name, phone, province, city, district, address_detail,
-        content='tickets', content_rowid='rowid'
-      );
-      INSERT INTO tickets_fts(rowid, aftersale_no, order_no, shipping_no, return_no, note,
-        nickname, recipient_name, phone, province, city, district, address_detail)
-      SELECT rowid, aftersale_no, order_no, shipping_no, return_no, note,
-        nickname, recipient_name, phone, province, city, district, address_detail FROM tickets;
+      CREATE VIRTUAL TABLE tickets_fts USING fts5(${list}, content='tickets', content_rowid='rowid');
+      INSERT INTO tickets_fts(rowid, ${list}) SELECT rowid, ${list} FROM tickets;
     `)
   })()
 }
@@ -95,12 +91,12 @@ function migrateLegacyCustomers(db: DB): void {
   const tx = db.transaction(() => {
     if (hasColumn(db, 'tickets', 'customer_id')) {
       const linked = db.prepare(
-        `SELECT t.aftersale_no AS no, c.nickname, c.name, c.province_code, c.province,
+        `SELECT t.aftersale_no AS no, c.name, c.province_code, c.province,
                 c.city_code, c.city, c.district_code, c.district, c.address_detail
          FROM tickets t JOIN customers c ON c.id = t.customer_id`
       ).all() as Record<string, string>[]
       const upd = db.prepare(
-        `UPDATE tickets SET nickname=@nickname, recipient_name=@name,
+        `UPDATE tickets SET recipient_name=@name,
            province_code=@province_code, province=@province, city_code=@city_code, city=@city,
            district_code=@district_code, district=@district, address_detail=@address_detail
          WHERE aftersale_no=@no`

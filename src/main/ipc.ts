@@ -7,7 +7,6 @@ import { handleMediaProtocol } from './media-protocol'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
 import { MaterialRepo } from './db/materials'
-import { CustomerRepo } from './db/customers'
 import { StatsRepo } from './db/stats'
 import { Settings } from './services/settings'
 import { Thumbnailer } from './services/thumbnails'
@@ -46,7 +45,6 @@ export function registerIpc(): void {
 
   const tickets = new TicketRepo(db)
   const materials = new MaterialRepo(db)
-  const customerRepo = new CustomerRepo(db)
   const statsRepo = new StatsRepo(db)
   const thumb = new Thumbnailer(dataRoot)
   const importer = new Importer(dataRoot, materials, thumb)
@@ -68,10 +66,6 @@ export function registerIpc(): void {
     tickets.delete(no)
     return true
   })
-
-  ipcMain.handle('customers:list', () => customerRepo.listByNickname())
-  ipcMain.handle('customers:search', (_e, q: string) => customerRepo.search(q))
-  ipcMain.handle('customers:ticketsOf', (_e, nickname: string) => customerRepo.ticketsOfNickname(nickname))
 
   ipcMain.handle('stats:regionCounts', (_e, level: import('../shared/types').RegionLevel) => statsRepo.regionCounts(level))
   ipcMain.handle('stats:summary', () => statsRepo.summary())

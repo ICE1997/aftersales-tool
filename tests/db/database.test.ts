@@ -53,7 +53,7 @@ describe('embedded customer columns', () => {
     const names = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map((r) => r.name)
     expect(names).not.toContain('customers')
     const cols = (db.prepare('PRAGMA table_info(tickets)').all() as { name: string }[]).map((c) => c.name)
-    expect(cols).toContain('nickname')
+    expect(cols).not.toContain('nickname')
     expect(cols).toContain('recipient_name')
     expect(cols).not.toContain('customer_id')
   })

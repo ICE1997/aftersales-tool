@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, CustomerSummary, RegionLevel, RegionCount, StatsSummary } from '../shared/types'
+import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary } from '../shared/types'
 
 const api = {
   listTickets: (): Promise<Ticket[]> => ipcRenderer.invoke('tickets:list'),
@@ -21,9 +21,6 @@ const api = {
   chooseDataRoot: (): Promise<boolean> => ipcRenderer.invoke('settings:chooseDataRoot'),
   showItem: (relPath: string): Promise<void> => ipcRenderer.invoke('shell:showItem', relPath),
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke('shell:openChrome', url),
-  listCustomers: (): Promise<CustomerSummary[]> => ipcRenderer.invoke('customers:list'),
-  searchCustomers: (q: string): Promise<CustomerSummary[]> => ipcRenderer.invoke('customers:search', q),
-  customerTickets: (nickname: string): Promise<Ticket[]> => ipcRenderer.invoke('customers:ticketsOf', nickname),
   regionCounts: (level: RegionLevel): Promise<RegionCount[]> => ipcRenderer.invoke('stats:regionCounts', level),
   statsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke('stats:summary')
 }

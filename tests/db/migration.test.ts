@@ -41,8 +41,7 @@ describe('migrate (legacy customers → embedded ticket fields)', () => {
   it('backfills linked customer info onto tickets', () => {
     const db = legacyDb()
     migrate(db)
-    const t = db.prepare(`SELECT nickname, recipient_name AS recipientName, phone, province, district_code AS districtCode, address_detail AS addressDetail FROM tickets WHERE aftersale_no='AS-1'`).get() as any
-    expect(t.nickname).toBe('小明')
+    const t = db.prepare(`SELECT recipient_name AS recipientName, phone, province, district_code AS districtCode, address_detail AS addressDetail FROM tickets WHERE aftersale_no='AS-1'`).get() as any
     expect(t.recipientName).toBe('张三')
     expect(t.phone).toBe('')
     expect(t.province).toBe('广东省')
@@ -69,7 +68,7 @@ describe('migrate (legacy customers → embedded ticket fields)', () => {
     migrate(db)
     const rows = db.prepare(
       `SELECT t.aftersale_no AS no FROM tickets_fts f JOIN tickets t ON t.rowid = f.rowid WHERE tickets_fts MATCH ?`
-    ).all('"小明"*') as { no: string }[]
+    ).all('"张三"*') as { no: string }[]
     expect(rows.map((r) => r.no)).toContain('AS-1')
   })
 
@@ -77,6 +76,7 @@ describe('migrate (legacy customers → embedded ticket fields)', () => {
     const db = new Database(':memory:')
     expect(() => migrate(db)).not.toThrow()
     expect(tableExists(db, 'customers')).toBe(false)
-    expect(columns(db, 'tickets')).toContain('nickname')
+    expect(columns(db, 'tickets')).toContain('recipient_name')
+    expect(columns(db, 'tickets')).not.toContain('nickname')
   })
 })
