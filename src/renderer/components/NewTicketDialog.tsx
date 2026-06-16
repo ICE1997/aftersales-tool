@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { NewTicket } from '@shared/types'
 import { IconClose } from './icons'
 import { RegionCascader, EMPTY_REGION, type RegionValue } from './RegionCascader'
+import { extractContact } from '../contact-extract'
 
 interface Props { open: boolean; onCreate: (t: NewTicket) => void; onCancel: () => void }
 
@@ -14,21 +15,35 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
   const [phone, setPhone] = useState('')
   const [region, setRegion] = useState<RegionValue>(EMPTY_REGION)
   const [addressDetail, setAddressDetail] = useState('')
+  const [extension, setExtension] = useState('')
+  const [pasteText, setPasteText] = useState('')
 
   if (!open) return null
   const reset = () => {
     setAftersaleNo(''); setOrderNo(''); setShippingNo(''); setReturnNo('')
     setRecipientName(''); setPhone(''); setRegion(EMPTY_REGION); setAddressDetail('')
+    setExtension(''); setPasteText('')
   }
   const submit = () => {
     const no = aftersaleNo.trim()
     if (!no) return
     onCreate({
       aftersaleNo: no, orderNo: orderNo.trim(), shippingNo: shippingNo.trim(), returnNo: returnNo.trim(), note: '',
-      recipientName: recipientName.trim(), phone: phone.trim(),
+      recipientName: recipientName.trim(), phone: phone.trim(), extension: extension.trim(),
       ...region, addressDetail: addressDetail.trim()
     })
     reset()
+  }
+  const recognize = () => {
+    const r = extractContact(pasteText)
+    if (r.name) setRecipientName(r.name)
+    if (r.phone) setPhone(r.phone)
+    if (r.extension) setExtension(r.extension)
+    if (r.addressDetail) setAddressDetail(r.addressDetail)
+    if (r.provinceCode) setRegion({
+      provinceCode: r.provinceCode, province: r.province, cityCode: r.cityCode,
+      city: r.city, districtCode: r.districtCode, district: r.district
+    })
   }
 
   return (
@@ -58,7 +73,17 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
           </label>
 
           <div className="border-t border-line pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted">客户信息(选填)</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div>
+            <span className="mb-1 block text-[12px] font-medium text-ink-soft">粘贴识别</span>
+            <textarea
+              className="field h-16 resize-none"
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              placeholder="粘贴收货地址,自动识别姓名/电话/地址"
+            />
+            <button className="btn-ghost mt-1.5 px-3 py-1 text-xs disabled:opacity-50" disabled={!pasteText.trim()} onClick={recognize}>识别</button>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">收货人姓名</span>
               <input className="field" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} />
@@ -66,6 +91,10 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">手机号</span>
               <input className="field tnum" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[12px] font-medium text-ink-soft">分机号</span>
+              <input className="field tnum" value={extension} onChange={(e) => setExtension(e.target.value)} />
             </label>
           </div>
           <div>
