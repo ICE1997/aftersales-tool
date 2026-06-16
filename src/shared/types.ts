@@ -70,23 +70,6 @@ export type CreateMaterialPayload =
   | { source: 'file'; path: string; name: string }
   | { source: 'paste'; fileName: string; name: string; bytes: Uint8Array }
 
-export interface Customer {
-  id: number
-  nickname: string
-  name: string
-  provinceCode: string
-  province: string
-  cityCode: string
-  city: string
-  districtCode: string
-  district: string
-  addressDetail: string
-  createdAt: number
-  updatedAt: number
-}
-export type NewCustomer = Omit<Customer, 'id' | 'createdAt' | 'updatedAt'>
-export interface CustomerRow extends Customer { ticketCount: number }
-
 export type RegionLevel = 'province' | 'city' | 'district'
 export interface RegionCount { code: string; name: string; count: number }
 export interface StatsSummary { total: number; classified: number; unclassified: number }
