@@ -38,11 +38,11 @@ function openInChrome(url: string): void {
 }
 
 export function registerIpc(): void {
-  const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'vhelper-data'))
+  const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'aftersales-tool-data'))
   const dataRoot = settings.getDataRoot()
   mkdirSync(dataRoot, { recursive: true })
   handleMediaProtocol(dataRoot)
-  const db = createDatabase(join(dataRoot, 'vhelper.db'))
+  const db = createDatabase(join(dataRoot, 'aftersales-tool.db'))
 
   const tickets = new TicketRepo(db)
   const materials = new MaterialRepo(db)
@@ -128,8 +128,8 @@ export function registerIpc(): void {
     if (r.canceled || !r.filePaths[0]) return false
     const newRoot = r.filePaths[0]
     if (newRoot === dataRoot) return false
-    // If the chosen folder already holds a vhelper library, point to it; otherwise copy the current library in.
-    if (!existsSync(join(newRoot, 'vhelper.db'))) {
+    // If the chosen folder already holds an aftersales-tool library, point to it; otherwise copy the current library in.
+    if (!existsSync(join(newRoot, 'aftersales-tool.db'))) {
       cpSync(dataRoot, newRoot, { recursive: true })
     }
     settings.setDataRoot(newRoot)
