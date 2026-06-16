@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, cleanup, waitFor } from '@testing-library/react'
+import { parseDateTimeToMs } from '../../src/shared/aftersale-format'
 
 const ticket = {
   aftersaleNo: 'AS-1', orderNo: 'O1', shippingNo: 'S1', returnNo: 'R1',
@@ -7,7 +8,7 @@ const ticket = {
   recipientName: '', phone: '', provinceCode: '', province: '', cityCode: '', city: '',
   districtCode: '', district: '', addressDetail: '', extension: '',
   aftersaleType: '退款退货', aftersaleReason: '质量问题', shippingStatus: '已发货',
-  amount: '24.99', refundAmount: '24.99', appliedAt: '2026-05-28 14:27:38', returnLogistics: '签收'
+  amount: 2499, refundAmount: 2499, appliedAt: parseDateTimeToMs('2026-05-28 14:27:38'), returnLogistics: '签收'
 }
 
 vi.mock('../../src/renderer/api', () => ({

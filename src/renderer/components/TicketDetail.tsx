@@ -9,6 +9,7 @@ import { RegionCascader, type RegionValue } from './RegionCascader'
 import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
+import { parseAmountToCents, localInputToMs, formatCents, formatMs, msToLocalInput } from '@shared/aftersale-format'
 
 export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { aftersaleNo: string; onChanged: () => void; onDeleted: () => void; onBack: () => void }) {
   const [ticket, setTicket] = useState<Ticket | undefined>()
@@ -21,7 +22,11 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields & AftersaleFields>({
+  const [form, setForm] = useState<
+    Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields &
+    Omit<AftersaleFields, 'amount' | 'refundAmount' | 'appliedAt'> &
+    { amount: string; refundAmount: string; appliedAt: string }
+  >({
     orderNo: '', shippingNo: '', returnNo: '',
     recipientName: '', phone: '', provinceCode: '', province: '',
     cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: '',
@@ -97,12 +102,17 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       provinceCode: ticket.provinceCode, province: ticket.province, cityCode: ticket.cityCode, city: ticket.city,
       districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail, extension: ticket.extension,
       aftersaleType: ticket.aftersaleType, aftersaleReason: ticket.aftersaleReason, shippingStatus: ticket.shippingStatus,
-      amount: ticket.amount, refundAmount: ticket.refundAmount, appliedAt: ticket.appliedAt, returnLogistics: ticket.returnLogistics
+      amount: formatCents(ticket.amount), refundAmount: formatCents(ticket.refundAmount), appliedAt: msToLocalInput(ticket.appliedAt), returnLogistics: ticket.returnLogistics
     })
     setEditing(true)
   }
   async function saveInfo() {
-    await api.updateTicket(aftersaleNo, { ...form })
+    await api.updateTicket(aftersaleNo, {
+      ...form,
+      amount: parseAmountToCents(form.amount),
+      refundAmount: parseAmountToCents(form.refundAmount),
+      appliedAt: localInputToMs(form.appliedAt)
+    })
     setEditing(false)
     await reload()
     onChanged()
@@ -243,18 +253,18 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             </InfoRow>
             <InfoRow label="交易金额">
               {editing
-                ? <input className="field tnum py-1.5" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="未填写" />
-                : <Value v={ticket.amount} />}
+                ? <input className="field tnum py-1.5" type="number" step="0.01" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} placeholder="未填写" />
+                : <Value v={formatCents(ticket.amount)} />}
             </InfoRow>
             <InfoRow label="退款金额">
               {editing
-                ? <input className="field tnum py-1.5" value={form.refundAmount} onChange={(e) => setForm((f) => ({ ...f, refundAmount: e.target.value }))} placeholder="未填写" />
-                : <Value v={ticket.refundAmount} />}
+                ? <input className="field tnum py-1.5" type="number" step="0.01" value={form.refundAmount} onChange={(e) => setForm((f) => ({ ...f, refundAmount: e.target.value }))} placeholder="未填写" />
+                : <Value v={formatCents(ticket.refundAmount)} />}
             </InfoRow>
             <InfoRow label="申请时间">
               {editing
-                ? <input className="field tnum py-1.5" value={form.appliedAt} onChange={(e) => setForm((f) => ({ ...f, appliedAt: e.target.value }))} placeholder="YYYY-MM-DD HH:mm:ss" />
-                : <Value v={ticket.appliedAt} />}
+                ? <input className="field tnum py-1.5" type="datetime-local" step="1" value={form.appliedAt} onChange={(e) => setForm((f) => ({ ...f, appliedAt: e.target.value }))} />
+                : <Value v={formatMs(ticket.appliedAt)} />}
             </InfoRow>
             <InfoRow label="退货物流状态">
               {editing
