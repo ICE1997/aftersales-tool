@@ -66,7 +66,47 @@ export const BASELINE_STATEMENTS: string[] = [
 export interface CodeMigration { name: string; up: (knex: KnexType) => Promise<void> }
 
 export const MIGRATIONS: CodeMigration[] = [
-  { name: '0001_baseline', up: async (knex) => { for (const s of BASELINE_STATEMENTS) await knex.raw(s) } }
+  { name: '0001_baseline', up: async (knex) => { for (const s of BASELINE_STATEMENTS) await knex.raw(s) } },
+  {
+    name: '0002_aftersale_numeric_fields',
+    up: async (knex) => {
+      // SQLite doesn't support directly altering column constraints; recreate the table
+      await knex.raw(`
+        CREATE TABLE tickets_new (
+          aftersale_no TEXT PRIMARY KEY,
+          order_no TEXT NOT NULL DEFAULT '',
+          shipping_no TEXT NOT NULL DEFAULT '',
+          return_no TEXT NOT NULL DEFAULT '',
+          status TEXT NOT NULL DEFAULT '待商家处理',
+          note TEXT NOT NULL DEFAULT '',
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          recipient_name TEXT NOT NULL DEFAULT '',
+          phone TEXT NOT NULL DEFAULT '',
+          province_code TEXT NOT NULL DEFAULT '',
+          province TEXT NOT NULL DEFAULT '',
+          city_code TEXT NOT NULL DEFAULT '',
+          city TEXT NOT NULL DEFAULT '',
+          district_code TEXT NOT NULL DEFAULT '',
+          district TEXT NOT NULL DEFAULT '',
+          address_detail TEXT NOT NULL DEFAULT '',
+          extension TEXT NOT NULL DEFAULT '',
+          aftersale_type TEXT NOT NULL DEFAULT '',
+          aftersale_reason TEXT NOT NULL DEFAULT '',
+          shipping_status TEXT NOT NULL DEFAULT '',
+          amount INTEGER,
+          refund_amount INTEGER,
+          applied_at INTEGER,
+          return_logistics TEXT NOT NULL DEFAULT ''
+        )
+      `)
+      await knex.raw(`
+        INSERT INTO tickets_new SELECT * FROM tickets
+      `)
+      await knex.raw(`DROP TABLE tickets`)
+      await knex.raw(`ALTER TABLE tickets_new RENAME TO tickets`)
+    }
+  }
 ]
 
 class CodeMigrationSource implements KnexType.MigrationSource<CodeMigration> {

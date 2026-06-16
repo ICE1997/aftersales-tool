@@ -29,7 +29,7 @@ const EMPTY_CUSTOMER: CustomerFields = {
 
 const EMPTY_AFTERSALE: AftersaleFields = {
   aftersaleType: '', aftersaleReason: '', shippingStatus: '',
-  amount: '', refundAmount: '', appliedAt: '', returnLogistics: ''
+  amount: null, refundAmount: null, appliedAt: null, returnLogistics: ''
 }
 
 interface FtsRow {

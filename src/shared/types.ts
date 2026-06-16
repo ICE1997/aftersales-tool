@@ -7,9 +7,9 @@ export interface AftersaleFields {
   aftersaleType: string
   aftersaleReason: string
   shippingStatus: string
-  amount: string
-  refundAmount: string
-  appliedAt: string
+  amount: number | null
+  refundAmount: number | null
+  appliedAt: number | null
   returnLogistics: string
 }
 

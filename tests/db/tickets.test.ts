@@ -117,23 +117,31 @@ describe('TicketRepo', () => {
     repo.create({
       aftersaleNo: 'AS-AF', orderNo: '', shippingNo: '', returnNo: '', note: '',
       status: '退款成功', aftersaleType: '退款退货', aftersaleReason: '质量问题',
-      shippingStatus: '已发货', amount: '24.99', refundAmount: '24.99',
-      appliedAt: '2026-05-28 14:27:38', returnLogistics: '签收',
+      shippingStatus: '已发货', amount: 24.99, refundAmount: 24.99,
+      appliedAt: 1748356058000, returnLogistics: '签收',
     })
     const t = repo.get('AS-AF')!
     expect(t.status).toBe('退款成功')
     expect(t.aftersaleType).toBe('退款退货')
     expect(t.aftersaleReason).toBe('质量问题')
     expect(t.shippingStatus).toBe('已发货')
-    expect(t.amount).toBe('24.99')
-    expect(t.refundAmount).toBe('24.99')
-    expect(t.appliedAt).toBe('2026-05-28 14:27:38')
+    expect(t.amount).toBe(24.99)
+    expect(t.refundAmount).toBe(24.99)
+    expect(t.appliedAt).toBe(1748356058000)
     expect(t.returnLogistics).toBe('签收')
   })
 
   it('defaults status to 待商家处理 when not provided', () => {
     repo.create({ aftersaleNo: 'AS-D', orderNo: '', shippingNo: '', returnNo: '', note: '' })
     expect(repo.get('AS-D')!.status).toBe('待商家处理')
+  })
+
+  it('defaults amount, refundAmount, and appliedAt to null when omitted', () => {
+    repo.create({ aftersaleNo: 'AS-NULL', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    const t = repo.get('AS-NULL')!
+    expect(t.amount).toBeNull()
+    expect(t.refundAmount).toBeNull()
+    expect(t.appliedAt).toBeNull()
   })
 
   it('existingNos returns only the ones already in the DB', () => {
