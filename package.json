@@ -38,6 +38,9 @@
     },
     "nsis": {
       "artifactName": "aftersales-tool-${version}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "aftersales-tool-${version}.${ext}"
     }
   },
   "type": "module",
