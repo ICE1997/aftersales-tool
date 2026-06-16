@@ -16,7 +16,7 @@ export function ImportResultDialog({ result, onClose }: Props) {
         </ul>
         {result.failed.length > 0 && (
           <div className="mt-3 max-h-40 space-y-0.5 overflow-auto rounded-lg border border-line bg-paper-2 p-3 text-xs text-muted">
-            {result.failed.map((f, i) => <div key={i}>第 {f.row} 行:{f.reason}</div>)}
+            {result.failed.map((f) => <div key={f.row}>第 {f.row} 行:{f.reason}</div>)}
           </div>
         )}
         <div className="mt-6 flex justify-end"><button className="btn-primary" onClick={onClose}>完成</button></div>
