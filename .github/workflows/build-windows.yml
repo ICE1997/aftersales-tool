@@ -34,7 +34,10 @@ jobs:
       # electron-builder 会自动用 @electron/rebuild 把 better-sqlite3 重编到
       # Electron 的 ABI，因此无需手动跑 rebuild:electron。
       - name: Build & package (NSIS, x64)
-        run: npm run dist -- --win nsis --x64
+        # --publish never: just build the installer; the artifact is uploaded below.
+        # (electron-builder otherwise infers a GitHub publish provider from the repo
+        # remote and fails on CI without GH_TOKEN.)
+        run: npm run dist -- --win nsis --x64 --publish never
         env:
           # 关闭代码签名（与 package.json 默认一致，避免 CI 上找签名证书失败）。
           CSC_IDENTITY_AUTO_DISCOVERY: false
