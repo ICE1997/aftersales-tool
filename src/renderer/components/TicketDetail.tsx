@@ -21,7 +21,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [form, setForm] = useState<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo'> & CustomerFields>({
     orderNo: '', shippingNo: '', returnNo: '',
     recipientName: '', phone: '', provinceCode: '', province: '',
-    cityCode: '', city: '', districtCode: '', district: '', addressDetail: ''
+    cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
   })
   const currentNo = useRef(aftersaleNo)
 
@@ -57,11 +57,15 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     await api.deleteTicket(aftersaleNo)
     onDeleted()
   }
-  function openPdd() {
+  function openAftersale() {
     if (!ticket) return
     const params = new URLSearchParams({ id: ticket.aftersaleNo })
     if (ticket.orderNo) params.set('orderSn', ticket.orderNo)
     api.openInChrome(`https://mms.pinduoduo.com/aftersales-ssr/detail?${params}`)
+  }
+  function openOrder() {
+    if (!ticket || !ticket.orderNo) return
+    api.openInChrome(`https://mms.pinduoduo.com/orders/detail?sn=${encodeURIComponent(ticket.orderNo)}`)
   }
   function startEdit() {
     if (!ticket) return
@@ -69,7 +73,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       orderNo: ticket.orderNo, shippingNo: ticket.shippingNo, returnNo: ticket.returnNo,
       recipientName: ticket.recipientName, phone: ticket.phone,
       provinceCode: ticket.provinceCode, province: ticket.province, cityCode: ticket.cityCode, city: ticket.city,
-      districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail
+      districtCode: ticket.districtCode, district: ticket.district, addressDetail: ticket.addressDetail, extension: ticket.extension
     })
     setEditing(true)
   }
@@ -107,8 +111,11 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           </select>
         </label>
         <div className="ml-auto flex items-center gap-2">
-          <button className="btn-ghost px-2.5" onClick={openPdd} title="在拼多多商家后台打开此售后单">
-            <IconExternal className="text-[15px]" /> 拼多多
+          <button className="btn-ghost px-2.5" onClick={openAftersale} title="在拼多多打开售后详情">
+            <IconExternal className="text-[15px]" /> 售后详情
+          </button>
+          <button className="btn-ghost px-2.5 disabled:opacity-50" onClick={openOrder} disabled={!ticket.orderNo} title="在拼多多打开订单详情">
+            <IconExternal className="text-[15px]" /> 订单详情
           </button>
           <button className="btn-danger px-2.5" onClick={() => setConfirmDelete(true)}>
             <IconTrash className="text-[15px]" /> 删除
@@ -155,8 +162,11 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             </InfoRow>
             <InfoRow label="手机号">
               {editing
-                ? <input className="field tnum py-1.5" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="未填写" />
-                : <Value v={ticket.phone} />}
+                ? <div className="flex gap-2">
+                    <input className="field tnum py-1.5" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="手机号" />
+                    <input className="field tnum w-24 py-1.5" value={form.extension} onChange={(e) => setForm((f) => ({ ...f, extension: e.target.value }))} placeholder="分机号" />
+                  </div>
+                : <Value v={ticket.phone ? (ticket.extension ? `${ticket.phone} 转 ${ticket.extension}` : ticket.phone) : ''} />}
             </InfoRow>
             <InfoRow label="联系地址">
               {editing
