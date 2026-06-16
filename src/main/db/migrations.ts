@@ -1,4 +1,7 @@
-import { knex as Knex } from 'knex'
+// Default import (not `{ knex }`): knex is CommonJS, and Electron's ESM loader
+// can't resolve named exports from CJS at runtime. Default import = module.exports
+// (the callable factory), which works in both ESM runtime and TS (esModuleInterop).
+import Knex from 'knex'
 import type { Knex as KnexType } from 'knex'
 import BetterSqlite3 from 'better-sqlite3'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs'
