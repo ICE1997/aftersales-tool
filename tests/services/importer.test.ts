@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { Database } from 'better-sqlite3'
 import sharp from 'sharp'
-import { createDatabase } from '../../src/main/db/database'
+import { makeTempDb } from '../db/helpers'
 import { TicketRepo } from '../../src/main/db/tickets'
 import { MaterialRepo } from '../../src/main/db/materials'
 import { Importer } from '../../src/main/services/importer'
@@ -12,15 +12,16 @@ import { Importer } from '../../src/main/services/importer'
 let root: string
 let db: Database
 let importer: Importer
+let cleanupDb: () => void
 
-beforeEach(() => {
+beforeEach(async () => {
   root = mkdtempSync(join(tmpdir(), 'vh-imp-'))
-  db = createDatabase(':memory:')
+  ;({ db, cleanup: cleanupDb } = await makeTempDb())
   new TicketRepo(db, () => 1).create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
   const thumbStub = { forImage: async () => 'thumb.jpg', forVideo: async () => 'thumb.jpg' } as any
   importer = new Importer(root, new MaterialRepo(db), thumbStub, () => 42)
 })
-afterEach(() => rmSync(root, { recursive: true, force: true }))
+afterEach(() => { rmSync(root, { recursive: true, force: true }); cleanupDb() })
 
 function makeFile(name: string, content = 'x'): string {
   const p = join(root, name)

@@ -39,12 +39,12 @@ function openInChrome(url: string): void {
   }
 }
 
-export function registerIpc(): void {
+export async function registerIpc(): Promise<void> {
   const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'aftersales-tool-data'))
   const dataRoot = settings.getDataRoot()
   mkdirSync(dataRoot, { recursive: true })
   handleMediaProtocol(dataRoot)
-  const db = createDatabase(join(dataRoot, 'aftersales-tool.db'))
+  const db = await createDatabase(join(dataRoot, 'aftersales-tool.db'))
 
   const tickets = new TicketRepo(db)
   const materials = new MaterialRepo(db)

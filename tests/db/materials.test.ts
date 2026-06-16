@@ -1,17 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import type { Database } from 'better-sqlite3'
-import { createDatabase } from '../../src/main/db/database'
+import { makeTempDb } from './helpers'
 import { TicketRepo } from '../../src/main/db/tickets'
 import { MaterialRepo } from '../../src/main/db/materials'
 
 let db: Database
 let materials: MaterialRepo
+let cleanup: () => void
 
-beforeEach(() => {
-  db = createDatabase(':memory:')
+beforeEach(async () => {
+  ;({ db, cleanup } = await makeTempDb())
   new TicketRepo(db, () => 1).create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
   materials = new MaterialRepo(db)
 })
+afterEach(() => cleanup())
 
 describe('MaterialRepo', () => {
   it('adds and lists materials for a ticket', () => {
