@@ -3,15 +3,9 @@ interface Props {
   className?: string
 }
 
-// 售后酱 brand mark: the character 售 set in a terracotta squircle with a
-// soft top sheen and rim light. Matches build/icon.svg (app icon) and
-// public/favicon.svg. Gradient ids are scoped per-render to avoid clashes.
-let seq = 0
-
+// 售后酱 brand mark: a parcel/box (after-sales materials) in a flat terracotta
+// squircle. Matches build/icon.svg (app icon) and public/favicon.svg.
 export function Logo({ size = 36, className = '' }: Props) {
-  const id = `logo${(seq = (seq + 1) % 1e6)}`
-  const tile = `${id}t`
-  const sheen = `${id}s`
   return (
     <svg
       width={size}
@@ -21,41 +15,20 @@ export function Logo({ size = 36, className = '' }: Props) {
       role="img"
       aria-label="售后酱"
     >
-      <defs>
-        <linearGradient id={tile} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#cf5b32" />
-          <stop offset="1" stopColor="#a73b1e" />
-        </linearGradient>
-        <linearGradient id={sheen} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffffff" stopOpacity="0.24" />
-          <stop offset="0.55" stopColor="#ffffff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <rect x="6" y="6" width="52" height="52" rx="15" fill={`url(#${tile})`} />
-      <rect x="6" y="6" width="52" height="52" rx="15" fill={`url(#${sheen})`} />
-      <rect
-        x="6.9"
-        y="6.9"
-        width="50.2"
-        height="50.2"
-        rx="14.1"
+      <rect x="4" y="4" width="56" height="56" rx="16" fill="#bd4f2a" />
+      <g
+        transform="translate(16,17) scale(1.30)"
         fill="none"
-        stroke="#ffffff"
-        strokeOpacity="0.28"
-        strokeWidth="1.3"
-      />
-      <text
-        x="32"
-        y="33.5"
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontFamily="'PingFang SC','Hiragino Sans GB','Microsoft YaHei','Noto Sans CJK SC',sans-serif"
-        fontSize="33"
-        fontWeight="700"
-        fill="#fdf3ea"
+        stroke="#fbeee6"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        售
-      </text>
+        <path d="M16.5 9.4 7.5 4.21" />
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <path d="M3.27 6.96 12 12.01l8.73-5.05" />
+        <path d="M12 22.08V12" />
+      </g>
     </svg>
   )
 }

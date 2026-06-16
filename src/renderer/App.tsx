@@ -17,7 +17,7 @@ export default function App() {
     <div className="flex h-screen flex-col bg-paper text-ink">
       <header className="flex items-center gap-4 border-b border-line bg-paper-2 px-4 py-3">
         <div className="flex shrink-0 items-center gap-2.5">
-          <Logo size={36} className="shrink-0 rounded-xl2 shadow-sm" />
+          <Logo size={36} className="shrink-0 drop-shadow-sm" />
           <div className="leading-tight">
             <div className="font-display text-[17px] font-extrabold tracking-tight">售后酱</div>
             <div className="-mt-0.5 text-[11px] text-muted">售后材料管理</div>
