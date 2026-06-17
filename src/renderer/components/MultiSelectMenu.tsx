@@ -36,7 +36,7 @@ export function MultiSelectMenu({ label, options, selected, onChange }: Props) {
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-20 mt-1 max-h-72 min-w-[180px] overflow-auto rounded-xl2 border border-line bg-surface p-1.5 shadow-card">
+        <div className="absolute left-0 top-full z-50 mt-1 max-h-72 min-w-[180px] overflow-auto rounded-xl2 border border-line bg-surface p-1.5 shadow-card">
           {options.map((opt) => (
             <label key={opt} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-paper-2">
               <input type="checkbox" checked={selected.includes(opt)} onChange={() => toggle(opt)} />
