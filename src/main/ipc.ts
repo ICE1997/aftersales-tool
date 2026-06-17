@@ -69,9 +69,9 @@ export async function registerIpc(): Promise<void> {
     if (r.canceled || r.filePaths.length === 0) return null
     const mapped = mapRows(parseXlsx(r.filePaths[0]))
     if (mapped.missingRequiredHeader) throw new Error('模板不正确:缺少「售后编号」列')
-    const existing = tickets.existingNos(mapped.tickets.map((t) => t.aftersaleNo))
+    const existing = await tickets.existingNos(mapped.tickets.map((t) => t.aftersaleNo))
     const toInsert = mapped.tickets.filter((t) => !existing.has(t.aftersaleNo))
-    tickets.createMany(toInsert)
+    await tickets.createMany(toInsert)
     return {
       imported: toInsert.length,
       skippedExisting: mapped.tickets.length - toInsert.length,
@@ -80,13 +80,12 @@ export async function registerIpc(): Promise<void> {
     }
   })
 
-  ipcMain.handle('tickets:delete', (_e, no: string) => {
-    // Remove on-disk thumbnails for this ticket's materials, then the ticket folder, then DB rows
-    for (const m of materials.listByTicket(no)) {
+  ipcMain.handle('tickets:delete', async (_e, no: string) => {
+    for (const m of await materials.listByTicket(no)) {
       if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
     }
     try { rmSync(join(dataRoot, safeDir(no)), { recursive: true, force: true }) } catch { /* ignore */ }
-    tickets.delete(no)
+    await tickets.delete(no)
     return true
   })
 
@@ -114,8 +113,8 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('folders:list', (_e, no: string) => folderRepo.list(no))
   ipcMain.handle('folders:create', (_e, no: string, path: string) => folderRepo.create(no, path))
   ipcMain.handle('folders:rename', (_e, no: string, path: string, newName: string) => folderRepo.rename(no, path, newName))
-  ipcMain.handle('folders:remove', (_e, no: string, path: string) => {
-    for (const m of folderRepo.remove(no, path)) {
+  ipcMain.handle('folders:remove', async (_e, no: string, path: string) => {
+    for (const m of await folderRepo.remove(no, path)) {
       try { unlinkSync(join(dataRoot, m.relPath)) } catch { /* ignore */ }
       if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
     }
@@ -125,14 +124,14 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     if (r.canceled || !r.filePaths[0]) return false
-    await exporter.toFolder(materials.getByIds(ids), r.filePaths[0])
+    await exporter.toFolder(await materials.getByIds(ids), r.filePaths[0])
     return true
   })
 
   ipcMain.handle('export:zip', async (_e, ids: number[]) => {
     const r = await dialog.showSaveDialog({ defaultPath: 'materials.zip' })
     if (r.canceled || !r.filePath) return false
-    await exporter.toZip(materials.getByIds(ids), r.filePath)
+    await exporter.toZip(await materials.getByIds(ids), r.filePath)
     return true
   })
 

@@ -1,54 +1,54 @@
-import type { Database } from 'better-sqlite3'
+import type { Knex } from 'knex'
 import { ancestorsAndSelf, isUnderOrEqual, joinPath, parentPath, rewritePrefix, normalizeSegment } from '../../shared/folder-path'
 
 type Now = () => number
 export interface AffectedMaterial { relPath: string; thumbPath: string | null }
 
 export class FolderRepo {
-  constructor(private db: Database, private now: Now = () => Date.now()) {}
+  constructor(private db: Knex, private now: Now = () => Date.now()) {}
 
-  create(aftersaleNo: string, path: string): void {
+  async create(aftersaleNo: string, path: string): Promise<void> {
     for (const seg of path.split('/')) normalizeSegment(seg) // throws on empty / '/' / '.' / '..'
     const ts = this.now()
-    const ins = this.db.prepare('INSERT OR IGNORE INTO material_folders (aftersale_no, path, created_at) VALUES (?, ?, ?)')
-    this.db.transaction(() => {
-      for (const p of ancestorsAndSelf(path)) ins.run(aftersaleNo, p, ts)
-    })()
+    await this.db.transaction(async (trx) => {
+      for (const p of ancestorsAndSelf(path)) {
+        await trx('material_folders')
+          .insert({ aftersale_no: aftersaleNo, path: p, created_at: ts })
+          .onConflict(['aftersale_no', 'path']).ignore()
+      }
+    })
   }
 
-  list(aftersaleNo: string): string[] {
-    return (this.db.prepare('SELECT path FROM material_folders WHERE aftersale_no = ? ORDER BY path').all(aftersaleNo) as { path: string }[]).map((r) => r.path)
+  async list(aftersaleNo: string): Promise<string[]> {
+    return await this.db('material_folders').where('aftersale_no', aftersaleNo).orderBy('path').pluck('path')
   }
 
-  rename(aftersaleNo: string, path: string, newName: string): void {
+  async rename(aftersaleNo: string, path: string, newName: string): Promise<void> {
     const newPath = joinPath(parentPath(path), normalizeSegment(newName))
     if (newPath === path) return
-    if (this.db.prepare('SELECT 1 FROM material_folders WHERE aftersale_no = ? AND path = ?').get(aftersaleNo, newPath)) {
-      throw new Error('同级已存在同名文件夹')
-    }
-    this.db.transaction(() => {
-      const fs = this.db.prepare('SELECT id, path FROM material_folders WHERE aftersale_no = ?').all(aftersaleNo) as { id: number; path: string }[]
-      const updF = this.db.prepare('UPDATE material_folders SET path = ? WHERE id = ?')
-      for (const f of fs) if (isUnderOrEqual(f.path, path)) updF.run(rewritePrefix(f.path, path, newPath), f.id)
-      const ms = this.db.prepare('SELECT id, folder FROM materials WHERE aftersale_no = ?').all(aftersaleNo) as { id: number; folder: string }[]
-      const updM = this.db.prepare('UPDATE materials SET folder = ? WHERE id = ?')
-      for (const m of ms) if (isUnderOrEqual(m.folder, path)) updM.run(rewritePrefix(m.folder, path, newPath), m.id)
-    })()
+    const clash = await this.db('material_folders').where({ aftersale_no: aftersaleNo, path: newPath }).first()
+    if (clash) throw new Error('同级已存在同名文件夹')
+    await this.db.transaction(async (trx) => {
+      const fs = (await trx('material_folders').select('id', 'path').where('aftersale_no', aftersaleNo)) as { id: number; path: string }[]
+      for (const f of fs) if (isUnderOrEqual(f.path, path)) await trx('material_folders').where('id', f.id).update({ path: rewritePrefix(f.path, path, newPath) })
+      const ms = (await trx('materials').select('id', 'folder').where('aftersale_no', aftersaleNo)) as { id: number; folder: string }[]
+      for (const m of ms) if (isUnderOrEqual(m.folder, path)) await trx('materials').where('id', m.id).update({ folder: rewritePrefix(m.folder, path, newPath) })
+    })
   }
 
-  remove(aftersaleNo: string, path: string): AffectedMaterial[] {
+  async remove(aftersaleNo: string, path: string): Promise<AffectedMaterial[]> {
     let affected: AffectedMaterial[] = []
-    this.db.transaction(() => {
-      const ms = this.db.prepare('SELECT id, rel_path AS relPath, thumb_path AS thumbPath, folder FROM materials WHERE aftersale_no = ?')
-        .all(aftersaleNo) as { id: number; relPath: string; thumbPath: string | null; folder: string }[]
+    await this.db.transaction(async (trx) => {
+      const ms = (await trx('materials')
+        .select('id', { relPath: 'rel_path' }, { thumbPath: 'thumb_path' }, 'folder')
+        .where('aftersale_no', aftersaleNo)) as { id: number; relPath: string; thumbPath: string | null; folder: string }[]
       const inSub = ms.filter((m) => isUnderOrEqual(m.folder, path))
       affected = inSub.map((m) => ({ relPath: m.relPath, thumbPath: m.thumbPath }))
-      const delM = this.db.prepare('DELETE FROM materials WHERE id = ?')
-      for (const m of inSub) delM.run(m.id)
-      const fs = this.db.prepare('SELECT id, path FROM material_folders WHERE aftersale_no = ?').all(aftersaleNo) as { id: number; path: string }[]
-      const delF = this.db.prepare('DELETE FROM material_folders WHERE id = ?')
-      for (const f of fs) if (isUnderOrEqual(f.path, path)) delF.run(f.id)
-    })()
+      if (inSub.length) await trx('materials').whereIn('id', inSub.map((m) => m.id)).del()
+      const fs = (await trx('material_folders').select('id', 'path').where('aftersale_no', aftersaleNo)) as { id: number; path: string }[]
+      const delIds = fs.filter((f) => isUnderOrEqual(f.path, path)).map((f) => f.id)
+      if (delIds.length) await trx('material_folders').whereIn('id', delIds).del()
+    })
     return affected
   }
 }

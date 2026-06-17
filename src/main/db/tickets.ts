@@ -1,36 +1,45 @@
-import type { Database } from 'better-sqlite3'
+import type { Knex } from 'knex'
 import type { Ticket, NewTicket, CustomerFields, AftersaleFields } from '../../shared/types'
 
 export type { NewTicket }
 
 type Now = () => number
+type Exec = Knex | Knex.Transaction
 
-const ROW = `aftersale_no AS aftersaleNo, order_no AS orderNo, shipping_no AS shippingNo,
-  return_no AS returnNo, status, note, created_at AS createdAt, updated_at AS updatedAt,
-  recipient_name AS recipientName, phone,
-  province_code AS provinceCode, province, city_code AS cityCode, city,
-  district_code AS districtCode, district, address_detail AS addressDetail, extension,
-  aftersale_type AS aftersaleType, aftersale_reason AS aftersaleReason, shipping_status AS shippingStatus,
-  amount, refund_amount AS refundAmount, applied_at AS appliedAt, return_logistics AS returnLogistics`
+const TICKET_COLS = {
+  aftersaleNo: 'aftersale_no', orderNo: 'order_no', shippingNo: 'shipping_no', returnNo: 'return_no',
+  status: 'status', note: 'note', createdAt: 'created_at', updatedAt: 'updated_at',
+  recipientName: 'recipient_name', phone: 'phone',
+  provinceCode: 'province_code', province: 'province', cityCode: 'city_code', city: 'city',
+  districtCode: 'district_code', district: 'district', addressDetail: 'address_detail', extension: 'extension',
+  aftersaleType: 'aftersale_type', aftersaleReason: 'aftersale_reason', shippingStatus: 'shipping_status',
+  amount: 'amount', refundAmount: 'refund_amount', appliedAt: 'applied_at', returnLogistics: 'return_logistics'
+} as const
 
-// Table-qualified version for JOIN queries to avoid ambiguous column names
-const TROW = `tickets.aftersale_no AS aftersaleNo, tickets.order_no AS orderNo, tickets.shipping_no AS shippingNo,
-  tickets.return_no AS returnNo, tickets.status, tickets.note, tickets.created_at AS createdAt, tickets.updated_at AS updatedAt,
-  tickets.recipient_name AS recipientName, tickets.phone,
-  tickets.province_code AS provinceCode, tickets.province, tickets.city_code AS cityCode, tickets.city,
-  tickets.district_code AS districtCode, tickets.district, tickets.address_detail AS addressDetail, tickets.extension,
-  tickets.aftersale_type AS aftersaleType, tickets.aftersale_reason AS aftersaleReason, tickets.shipping_status AS shippingStatus,
-  tickets.amount, tickets.refund_amount AS refundAmount, tickets.applied_at AS appliedAt, tickets.return_logistics AS returnLogistics`
+/** Knex select map (alias -> column), optionally table-qualified. */
+function selectMap(prefix = ''): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const [alias, col] of Object.entries(TICKET_COLS)) out[alias] = prefix ? `${prefix}.${col}` : col
+  return out
+}
+
+/** camelCase object -> snake_case row. */
+function toRow(obj: Record<string, unknown>): Record<string, unknown> {
+  const row: Record<string, unknown> = {}
+  for (const [alias, col] of Object.entries(TICKET_COLS)) row[col] = obj[alias]
+  return row
+}
 
 const EMPTY_CUSTOMER: CustomerFields = {
   recipientName: '', phone: '', provinceCode: '', province: '',
   cityCode: '', city: '', districtCode: '', district: '', addressDetail: '', extension: ''
 }
-
 const EMPTY_AFTERSALE: AftersaleFields = {
   aftersaleType: '', aftersaleReason: '', shippingStatus: '',
   amount: null, refundAmount: null, appliedAt: null, returnLogistics: ''
 }
+
+const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail'
 
 interface FtsRow {
   rowid: number
@@ -39,115 +48,101 @@ interface FtsRow {
   province: string; city: string; district: string; address_detail: string
 }
 
-const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail'
-
 export class TicketRepo {
-  constructor(private db: Database, private now: Now = () => Date.now()) {}
+  constructor(private db: Knex, private now: Now = () => Date.now()) {}
 
-  create(t: NewTicket): void {
-    const ts = this.now()
-    const row = { ...EMPTY_CUSTOMER, ...EMPTY_AFTERSALE, ...t, status: t.status || '待商家处理', ts }
-    const tx = this.db.transaction(() => {
-      this.db.prepare(
-        `INSERT INTO tickets (aftersale_no, order_no, shipping_no, return_no, status, note, created_at, updated_at,
-           recipient_name, phone, province_code, province, city_code, city, district_code, district, address_detail, extension,
-           aftersale_type, aftersale_reason, shipping_status, amount, refund_amount, applied_at, return_logistics)
-         VALUES (@aftersaleNo, @orderNo, @shippingNo, @returnNo, @status, @note, @ts, @ts,
-           @recipientName, @phone, @provinceCode, @province, @cityCode, @city, @districtCode, @district, @addressDetail, @extension,
-           @aftersaleType, @aftersaleReason, @shippingStatus, @amount, @refundAmount, @appliedAt, @returnLogistics)`
-      ).run(row)
-      this.ftsInsert(t.aftersaleNo)
-    })
-    tx()
+  async create(t: NewTicket): Promise<void> {
+    await this.db.transaction(async (trx) => { await this.insertOne(trx, t) })
   }
 
-  update(
+  private async insertOne(x: Exec, t: NewTicket): Promise<void> {
+    const ts = this.now()
+    const full = { ...EMPTY_CUSTOMER, ...EMPTY_AFTERSALE, ...t, status: t.status || '待商家处理', createdAt: ts, updatedAt: ts }
+    await x('tickets').insert(toRow(full))
+    await this.ftsInsert(x, t.aftersaleNo)
+  }
+
+  async update(
     aftersaleNo: string,
     patch: Partial<Pick<Ticket, 'orderNo' | 'shippingNo' | 'returnNo' | 'status' | 'note'> & CustomerFields & AftersaleFields>
-  ): void {
-    const cur = this.get(aftersaleNo)
+  ): Promise<void> {
+    const cur = await this.get(aftersaleNo)
     if (!cur) return
     const next = { ...cur, ...patch, updatedAt: this.now() }
-    const tx = this.db.transaction(() => {
-      this.ftsDelete(aftersaleNo)
-      this.db.prepare(
-        `UPDATE tickets SET order_no=@orderNo, shipping_no=@shippingNo, return_no=@returnNo,
-         status=@status, note=@note, updated_at=@updatedAt,
-         recipient_name=@recipientName, phone=@phone,
-         province_code=@provinceCode, province=@province, city_code=@cityCode, city=@city,
-         district_code=@districtCode, district=@district, address_detail=@addressDetail, extension=@extension,
-         aftersale_type=@aftersaleType, aftersale_reason=@aftersaleReason, shipping_status=@shippingStatus,
-         amount=@amount, refund_amount=@refundAmount, applied_at=@appliedAt, return_logistics=@returnLogistics
-         WHERE aftersale_no=@aftersaleNo`
-      ).run(next as any)
-      this.ftsInsert(aftersaleNo)
+    await this.db.transaction(async (trx) => {
+      await this.ftsDelete(trx, aftersaleNo)
+      const row = toRow(next)
+      delete row.aftersale_no
+      delete row.created_at
+      await trx('tickets').where('aftersale_no', aftersaleNo).update(row)
+      await this.ftsInsert(trx, aftersaleNo)
     })
-    tx()
   }
 
-  existingNos(nos: string[]): Set<string> {
+  async existingNos(nos: string[]): Promise<Set<string>> {
     const found = new Set<string>()
     const CHUNK = 500
     for (let i = 0; i < nos.length; i += CHUNK) {
       const slice = nos.slice(i, i + CHUNK)
       if (slice.length === 0) continue
-      const ph = slice.map(() => '?').join(',')
-      const rows = this.db.prepare(`SELECT aftersale_no AS no FROM tickets WHERE aftersale_no IN (${ph})`).all(...slice) as { no: string }[]
-      for (const r of rows) found.add(r.no)
+      const rows: string[] = await this.db('tickets').whereIn('aftersale_no', slice).pluck('aftersale_no')
+      for (const no of rows) found.add(no)
     }
     return found
   }
 
-  createMany(tickets: NewTicket[]): void {
-    const tx = this.db.transaction(() => {
-      for (const t of tickets) this.create(t)
+  async createMany(tickets: NewTicket[]): Promise<void> {
+    await this.db.transaction(async (trx) => {
+      for (const t of tickets) await this.insertOne(trx, t)
     })
-    tx()
   }
 
-  delete(aftersaleNo: string): void {
-    const tx = this.db.transaction(() => {
-      this.ftsDelete(aftersaleNo)
-      this.db.prepare('DELETE FROM tickets WHERE aftersale_no = ?').run(aftersaleNo)
+  async delete(aftersaleNo: string): Promise<void> {
+    await this.db.transaction(async (trx) => {
+      await this.ftsDelete(trx, aftersaleNo)
+      await trx('tickets').where('aftersale_no', aftersaleNo).del()
     })
-    tx()
   }
 
-  get(aftersaleNo: string): Ticket | undefined {
-    return this.db.prepare(`SELECT ${ROW} FROM tickets WHERE aftersale_no = ?`).get(aftersaleNo) as Ticket | undefined
+  async get(aftersaleNo: string): Promise<Ticket | undefined> {
+    return (await this.db('tickets').select(selectMap()).where('aftersale_no', aftersaleNo).first()) as Ticket | undefined
   }
 
-  list(): Ticket[] {
-    return this.db.prepare(`SELECT ${ROW} FROM tickets ORDER BY updated_at DESC`).all() as Ticket[]
+  async list(): Promise<Ticket[]> {
+    return (await this.db('tickets').select(selectMap()).orderBy('updated_at', 'desc')) as Ticket[]
   }
 
-  search(query: string): Ticket[] {
+  async search(query: string): Promise<Ticket[]> {
     const q = query.trim()
     if (!q) return this.list()
     const match = `"${q.replace(/"/g, '""')}"*`
-    return this.db.prepare(
-      `SELECT ${TROW} FROM tickets_fts f
-       JOIN tickets ON tickets.rowid = f.rowid
-       WHERE tickets_fts MATCH ? ORDER BY tickets.updated_at DESC`
-    ).all(match) as Ticket[]
+    return (await this.db
+      .select(selectMap('tickets'))
+      .from('tickets_fts as f')
+      .join('tickets', 'tickets.rowid', 'f.rowid')
+      .whereRaw('tickets_fts MATCH ?', [match])
+      .orderBy('tickets.updated_at', 'desc')) as Ticket[]
   }
 
-  private ftsInsert(aftersaleNo: string): void {
-    this.db.prepare(
-      `INSERT INTO tickets_fts (rowid, ${FTS_COLS})
-       SELECT rowid, ${FTS_COLS} FROM tickets WHERE aftersale_no = ?`
-    ).run(aftersaleNo)
+  private async ftsInsert(x: Exec, aftersaleNo: string): Promise<void> {
+    await x.raw(
+      `INSERT INTO tickets_fts (rowid, ${FTS_COLS}) SELECT rowid, ${FTS_COLS} FROM tickets WHERE aftersale_no = ?`,
+      [aftersaleNo]
+    )
   }
 
-  private ftsDelete(aftersaleNo: string): void {
-    const row = this.db.prepare(
-      `SELECT rowid, ${FTS_COLS} FROM tickets WHERE aftersale_no = ?`
-    ).get(aftersaleNo) as FtsRow | undefined
+  private async ftsDelete(x: Exec, aftersaleNo: string): Promise<void> {
+    const row = (await x('tickets')
+      .select('rowid', 'aftersale_no', 'order_no', 'shipping_no', 'return_no', 'note',
+        'recipient_name', 'phone', 'province', 'city', 'district', 'address_detail')
+      .where('aftersale_no', aftersaleNo)
+      .first()) as FtsRow | undefined
     if (!row) return
-    this.db.prepare(
+    await x.raw(
       `INSERT INTO tickets_fts(tickets_fts, rowid, ${FTS_COLS})
-       VALUES('delete', @rowid, @aftersale_no, @order_no, @shipping_no, @return_no, @note,
-         @recipient_name, @phone, @province, @city, @district, @address_detail)`
-    ).run(row)
+       VALUES('delete', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [row.rowid, row.aftersale_no, row.order_no, row.shipping_no, row.return_no, row.note,
+        row.recipient_name, row.phone, row.province, row.city, row.district, row.address_detail]
+    )
   }
 }
