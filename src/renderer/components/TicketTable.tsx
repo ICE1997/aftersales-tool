@@ -5,20 +5,26 @@ import { STATUS_META } from '../status'
 import { paginate } from '../table'
 import { regionLabel } from '../region'
 import { IconBox, IconImport, IconPlus } from './icons'
+import { applySort, DEFAULT_SORT, type SortKey } from '../ticket-filter'
 
-interface Props { tickets: Ticket[]; query: string; onOpen: (no: string) => void; onNew: () => void; onImport?: () => void }
+interface Props { tickets: Ticket[]; onOpen: (no: string) => void; onNew: () => void; onImport?: () => void }
 
 const SIZES = [10, 20, 50]
 
-export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) {
+export function TicketTable({ tickets, onOpen, onNew, onImport }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  useEffect(() => { setPage(1) }, [query])
+  const [sort, setSort] = useState(DEFAULT_SORT)
+  useEffect(() => { setPage(1) }, [tickets])
 
   const total = tickets.length
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
   const current = Math.min(page, pageCount)
-  const rows = paginate(tickets, current, pageSize)
+  const rows = paginate(applySort(tickets, sort), current, pageSize)
+
+  const toggleSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }))
+  const arrow = (key: SortKey) => (sort.key === key ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : '')
 
   return (
     <div className="flex h-full flex-col p-6">
@@ -45,7 +51,9 @@ export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) 
             <thead className="sticky top-0 bg-paper-2 text-[11px] uppercase tracking-wider text-muted">
               <tr className="border-b border-line">
                 <th className="px-4 py-2.5 text-left font-medium">售后单号</th>
-                <th className="px-4 py-2.5 text-left font-medium">售后状态</th>
+                <th className="px-4 py-2.5 text-left font-medium">
+                  <button className="inline-flex items-center font-medium uppercase tracking-wider hover:text-accent-ink" onClick={() => toggleSort('status')}>售后状态{arrow('status')}</button>
+                </th>
                 <th className="px-4 py-2.5 text-left font-medium">售后类型</th>
                 <th className="px-4 py-2.5 text-left font-medium">收件人</th>
                 <th className="px-4 py-2.5 text-left font-medium">地区</th>
@@ -53,7 +61,9 @@ export function TicketTable({ tickets, query, onOpen, onNew, onImport }: Props) 
                 <th className="px-4 py-2.5 text-left font-medium">发货快递单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">退货快递单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">退货物流状态</th>
-                <th className="px-4 py-2.5 text-left font-medium">申请时间</th>
+                <th className="px-4 py-2.5 text-left font-medium">
+                  <button className="inline-flex items-center font-medium uppercase tracking-wider hover:text-accent-ink" onClick={() => toggleSort('appliedAt')}>申请时间{arrow('appliedAt')}</button>
+                </th>
               </tr>
             </thead>
             <tbody>
