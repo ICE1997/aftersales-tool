@@ -1,0 +1,37 @@
+name: CI
+
+# 每次推送 main / 提 PR 时跑类型检查 + 测试 + 构建,保证 main 始终可发布。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # npm ci 已为 runner 的 Node(22)编译 better-sqlite3/sharp,vitest 直接可跑(无需 rebuild)。
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build

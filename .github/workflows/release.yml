@@ -1,9 +1,9 @@
 name: Release (tag)
 
-# 推送 vX.Y.Z tag 时，在 Windows + macOS 上各自构建（不发布），再由单个 job
-# 汇总所有产物创建“一个”草稿 Release —— 单次发布调用，杜绝重复 Release。
+# 推送 vX.Y.Z tag 时：先跑测试 → 各平台并行构建产物 → 单个 job 汇总创建“一个”
+# Release（直接发布,非草稿）。单次发布调用,杜绝重复 Release。
 # 发布流程：改 package.json version → 提交 → 打同名 tag vX.Y.Z（须与 version 一致）
-#           → git push --tags → 本 workflow 自动构建并创建草稿 Release（人工确认后发布）。
+#           → git push --tags → 测试通过后自动构建并发布。
 on:
   push:
     tags:
@@ -17,10 +17,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 阶段 0：测试门禁 —— 测试不过则不构建、不发布。
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Test
+        run: npm test
+
   # 阶段 1：并行在各平台构建产物（--publish never），上传为 workflow artifact。
-  # 不在此处发布：electron-builder 每个 job 都会各自建草稿 Release（GitHub list-releases
-  # 接口最终一致性，第二个 job 看不到第一个刚建的草稿）→ 会产生重复 Release。
   build:
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -39,7 +56,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # electron-vite build（含 TS 检查）+ electron-builder（按宿主 OS 选 nsis / dmg）。
+      # electron-vite build + electron-builder（按宿主 OS 选 nsis / dmg）。
       # --publish never：只构建,latest(-mac).yml 仍会写入 dist/，但不上传。
       - name: Build (no publish)
         run: npm run dist -- --publish never
@@ -60,7 +77,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # 阶段 2：下载两个平台的产物，单次创建一个草稿 Release（无并发,不可能重复）。
+  # 阶段 2：下载两个平台的产物,单次创建“一个”Release(直接发布,自动生成发布说明)。
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -70,10 +87,12 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create single draft GitHub Release
+      - name: Publish single GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
+          make_latest: true
+          generate_release_notes: true
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           files: artifacts/**/*
