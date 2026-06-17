@@ -1,8 +1,10 @@
-import { app, BrowserWindow, dialog, Menu } from 'electron'
+import { app, BrowserWindow, dialog, Menu, shell } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { registerMediaScheme } from './media-protocol'
 import { buildAppMenu } from './menu'
+import { createUpdateController } from './updater'
 
 // Must run before app 'ready' — registers the privileged scheme used to serve
 // local media to the renderer (works from both the dev http:// origin and the
@@ -44,7 +46,15 @@ app.whenReady().then(async () => {
     applicationVersion: app.getVersion(),
     copyright: '© 2026 售后酱'
   })
-  Menu.setApplicationMenu(buildAppMenu())
+  const updater = createUpdateController({
+    autoUpdater,
+    dialog,
+    shell,
+    platform: process.platform,
+    isPackaged: app.isPackaged,
+    releasePageUrl: 'https://github.com/ICE1997/aftersales-tool/releases/latest'
+  })
+  Menu.setApplicationMenu(buildAppMenu(() => { void updater.checkForUpdates() }))
   createWindow()
 })
 app.on('window-all-closed', () => {

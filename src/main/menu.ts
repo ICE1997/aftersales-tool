@@ -4,7 +4,8 @@ import type { MenuItemConstructorOptions } from 'electron'
 /** Pure: the Chinese application-menu template. Unit-testable (does not use Electron runtime values). */
 export function menuTemplate(
   opts: { isMac: boolean; isDev: boolean },
-  onAbout: () => void = () => {}
+  onAbout: () => void = () => {},
+  onCheckUpdate: () => void = () => {}
 ): MenuItemConstructorOptions[] {
   const { isMac, isDev } = opts
   const t: MenuItemConstructorOptions[] = []
@@ -14,6 +15,8 @@ export function menuTemplate(
       label: '售后酱',
       submenu: [
         { label: '关于售后酱', role: 'about' },
+        { type: 'separator' },
+        { label: '检查更新…', click: onCheckUpdate },
         { type: 'separator' },
         { label: '服务', role: 'services' },
         { type: 'separator' },
@@ -69,14 +72,22 @@ export function menuTemplate(
 
   t.push({
     label: '帮助',
-    submenu: [{ label: '关于售后酱', click: onAbout }]
+    submenu: [
+      { label: '检查更新…', click: onCheckUpdate },
+      { type: 'separator' },
+      { label: '关于售后酱', click: onAbout }
+    ]
   })
 
   return t
 }
 
-export function buildAppMenu(): Menu {
+export function buildAppMenu(onCheckUpdate: () => void): Menu {
   return Menu.buildFromTemplate(
-    menuTemplate({ isMac: process.platform === 'darwin', isDev: !app.isPackaged }, () => app.showAboutPanel())
+    menuTemplate(
+      { isMac: process.platform === 'darwin', isDev: !app.isPackaged },
+      () => app.showAboutPanel(),
+      onCheckUpdate
+    )
   )
 }

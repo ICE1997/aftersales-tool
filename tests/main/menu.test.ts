@@ -46,4 +46,14 @@ describe('menuTemplate', () => {
   it('all labels are Chinese (no ASCII letters)', () => {
     for (const l of labels(menuTemplate({ isMac: true, isDev: true }))) expect(l).not.toMatch(/[A-Za-z]/)
   })
+  it('help menu contains 检查更新…', () => {
+    expect(labels(menuTemplate({ isMac: false, isDev: false }))).toContain('检查更新…')
+  })
+  it('检查更新… click is the provided onCheckUpdate', () => {
+    const fn = () => {}
+    const t = menuTemplate({ isMac: false, isDev: false }, () => {}, fn)
+    const help = t.find((m) => m.label === '帮助')!
+    const item = (help.submenu as any[]).find((i) => i.label === '检查更新…')
+    expect(item.click).toBe(fn)
+  })
 })
