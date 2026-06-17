@@ -63,7 +63,6 @@ export function ReturnMap() {
         const countsByAdcode: Record<string, number> = {}
         for (const c of counts) countsByAdcode[toAdcode(c.code)] = c.count
         const { rows, max } = mapData(fc.features, countsByAdcode)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         echarts.registerMap(current.adcode, geo as any)
         chartRef.current.setOption({
           tooltip: { trigger: 'item', formatter: (p: { name?: string; value?: number }) => `${p.name}:${p.value || 0} 单` },

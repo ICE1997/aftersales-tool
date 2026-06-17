@@ -155,7 +155,7 @@ export async function runMigrations(
     if (pending.length > 0) backup = backupBeforeMigrate(dbPath, backupDir, now)
     await knex.migrate.latest()
   } catch (err) {
-    throw new Error(`数据库迁移失败:${(err as Error).message}` + (backup ? `\n已在迁移前备份到:${backup}` : ''))
+    throw new Error(`数据库迁移失败:${(err as Error).message}` + (backup ? `\n已在迁移前备份到:${backup}` : ''), { cause: err })
   } finally {
     await knex.destroy()
   }
