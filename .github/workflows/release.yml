@@ -1,101 +1,76 @@
-name: Release (tag)
+name: Release
 
-# 推送 vX.Y.Z tag 时：先跑测试 → 各平台并行构建产物 → 单个 job 汇总创建“一个”
-# Release（直接发布,非草稿）。单次发布调用,杜绝重复 Release。
-# 发布流程：改 package.json version → 提交 → 打同名 tag vX.Y.Z（须与 version 一致）
-#           → git push --tags → 测试通过后自动构建并发布。
+# release-please 驱动：推 feat:/fix: 到 main → release-please 维护一个「release PR」
+# (自动 bump 版本 + 更新 CHANGELOG.md)。合并该 PR → release-please 打 tag 并创建正式
+# Release(非草稿,含 changelog 说明)→ 本工作流的 build 阶段构建双平台安装包并上传到该 Release。
+# 不再需要手动改版本号 / 手动打 tag。
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # 阶段 0：测试门禁 —— 测试不过则不构建、不发布。
+  # 维护 release PR;PR 合并时创建 tag + 正式 Release,并置 release_created=true。
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.rp.outputs.release_created }}
+      tag_name: ${{ steps.rp.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+
+  # 仅当本次 push 触发了一次实际发布(release PR 被合并)时,才测试 + 构建 + 上传。
   test:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Type check
-        run: npx tsc --noEmit
-      - name: Lint
-        run: npm run lint
-      - name: Test
-        run: npm test
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm test
 
-  # 阶段 1：并行在各平台构建产物（--publish never），上传为 workflow artifact。
   build:
-    needs: test
+    needs: [release-please, test]
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
+      - run: npm ci
 
-      - name: Install dependencies
-        run: npm ci
-
-      # electron-vite build + electron-builder（按宿主 OS 选 nsis / dmg）。
-      # --publish never：只构建,latest(-mac).yml 仍会写入 dist/，但不上传。
       - name: Build (no publish)
         run: npm run dist -- --publish never
         env:
-          # 关闭 mac 代码签名发现（未签名构建；与 package.json identity:null 一致）。
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
-        with:
-          name: dist-${{ matrix.os }}
-          path: |
-            dist/*.exe
-            dist/*.dmg
-            dist/*.blockmap
-            dist/latest.yml
-            dist/latest-mac.yml
-          if-no-files-found: ignore
-          retention-days: 7
-
-  # 阶段 2：下载两个平台的产物,单次创建“一个”Release(直接发布,自动生成发布说明)。
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: artifacts
-
-      - name: Publish single GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          draft: false
-          make_latest: true
-          generate_release_notes: true
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          files: artifacts/**/*
-          fail_on_unmatched_files: true
+      # 把本平台产物上传到 release-please 已创建的那个 Release(两平台都上传到同一个,
+      # Release 已存在 → 不可能重复)。nullglob 让缺失的平台文件被跳过而非报错。
+      - name: Upload installers to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          shopt -s nullglob
+          files=(dist/*.exe dist/*.dmg dist/*.blockmap dist/latest.yml dist/latest-mac.yml)
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" "${files[@]}" --clobber

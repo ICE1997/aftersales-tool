@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "0068bd72e85b4f82c76ce1968ab6b5658c602626",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "package-name": "shouhou-jiang",
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false
+    }
+  }
+}
