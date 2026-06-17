@@ -48,7 +48,7 @@ export function TicketTable({ tickets, onOpen, onNew, onImport }: Props) {
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl2 border border-line bg-surface shadow-card">
           <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[1240px] text-sm [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
-            <thead className="sticky top-0 bg-paper-2 text-[11px] uppercase tracking-wider text-muted">
+            <thead className="sticky top-0 z-20 bg-paper-2 text-[11px] uppercase tracking-wider text-muted [&_th]:bg-paper-2">
               <tr className="border-b border-line">
                 <th className="px-4 py-2.5 text-left font-medium">售后单号</th>
                 <th className="px-4 py-2.5 text-left font-medium">
