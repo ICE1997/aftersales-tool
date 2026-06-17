@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { NewTicket, Ticket } from '@shared/types'
 import type { ImportTicketsResult } from '@shared/types'
 import { api } from '../api'
@@ -8,6 +8,8 @@ import { TicketDetail } from '../components/TicketDetail'
 import { NewTicketDialog } from '../components/NewTicketDialog'
 import { ImportResultDialog } from '../components/ImportResultDialog'
 import { IconClose } from '../components/icons'
+import { TicketFilterBar } from '../components/TicketFilterBar'
+import { applyFilter, EMPTY_FILTER, type TicketFilter } from '../ticket-filter'
 
 export function TicketsView() {
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -17,6 +19,8 @@ export function TicketsView() {
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<ImportTicketsResult | null>(null)
+  const [filter, setFilter] = useState<TicketFilter>(EMPTY_FILTER)
+  const filtered = useMemo(() => applyFilter(tickets, filter), [tickets, filter])
 
   async function load(q = query) { setTickets(q ? await api.searchTickets(q) : await api.listTickets()) }
   useEffect(() => { load('') }, [])
@@ -55,8 +59,9 @@ export function TicketsView() {
       ) : (
         <>
           <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
+          <TicketFilterBar filter={filter} onChange={setFilter} />
           <div className="flex min-h-0 flex-1 flex-col">
-            <TicketTable tickets={tickets} query={query} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
+            <TicketTable tickets={filtered} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
           </div>
         </>
       )}
