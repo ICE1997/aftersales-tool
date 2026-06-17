@@ -47,14 +47,14 @@ export class Importer {
   private async record(aftersaleNo: string, kind: MaterialKind, destAbs: string, name: string, folder: string): Promise<Material> {
     const relPath = relative(this.dataRoot, destAbs).split('\\').join('/')
     const thumbPath = kind === 'image' ? await this.thumb.forImage(destAbs) : await this.thumb.forVideo(destAbs)
-    const id = this.materials.add({
+    const id = await this.materials.add({
       aftersaleNo, name, relPath, kind, folder,
       capturedAt: null,
       importedAt: this.now(),
       sizeBytes: statSync(destAbs).size,
       thumbPath
     })
-    const created = this.materials.getByIds([id])[0]
+    const created = (await this.materials.getByIds([id]))[0]
     if (!created) throw new Error(`material not found after insert: ${id}`)
     return created
   }

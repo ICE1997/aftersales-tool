@@ -1,41 +1,43 @@
-import type { Database } from 'better-sqlite3'
+import type { Knex } from 'knex'
 import type { Material } from '../../shared/types'
 
-const ROW = `id, aftersale_no AS aftersaleNo, name, rel_path AS relPath, kind,
-  captured_at AS capturedAt, imported_at AS importedAt, size_bytes AS sizeBytes, thumb_path AS thumbPath, folder`
+const MATERIAL_COLS = {
+  id: 'id', aftersaleNo: 'aftersale_no', name: 'name', relPath: 'rel_path', kind: 'kind',
+  capturedAt: 'captured_at', importedAt: 'imported_at', sizeBytes: 'size_bytes', thumbPath: 'thumb_path', folder: 'folder'
+} as const
 
 export type NewMaterial = Omit<Material, 'id' | 'name' | 'folder'> & { name?: string; folder?: string }
 
 export class MaterialRepo {
-  constructor(private db: Database) {}
+  constructor(private db: Knex) {}
 
-  add(m: NewMaterial): number {
-    const info = this.db.prepare(
-      `INSERT INTO materials (aftersale_no, name, rel_path, kind, captured_at, imported_at, size_bytes, thumb_path, folder)
-       VALUES (@aftersaleNo, @name, @relPath, @kind, @capturedAt, @importedAt, @sizeBytes, @thumbPath, @folder)`
-    ).run({ ...m, name: m.name ?? '', folder: m.folder ?? '' })
-    return Number(info.lastInsertRowid)
+  async add(m: NewMaterial): Promise<number> {
+    const [id] = await this.db('materials').insert({
+      aftersale_no: m.aftersaleNo, name: m.name ?? '', rel_path: m.relPath, kind: m.kind,
+      captured_at: m.capturedAt, imported_at: m.importedAt, size_bytes: m.sizeBytes,
+      thumb_path: m.thumbPath, folder: m.folder ?? ''
+    })
+    return Number(id)
   }
 
-  listByTicket(aftersaleNo: string): Material[] {
-    return this.db.prepare(`SELECT ${ROW} FROM materials WHERE aftersale_no = ? ORDER BY imported_at`).all(aftersaleNo) as Material[]
+  async listByTicket(aftersaleNo: string): Promise<Material[]> {
+    return (await this.db('materials').select(MATERIAL_COLS).where('aftersale_no', aftersaleNo).orderBy('imported_at')) as Material[]
   }
 
-  getByIds(ids: number[]): Material[] {
+  async getByIds(ids: number[]): Promise<Material[]> {
     if (ids.length === 0) return []
-    const ph = ids.map(() => '?').join(',')
-    return this.db.prepare(`SELECT ${ROW} FROM materials WHERE id IN (${ph})`).all(...ids) as Material[]
+    return (await this.db('materials').select(MATERIAL_COLS).whereIn('id', ids)) as Material[]
   }
 
-  setThumb(id: number, thumbPath: string): void {
-    this.db.prepare('UPDATE materials SET thumb_path = ? WHERE id = ?').run(thumbPath, id)
+  async setThumb(id: number, thumbPath: string): Promise<void> {
+    await this.db('materials').where('id', id).update({ thumb_path: thumbPath })
   }
 
-  setFolder(id: number, folder: string): void {
-    this.db.prepare('UPDATE materials SET folder = ? WHERE id = ?').run(folder, id)
+  async setFolder(id: number, folder: string): Promise<void> {
+    await this.db('materials').where('id', id).update({ folder })
   }
 
-  remove(id: number): void {
-    this.db.prepare('DELETE FROM materials WHERE id = ?').run(id)
+  async remove(id: number): Promise<void> {
+    await this.db('materials').where('id', id).del()
   }
 }

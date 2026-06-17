@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, existsSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { Database } from 'better-sqlite3'
+import type { Knex } from 'knex'
 import sharp from 'sharp'
 import { makeTempDb } from '../db/helpers'
 import { TicketRepo } from '../../src/main/db/tickets'
@@ -10,18 +10,18 @@ import { MaterialRepo } from '../../src/main/db/materials'
 import { Importer } from '../../src/main/services/importer'
 
 let root: string
-let db: Database
+let db: Knex
 let importer: Importer
-let cleanupDb: () => void
+let cleanupDb: () => Promise<void>
 
 beforeEach(async () => {
   root = mkdtempSync(join(tmpdir(), 'vh-imp-'))
   ;({ db, cleanup: cleanupDb } = await makeTempDb())
-  new TicketRepo(db, () => 1).create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+  await new TicketRepo(db, () => 1).create({ aftersaleNo: 'AS-1', orderNo: '', shippingNo: '', returnNo: '', note: '' })
   const thumbStub = { forImage: async () => 'thumb.jpg', forVideo: async () => 'thumb.jpg' } as any
   importer = new Importer(root, new MaterialRepo(db), thumbStub, () => 42)
 })
-afterEach(() => { rmSync(root, { recursive: true, force: true }); cleanupDb() })
+afterEach(async () => { rmSync(root, { recursive: true, force: true }); await cleanupDb() })
 
 function makeFile(name: string, content = 'x'): string {
   const p = join(root, name)
@@ -107,7 +107,7 @@ describe('Importer', () => {
   it('sanitizes illegal chars in aftersaleNo when building the destination folder', async () => {
     // Ticket key may contain '/' or ':' — these are illegal in directory names on most OSes
     const illegalNo = 'AS/2026:06'
-    new TicketRepo(db, () => 1).create({ aftersaleNo: illegalNo, orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    await new TicketRepo(db, () => 1).create({ aftersaleNo: illegalNo, orderNo: '', shippingNo: '', returnNo: '', note: '' })
     const localImporter = new Importer(root, new MaterialRepo(db), { forImage: async () => 'thumb.jpg', forVideo: async () => 'thumb.jpg' } as any, () => 42)
     const img = makeFile('photo2.jpg')
     const res = await localImporter.importFiles(illegalNo, [img])

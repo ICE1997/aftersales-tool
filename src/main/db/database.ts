@@ -1,12 +1,22 @@
-import BetterSqlite3 from 'better-sqlite3'
-import type { Database as DB } from 'better-sqlite3'
+import Knex from 'knex'
+import type { Knex as KnexType } from 'knex'
 import { dirname, join } from 'node:path'
 import { runMigrations } from './migrations'
 
-export async function createDatabase(path: string): Promise<DB> {
+export async function createDatabase(path: string): Promise<KnexType> {
   await runMigrations(path, join(dirname(path), 'backups'))
-  const db = new BetterSqlite3(path)
-  db.pragma('journal_mode = WAL')
-  db.pragma('foreign_keys = ON')
-  return db
+  return Knex({
+    client: 'better-sqlite3',
+    connection: { filename: path },
+    useNullAsDefault: true,
+    pool: {
+      min: 1,
+      max: 1,
+      afterCreate: (conn: any, done: (err: Error | null, conn: any) => void) => {
+        conn.pragma('journal_mode = WAL')
+        conn.pragma('foreign_keys = ON')
+        done(null, conn)
+      }
+    }
+  })
 }

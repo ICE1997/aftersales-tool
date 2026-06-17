@@ -1,4 +1,4 @@
-import type { Database } from 'better-sqlite3'
+import type { Knex } from 'knex'
 import type { RegionLevel, RegionCount, StatsSummary } from '../../shared/types'
 
 const COLS: Record<RegionLevel, { code: string; name: string }> = {
@@ -8,24 +8,22 @@ const COLS: Record<RegionLevel, { code: string; name: string }> = {
 }
 
 export class StatsRepo {
-  constructor(private db: Database) {}
+  constructor(private db: Knex) {}
 
-  regionCounts(level: RegionLevel): RegionCount[] {
+  async regionCounts(level: RegionLevel): Promise<RegionCount[]> {
     const col = COLS[level] // fixed mapping — never interpolate arbitrary input
-    return this.db.prepare(
-      `SELECT ${col.code} AS code, ${col.name} AS name, COUNT(*) AS count
-       FROM tickets
-       WHERE ${col.code} != ''
-       GROUP BY ${col.code}, ${col.name}
-       ORDER BY count DESC, name ASC`
-    ).all() as RegionCount[]
+    const rows = (await this.db('tickets')
+      .select({ code: col.code, name: col.name })
+      .count({ count: '*' })
+      .whereNot(col.code, '')
+      .groupBy(col.code, col.name)
+      .orderBy([{ column: 'count', order: 'desc' }, { column: col.name, order: 'asc' }])) as { code: string; name: string; count: number | string }[]
+    return rows.map((r) => ({ code: r.code, name: r.name, count: Number(r.count) }))
   }
 
-  summary(): StatsSummary {
-    const total = (this.db.prepare('SELECT COUNT(*) AS n FROM tickets').get() as { n: number }).n
-    const classified = (this.db.prepare(
-      `SELECT COUNT(*) AS n FROM tickets WHERE province_code != ''`
-    ).get() as { n: number }).n
+  async summary(): Promise<StatsSummary> {
+    const total = Number(((await this.db('tickets').count({ n: '*' })) as { n: number | string }[])[0].n)
+    const classified = Number(((await this.db('tickets').whereNot('province_code', '').count({ n: '*' })) as { n: number | string }[])[0].n)
     return { total, classified, unclassified: total - classified }
   }
 }
