@@ -65,12 +65,16 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       # 把本平台产物上传到 release-please 已创建的那个 Release(两平台都上传到同一个,
-      # Release 已存在 → 不可能重复)。nullglob 让缺失的平台文件被跳过而非报错。
+      # Release 已存在 → 不可能重复)。只上传实际存在的文件(各平台产物不同)。
       - name: Upload installers to the release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           shopt -s nullglob
-          files=(dist/*.exe dist/*.dmg dist/*.blockmap dist/latest.yml dist/latest-mac.yml)
+          files=()
+          for f in dist/*.exe dist/*.dmg dist/*.blockmap dist/latest*.yml; do
+            [ -f "$f" ] && files+=("$f")
+          done
+          if [ ${#files[@]} -eq 0 ]; then echo "no installer artifacts found in dist/" >&2; exit 1; fi
           gh release upload "${{ needs.release-please.outputs.tag_name }}" "${files[@]}" --clobber
