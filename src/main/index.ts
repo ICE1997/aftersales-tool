@@ -1,5 +1,8 @@
 import { app, BrowserWindow, dialog, Menu, shell } from 'electron'
-import { autoUpdater } from 'electron-updater'
+// Default import (not `{ autoUpdater }`): electron-updater is CommonJS, and
+// Electron's ESM loader can't resolve named exports from CJS at runtime.
+import electronUpdater from 'electron-updater'
+const { autoUpdater } = electronUpdater
 import { join } from 'node:path'
 import { registerIpc } from './ipc'
 import { registerMediaScheme } from './media-protocol'
