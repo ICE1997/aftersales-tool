@@ -1,6 +1,6 @@
 {
   "name": "shouhou-jiang",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "售后酱 — 售后材料管理工具(订单、媒体、归档)",
   "main": "out/main/index.js",
   "scripts": {
