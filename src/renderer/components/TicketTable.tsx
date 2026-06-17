@@ -7,11 +7,11 @@ import { regionLabel } from '../region'
 import { IconBox, IconImport, IconPlus } from './icons'
 import { applySort, DEFAULT_SORT, type SortKey } from '../ticket-filter'
 
-interface Props { tickets: Ticket[]; onOpen: (no: string) => void; onNew: () => void; onImport?: () => void }
+interface Props { tickets: Ticket[]; onOpen: (no: string) => void; onNew: () => void; onImport?: () => void; selected?: string }
 
 const SIZES = [10, 20, 50]
 
-export function TicketTable({ tickets, onOpen, onNew, onImport }: Props) {
+export function TicketTable({ tickets, onOpen, onNew, onImport, selected }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [sort, setSort] = useState(DEFAULT_SORT)
@@ -69,12 +69,13 @@ export function TicketTable({ tickets, onOpen, onNew, onImport }: Props) {
             <tbody>
               {rows.map((t, i) => {
                 const meta = STATUS_META[t.status] ?? STATUS_META['待商家处理']
+                const isSelected = t.aftersaleNo === selected
                 return (
                   <tr
                     key={t.aftersaleNo}
-                    className="animate-rise cursor-pointer border-b border-line transition-colors last:border-0 hover:bg-paper-2"
+                    className={`animate-rise cursor-pointer border-b border-line transition-colors last:border-0 ${isSelected ? 'bg-accent-soft' : 'hover:bg-paper-2'}`}
                     style={{ animationDelay: `${Math.min(i, 12) * 18}ms` }}
-                    onClick={() => onOpen(t.aftersaleNo)}
+                    onClick={() => { if (window.getSelection()?.toString()) return; onOpen(t.aftersaleNo) }}
                   >
                     <td className="tnum px-4 py-3 font-medium text-ink">{t.aftersaleNo}</td>
                     <td className="px-4 py-3"><span className={`chip ${meta.chip}`}><span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />{meta.label}</span></td>

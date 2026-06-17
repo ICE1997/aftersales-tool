@@ -47,23 +47,23 @@ export function TicketsView() {
           <button className="rounded p-1 hover:bg-white/40" onClick={() => setError(null)} aria-label="关闭"><IconClose className="text-[14px]" /></button>
         </div>
       )}
-      {view === 'detail' && selected ? (
+      {/* List stays mounted (hidden in detail view) so pagination, sort and scroll position are preserved on return. */}
+      <div className={`flex min-h-0 flex-1 flex-col ${view === 'detail' ? 'hidden' : ''}`}>
+        <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
+        <TicketFilterBar filter={filter} onChange={setFilter} />
+        <div className="flex min-h-0 flex-1 flex-col">
+          <TicketTable tickets={filtered} selected={selected} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
+        </div>
+      </div>
+      {view === 'detail' && selected && (
         <div className="flex-1 overflow-auto">
           <TicketDetail
             aftersaleNo={selected}
             onBack={() => setView('list')}
             onChanged={() => load()}
-            onDeleted={() => { setView('list'); load() }}
+            onDeleted={() => { setView('list'); setSelected(undefined); load() }}
           />
         </div>
-      ) : (
-        <>
-          <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
-          <TicketFilterBar filter={filter} onChange={setFilter} />
-          <div className="flex min-h-0 flex-1 flex-col">
-            <TicketTable tickets={filtered} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
-          </div>
-        </>
       )}
       <NewTicketDialog open={newOpen} onCreate={createTicket} onCancel={() => setNewOpen(false)} />
       <ImportResultDialog result={importResult} onClose={() => setImportResult(null)} />
