@@ -65,16 +65,16 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
       # 把本平台产物上传到 release-please 已创建的那个 Release(两平台都上传到同一个,
-      # Release 已存在 → 不可能重复)。只上传实际存在的文件(各平台产物不同)。
+      # Release 已存在 → 不可能重复)。softprops 的 files 用 JS glob 匹配:匹配不到的
+      # 模式自动跳过(各平台产物不同),不会像 bash 字面路径那样报错。
       - name: Upload installers to the release
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          shopt -s nullglob
-          files=()
-          for f in dist/*.exe dist/*.dmg dist/*.blockmap dist/latest*.yml; do
-            [ -f "$f" ] && files+=("$f")
-          done
-          if [ ${#files[@]} -eq 0 ]; then echo "no installer artifacts found in dist/" >&2; exit 1; fi
-          gh release upload "${{ needs.release-please.outputs.tag_name }}" "${files[@]}" --clobber
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          fail_on_unmatched_files: false
+          files: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.blockmap
+            dist/latest.yml
+            dist/latest-mac.yml
