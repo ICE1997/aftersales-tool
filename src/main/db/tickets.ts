@@ -39,13 +39,14 @@ const EMPTY_AFTERSALE: AftersaleFields = {
   amount: null, refundAmount: null, appliedAt: null, returnLogistics: ''
 }
 
-const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail'
+const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail, extension, aftersale_type, aftersale_reason, shipping_status, return_logistics'
 
 interface FtsRow {
   rowid: number
   aftersale_no: string; order_no: string; shipping_no: string; return_no: string; note: string
   recipient_name: string; phone: string
   province: string; city: string; district: string; address_detail: string
+  extension: string; aftersale_type: string; aftersale_reason: string; shipping_status: string; return_logistics: string
 }
 
 export class TicketRepo {
@@ -134,15 +135,17 @@ export class TicketRepo {
   private async ftsDelete(x: Exec, aftersaleNo: string): Promise<void> {
     const row = (await x('tickets')
       .select('rowid', 'aftersale_no', 'order_no', 'shipping_no', 'return_no', 'note',
-        'recipient_name', 'phone', 'province', 'city', 'district', 'address_detail')
+        'recipient_name', 'phone', 'province', 'city', 'district', 'address_detail',
+        'extension', 'aftersale_type', 'aftersale_reason', 'shipping_status', 'return_logistics')
       .where('aftersale_no', aftersaleNo)
       .first()) as FtsRow | undefined
     if (!row) return
     await x.raw(
       `INSERT INTO tickets_fts(tickets_fts, rowid, ${FTS_COLS})
-       VALUES('delete', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES('delete', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [row.rowid, row.aftersale_no, row.order_no, row.shipping_no, row.return_no, row.note,
-        row.recipient_name, row.phone, row.province, row.city, row.district, row.address_detail]
+        row.recipient_name, row.phone, row.province, row.city, row.district, row.address_detail,
+        row.extension, row.aftersale_type, row.aftersale_reason, row.shipping_status, row.return_logistics]
     )
   }
 }
