@@ -50,7 +50,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
 
   if (!ticket) return null
   const ids = () => [...selected]
-  const toggle = (id: number) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggle = (id: number) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const meta = STATUS_META[ticket.status] ?? STATUS_META['待商家处理']
 
   async function exportFolder() {
