@@ -92,6 +92,19 @@ export const MIGRATIONS: CodeMigration[] = [
       await knex.raw('ALTER TABLE tickets RENAME COLUMN refund_amount_num TO refund_amount')
       await knex.raw('ALTER TABLE tickets RENAME COLUMN applied_at_num TO applied_at')
     }
+  },
+  {
+    name: '0003_fts_expand',
+    up: async (knex) => {
+      await knex.raw('DROP TABLE IF EXISTS tickets_fts')
+      await knex.raw(`CREATE VIRTUAL TABLE tickets_fts USING fts5(
+         aftersale_no, order_no, shipping_no, return_no, note,
+         recipient_name, phone, province, city, district, address_detail,
+         extension, aftersale_type, aftersale_reason, shipping_status, return_logistics,
+         content='tickets', content_rowid='rowid'
+       )`)
+      await knex.raw(`INSERT INTO tickets_fts(tickets_fts) VALUES('rebuild')`)
+    }
   }
 ]
 

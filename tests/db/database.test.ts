@@ -29,4 +29,8 @@ describe('createDatabase', () => {
     const done = await db('knex_migrations').pluck('name')
     expect(done).toContain('0001_baseline')
   })
+  it('tickets_fts indexes the expanded text columns', async () => {
+    const cols = ((await db.raw('PRAGMA table_info(tickets_fts)')) as { name: string }[]).map((c) => c.name)
+    expect(cols).toEqual(expect.arrayContaining(['extension', 'aftersale_type', 'aftersale_reason', 'shipping_status', 'return_logistics']))
+  })
 })

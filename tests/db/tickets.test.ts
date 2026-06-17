@@ -38,6 +38,18 @@ describe('TicketRepo', () => {
     expect((await repo.search('AS-100')).map(t => t.aftersaleNo)).toContain('AS-100')
   })
 
+  it('search matches the newly indexed text fields', async () => {
+    await repo.create({
+      aftersaleNo: 'FTS-1', orderNo: '', shippingNo: '', returnNo: '', note: '',
+      aftersaleType: '退货退款', aftersaleReason: '质量问题', shippingStatus: '已发货',
+      returnLogistics: '签收', extension: '0106'
+    })
+    expect((await repo.search('退货退款')).map((t) => t.aftersaleNo)).toContain('FTS-1')
+    expect((await repo.search('0106')).map((t) => t.aftersaleNo)).toContain('FTS-1')
+    expect((await repo.search('签收')).map((t) => t.aftersaleNo)).toContain('FTS-1')
+    expect((await repo.search('质量问题')).map((t) => t.aftersaleNo)).toContain('FTS-1')
+  })
+
   it('list returns all tickets newest first', async () => {
     await repo.create({ aftersaleNo: 'A', orderNo: '', shippingNo: '', returnNo: '', note: '' })
     await repo.create({ aftersaleNo: 'B', orderNo: '', shippingNo: '', returnNo: '', note: '' })
