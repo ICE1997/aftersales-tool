@@ -87,7 +87,7 @@ describe('createUpdateController', () => {
     await c.checkForUpdates()
     d.autoUpdater.emit('error', new Error('boom'))
     await flush()
-    expect(d.dialog.errors.some(([, c]) => c.includes('boom'))).toBe(true)
+    expect(d.dialog.errors.some(([, c]: [string, string]) => c.includes('boom'))).toBe(true)
   })
   it('repeated checks register listeners once', async () => {
     const d = base()
@@ -96,6 +96,6 @@ describe('createUpdateController', () => {
     await c.checkForUpdates()
     d.autoUpdater.emit('update-not-available', {})
     await flush()
-    expect(d.dialog.messages.filter((m) => m === '已是最新版本')).toHaveLength(1)
+    expect(d.dialog.messages.filter((m: string) => m === '已是最新版本')).toHaveLength(1)
   })
 })
