@@ -54,8 +54,8 @@ export function TicketsView() {
         </div>
       ) : (
         <>
-          <div className="border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
-          <div className="flex-1 overflow-auto">
+          <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
+          <div className="flex min-h-0 flex-1 flex-col">
             <TicketTable tickets={tickets} query={query} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
           </div>
         </>
