@@ -41,6 +41,14 @@ const EMPTY_AFTERSALE: AftersaleFields = {
 
 const FTS_COLS = 'aftersale_no, order_no, shipping_no, return_no, note, recipient_name, phone, province, city, district, address_detail, extension, aftersale_type, aftersale_reason, shipping_status, return_logistics'
 
+// Columns searched by the search box (same text columns the FTS index covered).
+const SEARCH_COLS = FTS_COLS.split(', ')
+
+// Escape LIKE wildcards so user input matches literally (used with ESCAPE '\').
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (m) => '\\' + m)
+}
+
 interface FtsRow {
   rowid: number
   aftersale_no: string; order_no: string; shipping_no: string; return_no: string; note: string
@@ -116,13 +124,13 @@ export class TicketRepo {
   async search(query: string): Promise<Ticket[]> {
     const q = query.trim()
     if (!q) return this.list()
-    const match = `"${q.replace(/"/g, '""')}"*`
-    return (await this.db
-      .select(selectMap('tickets'))
-      .from('tickets_fts as f')
-      .join('tickets', 'tickets.rowid', 'f.rowid')
-      .whereRaw('tickets_fts MATCH ?', [match])
-      .orderBy('tickets.updated_at', 'desc')) as Ticket[]
+    const pattern = `%${escapeLike(q)}%`
+    return (await this.db('tickets')
+      .select(selectMap())
+      .where((b) => {
+        for (const col of SEARCH_COLS) b.orWhereRaw(`${col} LIKE ? ESCAPE '\\'`, [pattern])
+      })
+      .orderBy('updated_at', 'desc')) as Ticket[]
   }
 
   private async ftsInsert(x: Exec, aftersaleNo: string): Promise<void> {

@@ -38,6 +38,22 @@ describe('TicketRepo', () => {
     expect((await repo.search('AS-100')).map(t => t.aftersaleNo)).toContain('AS-100')
   })
 
+  it('search matches a substring anywhere in a long unbroken number, not just a prefix', async () => {
+    await repo.create({ aftersaleNo: '21068276645218', orderNo: '', shippingNo: '', returnNo: '', note: '' })
+    expect((await repo.search('5218')).map(t => t.aftersaleNo)).toContain('21068276645218')  // suffix
+    expect((await repo.search('6827')).map(t => t.aftersaleNo)).toContain('21068276645218')  // middle
+    expect((await repo.search('21068')).map(t => t.aftersaleNo)).toContain('21068276645218') // prefix
+  })
+
+  it('search treats % and _ as literal characters', async () => {
+    await repo.create({ aftersaleNo: 'PCT-1', orderNo: '', shippingNo: '', returnNo: '', note: '100%棉' })
+    await repo.create({ aftersaleNo: 'PLAIN-2', orderNo: '', shippingNo: '', returnNo: '', note: 'cotton' })
+    expect((await repo.search('100%棉')).map(t => t.aftersaleNo)).toContain('PCT-1')
+    const pct = (await repo.search('%')).map(t => t.aftersaleNo)
+    expect(pct).toContain('PCT-1')      // contains a literal %
+    expect(pct).not.toContain('PLAIN-2') // % is not a wildcard
+  })
+
   it('search matches the newly indexed text fields', async () => {
     await repo.create({
       aftersaleNo: 'FTS-1', orderNo: '', shippingNo: '', returnNo: '', note: '',
