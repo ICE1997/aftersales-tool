@@ -5,6 +5,7 @@ import { STATUS_ORDER } from '../status'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS } from '../aftersale-options'
 import { IconClose } from './icons'
 import { RegionCascader, EMPTY_REGION, type RegionValue } from './RegionCascader'
+import { DateTimeField } from './DateFields'
 import { extractContact } from '../contact-extract'
 
 interface Props { open: boolean; onCreate: (t: NewTicket) => void; onCancel: () => void }
@@ -127,7 +128,7 @@ export function NewTicketDialog({ open, onCreate, onCancel }: Props) {
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">申请时间</span>
-              <input aria-label="申请时间" type="datetime-local" step="1" className="field tnum" value={appliedAt} onChange={(e) => setAppliedAt(e.target.value)} />
+              <DateTimeField value={appliedAt} onChange={setAppliedAt} />
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-medium text-ink-soft">退货物流状态</span>

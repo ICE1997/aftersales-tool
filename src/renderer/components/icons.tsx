@@ -47,6 +47,9 @@ export const IconFolderPlus = (p: P) => (
 export const IconPencil = (p: P) => (
   <svg {...base(p)}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
 )
+export const IconCalendar = (p: P) => (
+  <svg {...base(p)}><rect x="3" y="4.5" width="18" height="16.5" rx="2" /><path d="M3 9.5h18M8 2.5v4M16 2.5v4" /></svg>
+)
 export const IconExternal = (p: P) => (
   <svg {...base(p)}><path d="M14 4h6v6" /><path d="M20 4 10 14" /><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></svg>
 )
