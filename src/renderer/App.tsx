@@ -4,11 +4,12 @@ import { TicketsView } from './views/TicketsView'
 import { StatsView } from './views/StatsView'
 import { IconSettings } from './components/icons'
 import { Logo } from './components/Logo'
+import { useSessionState } from './use-session-state'
 
 type Tab = 'tickets' | 'stats'
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('tickets')
+  const [tab, setTab] = useSessionState<Tab>('vh.tab', 'tickets')
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (

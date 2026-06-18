@@ -42,6 +42,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     currentNo.current = aftersaleNo
     const [t, ms, fs] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo), api.listFolders(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
+    if (!t) { onBack(); return } // restored/selected ticket no longer exists → back to list
     setTicket(t)
     setMaterials(ms)
     setFolders(fs)
