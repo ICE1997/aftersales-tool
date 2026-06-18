@@ -53,6 +53,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   }
   useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
 
+  useEffect(() => {
+    void api.watchMaterials(aftersaleNo)
+    const off = api.onMaterialsChanged((no) => { if (no === aftersaleNo) void reload() })
+    return () => { off(); void api.unwatchMaterials() }
+  }, [aftersaleNo])
+
   if (!ticket) return null
   const relPaths = () => [...selected]
   const toggle = (relPath: string) => setSelected((s) => { const n = new Set(s); if (n.has(relPath)) n.delete(relPath); else n.add(relPath); return n })
@@ -67,10 +73,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     try { const ok = await api.exportZip(relPaths(), folderPaths()); setMsg(ok ? '已打包 zip' : null) }
     catch (e) { setMsg(`打包失败:${(e as Error).message}`) }
   }
-  async function calibrate() {
-    await reload()
-    setMsg('已刷新')
-  }
+
   async function createFolder(name: string) {
     const path = currentFolder ? `${currentFolder}/${name.trim()}` : name.trim()
     try { await api.createFolder(aftersaleNo, path); await reload() } catch (e) { setMsg(`新建文件夹失败:${(e as Error).message}`) }
@@ -372,8 +375,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             <button className="btn-ghost ml-auto px-2.5" onClick={() => void api.openMaterialDir(aftersaleNo, currentFolder)} title="在文件管理器中打开当前目录">
               <IconFolderOpen className="text-[15px]" /> 打开目录
             </button>
-            <button className="btn-ghost px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
-              <IconRefresh className="text-[15px]" />
+            <button className="btn-ghost px-2" onClick={() => void reload()} title="刷新材料列表" aria-label="刷新">
+              <IconRefresh className="text-[15px]" /> 刷新
             </button>
           </div>
 

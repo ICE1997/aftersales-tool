@@ -16,6 +16,9 @@ vi.mock('../../src/renderer/api', () => ({
     getTicket: vi.fn(async () => ticket),
     listMaterials: vi.fn(async () => ({ folders: [], materials: [] })),
     updateTicket: vi.fn(async () => {}),
+    watchMaterials: vi.fn(async () => {}),
+    unwatchMaterials: vi.fn(async () => {}),
+    onMaterialsChanged: vi.fn(() => () => {}),
   }
 }))
 
