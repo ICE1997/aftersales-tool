@@ -362,6 +362,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               onDeleteFolder={deleteFolder}
               onOpenDir={(folder) => void api.openMaterialDir(aftersaleNo, folder)}
               onCopyDirPath={(folder) => void api.copyDirPath(aftersaleNo, folder).then(() => setMsg('已复制目录路径到剪贴板'))}
+              onCopyMaterialPath={(relPath) => void api.copyMaterialPath(relPath).then(() => setMsg('已复制材料路径到剪贴板'))}
             />
           </div>
         </div>
