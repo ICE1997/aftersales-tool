@@ -198,10 +198,12 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
                 <button className="flex aspect-square w-full flex-col items-center justify-center gap-2 text-accent" onClick={() => onEnterFolder(path)}>
                   <IconFolder className="text-4xl" />
                 </button>
-                <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹的材料'}
-                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
-                  <IconCheck className="text-[13px]" />
-                </button>
+                {underIds.length > 0 && (
+                  <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹的材料'} title={`选择此文件夹的材料(${underIds.length})`}
+                    className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
+                    <IconCheck className="text-[13px]" />
+                  </button>
+                )}
                 {renaming === path ? (
                   <div className="px-2 pb-2">
                     <input
