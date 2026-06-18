@@ -25,12 +25,13 @@ describe('appliedTimeBarOption', () => {
     { key: '2026-06-13', label: '6/13', count: 0 },
     { key: '2026-06-14', label: '6/14', count: 1 },
   ]
-  it('maps labels to the category x-axis and counts to the bar series', () => {
+  it('maps labels to the category x-axis and counts to the area-line series', () => {
     const o = appliedTimeBarOption(buckets) as any
     expect(o.xAxis.type).toBe('category')
     expect(o.xAxis.data).toEqual(['6/12', '6/13', '6/14'])
     expect(o.yAxis.type).toBe('value')
-    expect(o.series[0].type).toBe('bar')
+    expect(o.series[0].type).toBe('line')
+    expect(o.series[0].areaStyle).toBeTruthy()
     expect(o.series[0].data).toEqual([2, 0, 1])
   })
   it('handles an empty bucket list', () => {

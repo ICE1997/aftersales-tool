@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react'
 import * as echarts from 'echarts/core'
-import { BarChart } from 'echarts/charts'
+import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import type { ECharts, EChartsCoreOption } from 'echarts/core'
 import { appliedTimeBarOption } from '../charts'
 import type { Bucket } from '../applied-time-buckets'
 
-echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer])
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 export function AppliedTimeBarChart({ buckets }: { buckets: Bucket[] }) {
   const ref = useRef<HTMLDivElement>(null)

@@ -18,18 +18,33 @@ export function barOption(data: RegionCount[]): Record<string, unknown> {
   }
 }
 
-/** Vertical bar option for the applied-time distribution chart. */
+// Applied-time distribution as a terracotta area line (reads as a trend/rhythm
+// over time). Gentle smoothing only — these are discrete counts, so heavy
+// smoothing would misleadingly imply values between buckets.
 export function appliedTimeBarOption(buckets: Bucket[]): Record<string, unknown> {
   return {
-    grid: { left: 8, right: 12, top: 20, bottom: 24, containLabel: true },
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    xAxis: { type: 'category', data: buckets.map((b) => b.label), axisTick: { alignWithLabel: true } },
+    grid: { left: 8, right: 16, top: 20, bottom: 24, containLabel: true },
+    tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', boundaryGap: false, data: buckets.map((b) => b.label), axisTick: { alignWithLabel: true } },
     yAxis: { type: 'value', minInterval: 1 },
     series: [{
-      type: 'bar',
+      type: 'line',
       data: buckets.map((b) => b.count),
-      label: { show: true, position: 'top' },
-      itemStyle: { color: '#bd4f2a', borderRadius: [4, 4, 0, 0] },
+      smooth: 0.2,
+      symbol: 'circle',
+      symbolSize: 6,
+      showSymbol: buckets.length <= 40,
+      lineStyle: { color: '#bd4f2a', width: 2 },
+      itemStyle: { color: '#bd4f2a' },
+      areaStyle: {
+        color: {
+          type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+          colorStops: [
+            { offset: 0, color: 'rgba(189,79,42,0.28)' },
+            { offset: 1, color: 'rgba(189,79,42,0.02)' },
+          ],
+        },
+      },
     }],
   }
 }
