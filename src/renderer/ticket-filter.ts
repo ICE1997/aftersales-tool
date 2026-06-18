@@ -4,13 +4,14 @@ import { STATUS_ORDER } from './status'
 export interface TicketFilter {
   statuses: TicketStatus[]
   types: string[]
+  reasons: string[]
   shippingStatuses: string[]
   appliedFrom: number | null
   appliedTo: number | null
 }
 
 export const EMPTY_FILTER: TicketFilter = {
-  statuses: [], types: [], shippingStatuses: [], appliedFrom: null, appliedTo: null
+  statuses: [], types: [], reasons: [], shippingStatuses: [], appliedFrom: null, appliedTo: null
 }
 
 export type SortKey = 'appliedAt' | 'status'
@@ -21,7 +22,7 @@ export const DEFAULT_SORT: Sort = { key: 'appliedAt', dir: 'desc' }
 
 /** True when no facet is active. */
 export function isFilterActive(f: TicketFilter): boolean {
-  return f.statuses.length > 0 || f.types.length > 0 || f.shippingStatuses.length > 0 ||
+  return f.statuses.length > 0 || f.types.length > 0 || f.reasons.length > 0 || f.shippingStatuses.length > 0 ||
     f.appliedFrom != null || f.appliedTo != null
 }
 
@@ -30,6 +31,7 @@ export function applyFilter(tickets: Ticket[], f: TicketFilter): Ticket[] {
   return tickets.filter((t) => {
     if (f.statuses.length && !f.statuses.includes(t.status)) return false
     if (f.types.length && !f.types.includes(t.aftersaleType)) return false
+    if (f.reasons.length && !f.reasons.includes(t.aftersaleReason)) return false
     if (f.shippingStatuses.length && !f.shippingStatuses.includes(t.shippingStatus)) return false
     if (f.appliedFrom != null && (t.appliedAt == null || t.appliedAt < f.appliedFrom)) return false
     if (f.appliedTo != null && (t.appliedAt == null || t.appliedAt > f.appliedTo)) return false
