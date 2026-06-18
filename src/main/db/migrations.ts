@@ -105,7 +105,11 @@ export const MIGRATIONS: CodeMigration[] = [
        )`)
       await knex.raw(`INSERT INTO tickets_fts(tickets_fts) VALUES('rebuild')`)
     }
-  }
+  },
+  { name: '0004_drop_material_tables', up: async (knex) => {
+    await knex.raw('DROP TABLE IF EXISTS materials')
+    await knex.raw('DROP TABLE IF EXISTS material_folders')
+  } }
 ]
 
 class CodeMigrationSource implements KnexType.MigrationSource<CodeMigration> {

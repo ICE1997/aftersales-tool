@@ -10,7 +10,9 @@ afterEach(async () => { await cleanup() })
 describe('createDatabase', () => {
   it('creates core tables (incl. knex_migrations) and the FTS table', async () => {
     const names = await db('sqlite_master').where('type', 'table').pluck('name')
-    expect(names).toEqual(expect.arrayContaining(['tickets', 'materials', 'material_folders', 'tickets_fts', 'knex_migrations']))
+    expect(names).toEqual(expect.arrayContaining(['tickets', 'tickets_fts', 'knex_migrations']))
+    expect(names).not.toContain('materials')
+    expect(names).not.toContain('material_folders')
   })
   it('enables foreign keys on the returned connection', async () => {
     const rows = (await db.raw('PRAGMA foreign_keys')) as { foreign_keys: number }[]
@@ -20,10 +22,6 @@ describe('createDatabase', () => {
     const cols = ((await db.raw('PRAGMA table_info(tickets)')) as { name: string }[]).map((c) => c.name)
     expect(cols).toEqual(expect.arrayContaining(['recipient_name', 'phone', 'province', 'extension', 'aftersale_type', 'shipping_status', 'return_logistics']))
     expect(cols).not.toContain('customer_id')
-  })
-  it('materials has name + folder columns', async () => {
-    const cols = ((await db.raw('PRAGMA table_info(materials)')) as { name: string }[]).map((c) => c.name)
-    expect(cols).toEqual(expect.arrayContaining(['name', 'folder']))
   })
   it('records the baseline migration', async () => {
     const done = await db('knex_migrations').pluck('name')

@@ -21,7 +21,10 @@ describe('runMigrations', () => {
   it('applies the baseline on a fresh db and records it', async () => {
     const dbPath = join(dir, 'a.db')
     await runMigrations(dbPath, join(dir, 'backups'))
-    expect(tables(dbPath)).toEqual(expect.arrayContaining(['tickets', 'materials', 'material_folders', 'tickets_fts', 'knex_migrations']))
+    const ts = tables(dbPath)
+    expect(ts).toEqual(expect.arrayContaining(['tickets', 'tickets_fts', 'knex_migrations']))
+    expect(ts).not.toContain('materials')
+    expect(ts).not.toContain('material_folders')
     const db = new BetterSqlite3(dbPath)
     const done = (db.prepare('SELECT name FROM knex_migrations').all() as { name: string }[]).map((r) => r.name)
     db.close()
