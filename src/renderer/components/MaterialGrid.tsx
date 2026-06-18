@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Material } from '@shared/types'
 import { api } from '../api'
 import { childrenFolders, folderName, ancestorsAndSelf } from '../../shared/folder-path'
-import { IconPlay, IconCheck, IconImage, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose } from './icons'
+import { IconPlay, IconCheck, IconImage, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose, IconExternal } from './icons'
 
 interface Props {
   materials: Material[]
@@ -15,6 +15,7 @@ interface Props {
   onCreateFolder: (name: string) => void
   onRenameFolder: (path: string, newName: string) => void
   onDeleteFolder: (path: string) => void
+  onOpenDir: (folder: string) => void
 }
 
 function Thumb({ m }: { m: Material }) {
@@ -33,7 +34,7 @@ function Thumb({ m }: { m: Material }) {
   return <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05]" />
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder }: Props) {
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onOpenDir }: Props) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -97,6 +98,10 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
             </button>
           </span>
         ))}
+        <span className="flex-1" />
+        <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => onOpenDir(currentFolder)} title="在文件管理器中打开当前目录">
+          <IconExternal className="text-[14px]" /> 打开当前目录
+        </button>
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-4">

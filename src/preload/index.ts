@@ -22,6 +22,7 @@ const api = {
   chooseDataRoot: (): Promise<boolean> => ipcRenderer.invoke('settings:chooseDataRoot'),
   showItem: (relPath: string): Promise<void> => ipcRenderer.invoke('shell:showItem', relPath),
   openInChrome: (url: string): Promise<void> => ipcRenderer.invoke('shell:openChrome', url),
+  openMaterialDir: (no: string, folder: string): Promise<void> => ipcRenderer.invoke('shell:openMaterialDir', no, folder),
   regionCounts: (level: RegionLevel): Promise<RegionCount[]> => ipcRenderer.invoke('stats:regionCounts', level),
   statsSummary: (): Promise<StatsSummary> => ipcRenderer.invoke('stats:summary'),
   listFolders: (no: string): Promise<string[]> => ipcRenderer.invoke('folders:list', no),
