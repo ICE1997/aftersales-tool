@@ -11,6 +11,7 @@ import { IconClose, IconImport, IconPlus } from '../components/icons'
 import { TicketFilterBar } from '../components/TicketFilterBar'
 import { ViewTabs } from '../components/ViewTabs'
 import { AppliedTimePanel } from '../components/AppliedTimePanel'
+import { RegionPanel } from '../components/RegionPanel'
 import { applyFilter, EMPTY_FILTER, type TicketFilter } from '../ticket-filter'
 import { presetRange } from '../date-presets'
 import { useSessionState } from '../use-session-state'
@@ -18,7 +19,7 @@ import { useSessionState } from '../use-session-state'
 export function TicketsView() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [view, setView] = useSessionState<'list' | 'detail'>('vh.view', 'list')
-  const [tab, setTab] = useSessionState<'list' | 'chart'>('vh.ticketsTab', 'list')
+  const [tab, setTab] = useSessionState<'list' | 'chart' | 'region'>('vh.ticketsTab', 'list')
   const [selected, setSelected] = useSessionState<string | undefined>('vh.selected', undefined)
   const [newOpen, setNewOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -60,9 +61,9 @@ export function TicketsView() {
         <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
         <TicketFilterBar filter={filter} onChange={setFilter} />
         <ViewTabs
-          tabs={[{ key: 'list', label: '售后单', count: filtered.length }, { key: 'chart', label: '申请时间分布' }]}
+          tabs={[{ key: 'list', label: '售后单', count: filtered.length }, { key: 'chart', label: '申请时间分布' }, { key: 'region', label: '区域分布' }]}
           active={tab}
-          onChange={(k) => setTab(k as 'list' | 'chart')}
+          onChange={(k) => setTab(k as 'list' | 'chart' | 'region')}
           right={tab === 'list' ? (
             <>
               <button className="btn-ghost px-3 py-1.5 text-sm" onClick={importTickets}><IconImport className="text-[15px]" /> 导入售后单</button>
@@ -82,6 +83,11 @@ export function TicketsView() {
               to={filter.appliedTo}
               onRangeChange={(appliedFrom, appliedTo) => setFilter((prev) => ({ ...prev, appliedFrom, appliedTo }))}
             />
+          </div>
+        )}
+        {tab === 'region' && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <RegionPanel tickets={filtered} />
           </div>
         )}
       </div>
