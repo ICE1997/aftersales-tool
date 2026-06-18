@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Material } from '@shared/types'
 import { api } from '../api'
 import { childrenFolders, folderName, ancestorsAndSelf } from '../../shared/folder-path'
-import { IconPlay, IconCheck, IconImage, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose, IconExternal } from './icons'
+import { IconPlay, IconCheck, IconImage, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose, IconFolderOpen } from './icons'
 
 interface Props {
   materials: Material[]
@@ -98,9 +98,8 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
             </button>
           </span>
         ))}
-        <span className="flex-1" />
-        <button className="btn-ghost px-2.5 py-1 text-xs" onClick={() => onOpenDir(currentFolder)} title="在文件管理器中打开当前目录">
-          <IconExternal className="text-[14px]" /> 打开当前目录
+        <button className="btn-ghost ml-1 px-2 py-0.5 text-xs text-muted hover:text-accent-ink" onClick={() => onOpenDir(currentFolder)} title="在文件管理器中打开此目录">
+          <IconFolderOpen className="text-[14px]" /> 打开目录
         </button>
       </div>
 

@@ -342,10 +342,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             ) : materials.length > 0 ? (
               <span className="text-xs text-muted">勾选材料可导出或打包</span>
             ) : null}
-            <button className="btn-ghost ml-auto px-2.5" onClick={() => void api.openMaterialDir(aftersaleNo, '')} title="在文件管理器中打开该售后单的材料根目录">
-              <IconExternal className="text-[15px]" /> 打开材料目录
-            </button>
-            <button className="btn-ghost px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
+            <button className="btn-ghost ml-auto px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
               <IconRefresh className="text-[15px]" />
             </button>
           </div>
