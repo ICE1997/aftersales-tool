@@ -70,7 +70,8 @@ export function NewMaterialDialog({ open, aftersaleNo, targetFolder, onCreated, 
 
   if (!open) return null
 
-  const valid = tab === 'clipboard' ? !!pending : !!picked
+  const hasSource = tab === 'clipboard' ? !!pending : !!picked
+  const valid = hasSource && name.trim().length > 0
 
   function choose(next: Tab) {
     setError(null); setTab(next); nameEdited.current = false
