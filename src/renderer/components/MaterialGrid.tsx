@@ -100,12 +100,6 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
             </button>
           </span>
         ))}
-        <button className="btn-ghost ml-1 px-2 py-0.5 text-xs text-muted hover:text-accent-ink" onClick={() => onOpenDir(currentFolder)} title="在文件管理器中打开此目录">
-          <IconFolderOpen className="text-[14px]" /> 打开目录
-        </button>
-        <button className="btn-ghost px-2 py-0.5 text-xs text-muted hover:text-accent-ink" onClick={() => onCopyDirPath(currentFolder)} title="复制此目录的绝对路径(可粘贴到上传对话框)" aria-label="复制目录路径">
-          <IconCopy className="text-[14px]" />
-        </button>
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-4">

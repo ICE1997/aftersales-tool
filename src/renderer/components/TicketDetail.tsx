@@ -9,7 +9,7 @@ import { RegionCascader, type RegionValue } from './RegionCascader'
 import { DateTimeField } from './DateFields'
 import { extractContact } from '../contact-extract'
 import { regionLabel } from '../region'
-import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
+import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal, IconFolderOpen } from './icons'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
 import { parseAmountToCents, localInputToMs, formatCents, formatMs, msToLocalInput } from '@shared/aftersale-format'
 
@@ -343,7 +343,10 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             ) : materials.length > 0 ? (
               <span className="text-xs text-muted">勾选材料可导出或打包</span>
             ) : null}
-            <button className="btn-ghost ml-auto px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
+            <button className="btn-ghost ml-auto px-2.5" onClick={() => void api.openMaterialDir(aftersaleNo, currentFolder)} title="在文件管理器中打开当前目录">
+              <IconFolderOpen className="text-[15px]" /> 打开目录
+            </button>
+            <button className="btn-ghost px-2" onClick={calibrate} title="校准索引(清理已失效的材料索引)" aria-label="校准索引">
               <IconRefresh className="text-[15px]" />
             </button>
           </div>
