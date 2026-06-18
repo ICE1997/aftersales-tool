@@ -7,7 +7,8 @@ interface Props { material: Material | null; onClose: () => void }
 
 export function PreviewModal({ material, onClose }: Props) {
   const [url, setUrl] = useState<string | null>(null)
-  useEffect(() => { setUrl(null); if (material) api.fileUrl(material.relPath).then(setUrl) }, [material])
+  const [copied, setCopied] = useState(false)
+  useEffect(() => { setUrl(null); setCopied(false); if (material) api.fileUrl(material.relPath).then(setUrl) }, [material])
   if (!material || !url) return null
   const name = material.name || material.relPath.split('/').pop()
 
@@ -28,6 +29,9 @@ export function PreviewModal({ material, onClose }: Props) {
               <IconCopy className="text-[14px]" /> 复制图片
             </button>
           )}
+          <button className="btn-ghost border-0 px-3 py-1.5 text-xs" onClick={async () => { await api.copyMaterialPath(material.relPath); setCopied(true); setTimeout(() => setCopied(false), 1200) }}>
+            <IconCopy className="text-[14px]" /> {copied ? '已复制路径' : '复制路径'}
+          </button>
           <button className="btn-ghost border-0 px-3 py-1.5 text-xs" onClick={() => api.showItem(material.relPath)}>
             <IconExternal className="text-[14px]" /> 在文件夹中显示
           </button>

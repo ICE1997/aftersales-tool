@@ -161,6 +161,18 @@ export async function registerIpc(): Promise<void> {
     return true
   })
 
+  // Copy absolute paths to the clipboard (e.g. to paste into 拼多多 upload dialogs).
+  ipcMain.handle('clipboard:copyMaterialPath', (_e, relPath: string) => {
+    const abs = join(dataRoot, relPath)
+    clipboard.writeText(abs)
+    return abs
+  })
+  ipcMain.handle('clipboard:copyDirPath', (_e, no: string, folder: string) => {
+    const abs = materialDir(dataRoot, no, folder)
+    clipboard.writeText(abs)
+    return abs
+  })
+
   ipcMain.handle('scan:calibrate', (_e, no: string) => scanner.calibrateTicket(no))
 
   ipcMain.handle('settings:getDataRoot', () => settings.getDataRoot())
