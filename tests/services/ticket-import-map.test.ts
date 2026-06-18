@@ -59,10 +59,10 @@ describe('mapRows', () => {
     expect(r.duplicatedInFile).toBe(1)
   })
 
-  it('defaults empty 售后状态 to 待商家处理 and trims cells', () => {
+  it('leaves empty 售后状态 undefined (insert applies the 待商家处理 default) and trims cells', () => {
     const r = mapRows([HEADER, [' AS2 ', '', '', '', '', '', '', '', '', '', '', '', '']])
     expect(r.tickets[0].aftersaleNo).toBe('AS2')
-    expect(r.tickets[0].status).toBe('待商家处理')
+    expect(r.tickets[0].status).toBeUndefined()
   })
 
   it('treats an empty matrix as a bad template', () => {

@@ -10,7 +10,8 @@ export function ImportResultDialog({ result, onClose }: Props) {
         <h3 className="mb-4 font-display text-lg font-extrabold tracking-tight">导入完成</h3>
         <ul className="space-y-1.5 text-sm text-ink-soft">
           <li>新增 <span className="tnum font-semibold text-ink">{result.imported}</span> 条</li>
-          <li>跳过(已存在) <span className="tnum font-semibold text-ink">{result.skippedExisting}</span> 条</li>
+          <li>更新状态 <span className="tnum font-semibold text-ink">{result.updated}</span> 条</li>
+          <li>跳过(已存在·状态未变) <span className="tnum font-semibold text-ink">{result.skippedExisting}</span> 条</li>
           <li>文件内重复 <span className="tnum font-semibold text-ink">{result.duplicatedInFile}</span> 条</li>
           <li>失败 <span className="tnum font-semibold text-ink">{result.failed.length}</span> 条</li>
         </ul>

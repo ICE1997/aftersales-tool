@@ -91,7 +91,7 @@ describe('TicketTable', () => {
   it('calls onImport when the import button is clicked', () => {
     const onImport = vi.fn()
     render(<TicketTable tickets={mks(1)} onOpen={() => {}} onNew={() => {}} onImport={onImport} />)
-    fireEvent.click(screen.getByText('导入 Excel'))
+    fireEvent.click(screen.getByText('导入售后单'))
     expect(onImport).toHaveBeenCalledTimes(1)
   })
 
