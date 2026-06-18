@@ -119,7 +119,7 @@ export async function registerIpc(): Promise<void> {
       if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
     }
   })
-  ipcMain.handle('materials:move', (_e, id: number, folder: string) => materials.setFolder(id, folder))
+  ipcMain.handle('materials:move', (_e, id: number, folder: string) => importer.moveToFolder(id, folder))
 
   ipcMain.handle('export:folder', async (_e, ids: number[]) => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
