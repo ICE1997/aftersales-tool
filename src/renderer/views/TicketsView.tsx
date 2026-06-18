@@ -9,7 +9,9 @@ import { NewTicketDialog } from '../components/NewTicketDialog'
 import { ImportResultDialog } from '../components/ImportResultDialog'
 import { IconClose } from '../components/icons'
 import { TicketFilterBar } from '../components/TicketFilterBar'
+import { AppliedTimePanel } from '../components/AppliedTimePanel'
 import { applyFilter, EMPTY_FILTER, type TicketFilter } from '../ticket-filter'
+import { presetRange } from '../date-presets'
 
 export function TicketsView() {
   const [tickets, setTickets] = useState<Ticket[]>([])
@@ -19,7 +21,10 @@ export function TicketsView() {
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<ImportTicketsResult | null>(null)
-  const [filter, setFilter] = useState<TicketFilter>(EMPTY_FILTER)
+  const [filter, setFilter] = useState<TicketFilter>(() => {
+    const r = presetRange('today')
+    return { ...EMPTY_FILTER, appliedFrom: r.from, appliedTo: r.to }
+  })
   const filtered = useMemo(() => applyFilter(tickets, filter), [tickets, filter])
 
   async function load(q = query) { setTickets(q ? await api.searchTickets(q) : await api.listTickets()) }
@@ -51,6 +56,12 @@ export function TicketsView() {
       <div className={`flex min-h-0 flex-1 flex-col ${view === 'detail' ? 'hidden' : ''}`}>
         <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
         <TicketFilterBar filter={filter} onChange={setFilter} />
+        <AppliedTimePanel
+          tickets={filtered}
+          from={filter.appliedFrom}
+          to={filter.appliedTo}
+          onRangeChange={(appliedFrom, appliedTo) => setFilter({ ...filter, appliedFrom, appliedTo })}
+        />
         <div className="flex min-h-0 flex-1 flex-col">
           <TicketTable tickets={filtered} selected={selected} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
         </div>
