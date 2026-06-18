@@ -18,9 +18,8 @@ export function barOption(data: RegionCount[]): Record<string, unknown> {
   }
 }
 
-// Applied-time distribution as a terracotta area line (reads as a trend/rhythm
-// over time). Gentle smoothing only — these are discrete counts, so heavy
-// smoothing would misleadingly imply values between buckets.
+// Applied-time distribution as a smooth terracotta area line (reads as a
+// trend/rhythm over time).
 export function appliedTimeBarOption(buckets: Bucket[]): Record<string, unknown> {
   return {
     grid: { left: 8, right: 16, top: 20, bottom: 24, containLabel: true },
@@ -30,7 +29,7 @@ export function appliedTimeBarOption(buckets: Bucket[]): Record<string, unknown>
     series: [{
       type: 'line',
       data: buckets.map((b) => b.count),
-      smooth: 0.2,
+      smooth: true,
       symbol: 'circle',
       symbolSize: 6,
       showSymbol: buckets.length <= 40,
