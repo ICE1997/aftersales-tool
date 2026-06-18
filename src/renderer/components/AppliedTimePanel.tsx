@@ -1,9 +1,7 @@
-// src/renderer/components/AppliedTimePanel.tsx
 import { useMemo, useState } from 'react'
 import type { Ticket } from '@shared/types'
 import { DatePresetChips } from './DatePresetChips'
 import { AppliedTimeBarChart } from './AppliedTimeBarChart'
-import { DateRangeField } from './DateFields'
 import { bucketByAppliedTime, summaryText } from '../applied-time-buckets'
 import { presetRange, matchPreset, type PresetKey } from '../date-presets'
 
@@ -35,10 +33,7 @@ export function AppliedTimePanel({ tickets, from, to, onRangeChange }: Props) {
       </div>
       {open && (
         <div className="mt-2 flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-3">
-            <DatePresetChips active={activePreset} onSelect={selectPreset} />
-            <DateRangeField from={from} to={to} onChange={onRangeChange} />
-          </div>
+          <DatePresetChips active={activePreset} onSelect={selectPreset} />
           {result.total === 0 ? (
             <div className="grid h-[180px] place-items-center text-sm text-muted">该范围内暂无售后单</div>
           ) : (
