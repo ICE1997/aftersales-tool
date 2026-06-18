@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from './api'
 import { SettingsDialog } from './components/SettingsDialog'
+import { AboutDialog } from './components/AboutDialog'
 import { TicketsView } from './views/TicketsView'
 import { StatsView } from './views/StatsView'
-import { IconSettings } from './components/icons'
 import { Logo } from './components/Logo'
 import { useSessionState } from './use-session-state'
 
@@ -11,6 +12,13 @@ type Tab = 'tickets' | 'stats'
 export default function App() {
   const [tab, setTab] = useSessionState<Tab>('vh.tab', 'tickets')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
+
+  // 设置 / 关于 now live in the native menu bar; the menu sends us an event to open them.
+  useEffect(() => api.onMenu((which) => {
+    if (which === 'settings') setSettingsOpen(true)
+    else if (which === 'about') setAboutOpen(true)
+  }), [])
 
   return (
     <div className="flex h-screen flex-col bg-paper text-ink">
@@ -27,9 +35,6 @@ export default function App() {
           <button className={`rounded-md px-3 py-1.5 ${tab === 'stats' ? 'bg-accent text-white shadow-sm' : 'text-muted'}`} onClick={() => setTab('stats')}>统计</button>
         </nav>
         <div className="flex-1" />
-        <button className="btn-ghost shrink-0 px-3" onClick={() => setSettingsOpen(true)} aria-label="设置">
-          <IconSettings className="text-[16px]" /><span className="hidden sm:inline">设置</span>
-        </button>
       </header>
 
       <main className="flex-1 overflow-hidden">
@@ -37,6 +42,7 @@ export default function App() {
       </main>
 
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   )
 }

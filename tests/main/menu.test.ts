@@ -23,12 +23,11 @@ function roles(items: MenuItemConstructorOptions[]): string[] {
 }
 
 describe('menuTemplate', () => {
-  it('mac: first menu is the app name; has about + quit', () => {
+  it('mac: first menu is the app name; has 关于(click) + quit', () => {
     const t = menuTemplate({ isMac: true, isDev: false })
     expect(t[0].label).toBe('售后酱')
-    const r = roles([t[0]])
-    expect(r).toContain('about')
-    expect(r).toContain('quit')
+    expect(labels([t[0]])).toContain('关于售后酱')
+    expect(roles([t[0]])).toContain('quit')
   })
   it('non-mac: no app menu; first menu is 编辑', () => {
     expect(menuTemplate({ isMac: false, isDev: false })[0].label).toBe('编辑')
@@ -55,5 +54,15 @@ describe('menuTemplate', () => {
     const help = t.find((m) => m.label === '帮助')!
     const item = (help.submenu as any[]).find((i) => i.label === '检查更新…')
     expect(item.click).toBe(fn)
+  })
+  it('设置… is present and wired to onSettings (mac: app menu / non-mac: help)', () => {
+    const onSettings = () => {}
+    const mac = menuTemplate({ isMac: true, isDev: false }, () => {}, () => {}, onSettings)
+    const macItem = (mac[0].submenu as any[]).find((i) => i.label === '设置…')
+    expect(macItem.click).toBe(onSettings)
+    const win = menuTemplate({ isMac: false, isDev: false }, () => {}, () => {}, onSettings)
+    expect(labels(win)).toContain('设置…')
+    const help = win.find((m) => m.label === '帮助')!
+    expect((help.submenu as any[]).find((i) => i.label === '设置…').click).toBe(onSettings)
   })
 })

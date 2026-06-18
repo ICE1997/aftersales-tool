@@ -17,6 +17,7 @@ interface Props {
   onDeleteFolder: (path: string) => void
   onOpenDir: (folder: string) => void
   onCopyDirPath: (folder: string) => void
+  onCopyMaterialPath: (relPath: string) => void
 }
 
 function Thumb({ m }: { m: Material }) {
@@ -35,7 +36,7 @@ function Thumb({ m }: { m: Material }) {
   return <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05]" />
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onOpenDir, onCopyDirPath }: Props) {
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -157,6 +158,8 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
               <div className="flex items-center justify-between gap-1 px-2.5 py-2">
                 <span className="truncate text-[12px] text-ink">{folderName(path)}</span>
                 <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100">
+                  <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
                   <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-ink" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
                   <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-danger-soft hover:text-danger" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
                 </span>
@@ -183,6 +186,10 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
               <button onClick={() => onToggle(m.id)} aria-label={sel ? '取消选择' : '选择'}
                 className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${sel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
                 <IconCheck className="text-[13px]" />
+              </button>
+              <button onClick={() => onCopyMaterialPath(m.relPath)} title="复制路径" aria-label="复制路径"
+                className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted opacity-0 backdrop-blur transition hover:text-accent-ink group-hover:opacity-100">
+                <IconCopy className="text-[13px]" />
               </button>
               <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
             </div>

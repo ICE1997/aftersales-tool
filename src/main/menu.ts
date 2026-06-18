@@ -5,7 +5,8 @@ import type { MenuItemConstructorOptions } from 'electron'
 export function menuTemplate(
   opts: { isMac: boolean; isDev: boolean },
   onAbout: () => void = () => {},
-  onCheckUpdate: () => void = () => {}
+  onCheckUpdate: () => void = () => {},
+  onSettings: () => void = () => {}
 ): MenuItemConstructorOptions[] {
   const { isMac, isDev } = opts
   const t: MenuItemConstructorOptions[] = []
@@ -14,8 +15,9 @@ export function menuTemplate(
     t.push({
       label: '售后酱',
       submenu: [
-        { label: '关于售后酱', role: 'about' },
+        { label: '关于售后酱', click: onAbout },
         { type: 'separator' },
+        { label: '设置…', accelerator: 'CmdOrCtrl+,', click: onSettings },
         { label: '检查更新…', click: onCheckUpdate },
         { type: 'separator' },
         { label: '服务', role: 'services' },
@@ -73,6 +75,8 @@ export function menuTemplate(
   t.push({
     label: '帮助',
     submenu: [
+      // mac puts 设置 in the app menu; other platforms get it here.
+      ...(!isMac ? [{ label: '设置…', accelerator: 'CmdOrCtrl+,', click: onSettings }, { type: 'separator' as const }] : []),
       { label: '检查更新…', click: onCheckUpdate },
       { type: 'separator' },
       { label: '关于售后酱', click: onAbout }
@@ -82,12 +86,13 @@ export function menuTemplate(
   return t
 }
 
-export function buildAppMenu(onCheckUpdate: () => void): Menu {
+export function buildAppMenu(onCheckUpdate: () => void, onSettings: () => void, onAbout: () => void): Menu {
   return Menu.buildFromTemplate(
     menuTemplate(
       { isMac: process.platform === 'darwin', isDev: !app.isPackaged },
-      () => app.showAboutPanel(),
-      onCheckUpdate
+      onAbout,
+      onCheckUpdate,
+      onSettings
     )
   )
 }
