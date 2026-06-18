@@ -1,14 +1,9 @@
 import { createWriteStream, copyFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join, basename, extname } from 'node:path'
 import { ZipArchive } from 'archiver'
-import type { Material } from '../../shared/types'
 
 export class Exporter {
   constructor(private dataRoot: string) {}
-
-  private abs(m: Material): string {
-    return join(this.dataRoot, m.relPath)
-  }
 
   private uniqueName(name: string, taken: (n: string) => boolean): string {
     const ext = extname(name); const stem = basename(name, ext)
@@ -17,18 +12,19 @@ export class Exporter {
     return candidate
   }
 
-  async toFolder(materials: Material[], targetDir: string, folders: string[] = []): Promise<void> {
+  async toFolder(relPaths: string[], targetDir: string, folders: string[] = []): Promise<void> {
     mkdirSync(targetDir, { recursive: true })
-    for (const f of folders) if (f) mkdirSync(join(targetDir, ...f.split('/')), { recursive: true }) // selected (possibly empty) dirs
-    for (const m of materials) {
-      const sub = m.folder ? join(targetDir, ...m.folder.split('/')) : targetDir
+    for (const f of folders) if (f) mkdirSync(join(targetDir, ...f.split('/')), { recursive: true })
+    for (const rel of relPaths) {
+      const folder = rel.split('/').slice(1, -1).join('/')
+      const sub = folder ? join(targetDir, ...folder.split('/')) : targetDir
       mkdirSync(sub, { recursive: true })
-      const name = this.uniqueName(basename(m.relPath), (n) => existsSync(join(sub, n)))
-      copyFileSync(this.abs(m), join(sub, name))
+      const name = this.uniqueName(basename(rel), (n) => existsSync(join(sub, n)))
+      copyFileSync(join(this.dataRoot, rel), join(sub, name))
     }
   }
 
-  toZip(materials: Material[], zipPath: string, folders: string[] = []): Promise<void> {
+  toZip(relPaths: string[], zipPath: string, folders: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
       const output = createWriteStream(zipPath)
       const archive = new ZipArchive({ zlib: { level: 9 } })
@@ -37,15 +33,15 @@ export class Exporter {
       archive.on('error', reject)
       archive.on('warning', (err) => reject(err))
       archive.pipe(output)
-      for (const f of folders) if (f) archive.append(Buffer.alloc(0), { name: `${f}/` }) // selected (possibly empty) dirs
+      for (const f of folders) if (f) archive.append(Buffer.alloc(0), { name: `${f}/` })
       const usedByDir = new Map<string, Set<string>>()
-      for (const m of materials) {
-        const dir = m.folder ?? ''
+      for (const rel of relPaths) {
+        const dir = rel.split('/').slice(1, -1).join('/')
         const used = usedByDir.get(dir) ?? new Set<string>()
-        const name = this.uniqueName(basename(m.relPath), (n) => used.has(n))
+        const name = this.uniqueName(basename(rel), (n) => used.has(n))
         used.add(name); usedByDir.set(dir, used)
         const entry = dir ? `${dir}/${name}` : name
-        archive.file(this.abs(m), { name: entry })
+        archive.file(join(this.dataRoot, rel), { name: entry })
       }
       archive.finalize().catch(reject)
     })
