@@ -4,23 +4,24 @@ import { CSS } from '@dnd-kit/utilities'
 import type { Material } from '@shared/types'
 import { api } from '../api'
 import { childrenFolders, folderName, ancestorsAndSelf, isUnderOrEqual, parentPath } from '../../shared/folder-path'
-import { materialIdsUnder } from '../material-select'
-import { IconPlay, IconCheck, IconImage, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose, IconFolderOpen, IconCopy } from './icons'
+import { materialRelPathsUnder } from '../material-select'
+import { IconPlay, IconCheck, IconImage, IconBox, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose, IconFolderOpen, IconCopy } from './icons'
 
 interface Props {
   materials: Material[]
   folders: string[]
   currentFolder: string
-  selectedIds: Set<number>
+  selectedIds: Set<string>
   selectedFolders: Set<string>
-  onToggle: (id: number) => void
+  onToggle: (relPath: string) => void
   onToggleFolder: (path: string) => void
   onOpen: (m: Material) => void
   onEnterFolder: (path: string) => void
   onCreateFolder: (name: string) => void
   onRenameFolder: (path: string, newName: string) => void
   onDeleteFolder: (path: string) => void
-  onMoveMaterial: (id: number, folder: string) => void
+  onMoveMaterial: (relPath: string, folder: string) => void
+  onDeleteMaterial: (relPath: string) => void
   onMoveFolder: (path: string, newParent: string) => void
   onOpenDir: (folder: string) => void
   onCopyDirPath: (folder: string) => void
@@ -30,13 +31,19 @@ interface Props {
 function Thumb({ m }: { m: Material }) {
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => {
-    if (m.thumbPath) api.fileUrl(m.thumbPath).then(setUrl)
-    else if (m.kind === 'image') api.fileUrl(m.relPath).then(setUrl)
-  }, [m.thumbPath, m.relPath, m.kind])
+    let alive = true
+    api.thumbFor(m.relPath, m.kind, m.modifiedAt, m.sizeBytes).then((rel) => {
+      if (!alive) return
+      if (rel) api.fileUrl(rel).then((u) => { if (alive) setUrl(u) })
+      else if (m.kind === 'image') api.fileUrl(m.relPath).then((u) => { if (alive) setUrl(u) })
+      else setUrl(null)
+    })
+    return () => { alive = false }
+  }, [m.relPath, m.kind, m.modifiedAt, m.sizeBytes])
   if (!url) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-paper-2 text-muted">
-        {m.kind === 'video' ? <IconPlay className="text-2xl opacity-40" /> : <IconImage className="text-2xl opacity-30" />}
+        {m.kind === 'video' ? <IconPlay className="text-2xl opacity-40" /> : m.kind === 'image' ? <IconImage className="text-2xl opacity-30" /> : <IconBox className="text-2xl opacity-30" />}
       </div>
     )
   }
@@ -76,7 +83,7 @@ function CrumbDrop({ path, children }: { path: string; children: ReactNode }) {
   return <span ref={setNodeRef} className={`rounded-md ${isOver ? 'ring-2 ring-accent ring-offset-1 ring-offset-paper' : ''}`}>{children}</span>
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onDeleteMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -84,6 +91,7 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
   const [renameVal, setRenameVal] = useState('')
   const [renameErr, setRenameErr] = useState<string | null>(null)
   const [confirmDel, setConfirmDel] = useState<string | null>(null)
+  const [confirmDelMat, setConfirmDelMat] = useState<Material | null>(null)
 
   const subfolders = childrenFolders(folders, currentFolder)
   const files = materials.filter((m) => m.folder === currentFolder)
@@ -93,12 +101,12 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
   // A short drag threshold lets clicks (open / select / rename) still work on the cards.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   function handleDragEnd(e: DragEndEvent) {
-    const a = e.active.data.current as { kind?: string; id?: number; folder?: string; path?: string } | undefined
+    const a = e.active.data.current as { kind?: string; relPath?: string; folder?: string; path?: string } | undefined
     const o = e.over?.data.current as { folder?: string } | undefined
     if (!a || !o || o.folder === undefined) return
     const target = o.folder
     if (a.kind === 'material') {
-      if (a.folder !== target) onMoveMaterial(a.id!, target)
+      if (a.folder !== target) onMoveMaterial(a.relPath!, target)
     } else if (a.kind === 'folder') {
       const src = a.path!
       if (src === target || isUnderOrEqual(target, src) || parentPath(src) === target) return // self / descendant / already there
@@ -191,7 +199,7 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
 
         {/* subfolders — draggable (move) + droppable (accept) + selectable (export) */}
         {subfolders.map((path) => {
-          const underIds = materialIdsUnder(materials, path)
+          const underRels = materialRelPathsUnder(materials, path)
           const folderSel = selectedFolders.has(path)
           return (
             <FolderDnd key={`f:${path}`} path={path}>
@@ -200,7 +208,7 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
                   <IconFolder className="text-4xl" />
                 </button>
                 {/* top-left: select (same corner as material cards) */}
-                <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹'} title={`选择此文件夹${underIds.length ? `的材料(${underIds.length})` : '(空)'}`}
+                <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹'} title={`选择此文件夹${underRels.length ? `的材料(${underRels.length})` : '(空)'}`}
                   className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
                   <IconCheck className="text-[13px]" />
                 </button>
@@ -233,9 +241,9 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
 
         {/* files — draggable into folders */}
         {files.map((m, i) => {
-          const sel = selectedIds.has(m.id)
+          const sel = selectedIds.has(m.relPath)
           return (
-            <Draggable key={m.id} id={`m:${m.id}`} data={{ kind: 'material', id: m.id, folder: m.folder }}>
+            <Draggable key={m.relPath} id={`m:${m.relPath}`} data={{ kind: 'material', relPath: m.relPath, folder: m.folder }}>
               <div
                 className={`group relative animate-rise overflow-hidden rounded-xl2 border bg-surface transition-all duration-150 ${sel ? 'border-accent shadow-card ring-2 ring-accent ring-offset-2 ring-offset-paper' : 'border-line hover:-translate-y-0.5 hover:shadow-lift'}`}
                 style={{ animationDelay: `${Math.min(i, 16) * 18}ms` }}>
@@ -247,14 +255,20 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
                     </span>
                   )}
                 </button>
-                <button onClick={() => onToggle(m.id)} aria-label={sel ? '取消选择' : '选择'}
+                <button onClick={() => onToggle(m.relPath)} aria-label={sel ? '取消选择' : '选择'}
                   className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${sel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
                   <IconCheck className="text-[13px]" />
                 </button>
-                <button onClick={() => onCopyMaterialPath(m.relPath)} title="复制路径" aria-label="复制路径"
-                  className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted opacity-0 backdrop-blur transition hover:text-accent-ink group-hover:opacity-100">
-                  <IconCopy className="text-[13px]" />
-                </button>
+                <div className="absolute right-2 top-2 z-10 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
+                  <button onClick={() => onCopyMaterialPath(m.relPath)} title="复制路径" aria-label="复制路径"
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink">
+                    <IconCopy className="text-[13px]" />
+                  </button>
+                  <button onClick={() => setConfirmDelMat(m)} title="删除" aria-label="删除"
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-danger">
+                    <IconTrash className="text-[13px]" />
+                  </button>
+                </div>
                 <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
               </div>
             </Draggable>
@@ -277,6 +291,22 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
             <div className="mt-5 flex justify-end gap-2">
               <button className="btn-ghost" onClick={() => setConfirmDel(null)}>取消</button>
               <button className="btn-danger-solid" onClick={() => { onDeleteFolder(confirmDel); setConfirmDel(null) }}>确认删除</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelMat && (
+        <div className="scrim" onClick={() => setConfirmDelMat(null)}>
+          <div className="modal-card max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-base font-bold">删除材料</h3>
+              <button className="rounded-lg p-1.5 text-muted hover:bg-paper-2" onClick={() => setConfirmDelMat(null)}><IconClose className="text-[16px]" /></button>
+            </div>
+            <p className="text-sm text-ink-soft">将删除材料「{confirmDelMat.name || confirmDelMat.relPath.split('/').pop()}」,此操作不可撤销。</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button className="btn-ghost" onClick={() => setConfirmDelMat(null)}>取消</button>
+              <button className="btn-danger-solid" onClick={() => { onDeleteMaterial(confirmDelMat.relPath); setConfirmDelMat(null) }}>确认删除</button>
             </div>
           </div>
         </div>

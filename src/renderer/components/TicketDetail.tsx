@@ -8,7 +8,7 @@ import { NewMaterialDialog } from './NewMaterialDialog'
 import { RegionCascader, type RegionValue } from './RegionCascader'
 import { DateTimeField } from './DateFields'
 import { extractContact } from '../contact-extract'
-import { materialIdsUnder } from '../material-select'
+import { materialRelPathsUnder } from '../material-select'
 import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal, IconFolderOpen } from './icons'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
@@ -19,7 +19,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [materials, setMaterials] = useState<Material[]>([])
   const [folders, setFolders] = useState<string[]>([])
   const [currentFolder, setCurrentFolder] = useState('')
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<Material | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
@@ -42,35 +42,34 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
 
   async function reload() {
     currentNo.current = aftersaleNo
-    const [t, ms, fs] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo), api.listFolders(aftersaleNo)])
+    const [t, tree] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
     if (!t) { onBack(); return } // restored/selected ticket no longer exists → back to list
     setTicket(t)
-    setMaterials(ms)
-    setFolders(fs)
+    setMaterials(tree.materials)
+    setFolders(tree.folders)
     setSelected(new Set())
     setSelectedFolders(new Set())
   }
   useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
 
   if (!ticket) return null
-  const ids = () => [...selected]
-  const toggle = (id: number) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+  const relPaths = () => [...selected]
+  const toggle = (relPath: string) => setSelected((s) => { const n = new Set(s); if (n.has(relPath)) n.delete(relPath); else n.add(relPath); return n })
   const meta = STATUS_META[ticket.status] ?? STATUS_META['待商家处理']
 
   const folderPaths = () => [...selectedFolders]
   async function exportFolder() {
-    try { const ok = await api.exportFolder(ids(), folderPaths()); setMsg(ok ? '已导出到文件夹' : null) }
+    try { const ok = await api.exportFolder(relPaths(), folderPaths()); setMsg(ok ? '已导出到文件夹' : null) }
     catch (e) { setMsg(`导出失败:${(e as Error).message}`) }
   }
   async function exportZip() {
-    try { const ok = await api.exportZip(ids(), folderPaths()); setMsg(ok ? '已打包 zip' : null) }
+    try { const ok = await api.exportZip(relPaths(), folderPaths()); setMsg(ok ? '已打包 zip' : null) }
     catch (e) { setMsg(`打包失败:${(e as Error).message}`) }
   }
   async function calibrate() {
-    const n = await api.calibrate(aftersaleNo)
-    setMsg(`校准完成,清理 ${n} 条失效索引`)
     await reload()
+    setMsg('已刷新')
   }
   async function createFolder(name: string) {
     const path = currentFolder ? `${currentFolder}/${name.trim()}` : name.trim()
@@ -85,25 +84,29 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     await reload()
   }
   async function moveSelected(folder: string) {
-    for (const id of selected) await api.moveMaterial(id, folder)
+    for (const relPath of selected) await api.moveMaterial(aftersaleNo, relPath, folder)
     await reload()
   }
-  async function moveMaterial(id: number, folder: string) {
-    try { await api.moveMaterial(id, folder); await reload() }
+  async function moveMaterial(relPath: string, folder: string) {
+    try { await api.moveMaterial(aftersaleNo, relPath, folder); await reload() }
     catch (e) { setMsg(`移动失败:${(e as Error).message}`) }
+  }
+  async function deleteMaterial(relPath: string) {
+    try { await api.removeMaterial(relPath); await reload() }
+    catch (e) { setMsg(`删除失败:${(e as Error).message}`) }
   }
   async function moveFolder(path: string, newParent: string) {
     try { await api.moveFolder(aftersaleNo, path, newParent); await reload() }
     catch (e) { setMsg(`移动文件夹失败:${(e as Error).message}`) }
   }
   function toggleFolder(path: string) {
-    const ids = materialIdsUnder(materials, path)
+    const rels = materialRelPathsUnder(materials, path)
     const wasSelected = selectedFolders.has(path)
     setSelectedFolders((s) => { const n = new Set(s); if (wasSelected) n.delete(path); else n.add(path); return n })
-    if (ids.length) setSelected((s) => {
+    if (rels.length) setSelected((s) => {
       const n = new Set(s)
-      if (wasSelected) ids.forEach((id) => n.delete(id))
-      else ids.forEach((id) => n.add(id))
+      if (wasSelected) rels.forEach((r) => n.delete(r))
+      else rels.forEach((r) => n.add(r))
       return n
     })
   }
@@ -389,6 +392,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               onRenameFolder={renameFolder}
               onDeleteFolder={deleteFolder}
               onMoveMaterial={moveMaterial}
+              onDeleteMaterial={deleteMaterial}
               onMoveFolder={moveFolder}
               onOpenDir={(folder) => void api.openMaterialDir(aftersaleNo, folder)}
               onCopyDirPath={(folder) => void api.copyDirPath(aftersaleNo, folder).then(() => setMsg('已复制目录路径到剪贴板'))}

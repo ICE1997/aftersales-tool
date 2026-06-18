@@ -14,8 +14,7 @@ const ticket = {
 vi.mock('../../src/renderer/api', () => ({
   api: {
     getTicket: vi.fn(async () => ticket),
-    listMaterials: vi.fn(async () => []),
-    listFolders: vi.fn(async () => []),
+    listMaterials: vi.fn(async () => ({ folders: [], materials: [] })),
     updateTicket: vi.fn(async () => {}),
   }
 }))

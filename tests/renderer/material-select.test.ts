@@ -1,19 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import type { Material } from '@shared/types'
-import { materialIdsUnder } from '../../src/renderer/material-select'
+import { materialRelPathsUnder } from '../../src/renderer/material-select'
 
-const mk = (id: number, folder: string): Material => ({ id, folder } as Material)
+const mk = (relPath: string, folder: string): Material => ({ relPath, folder } as Material)
 
-describe('materialIdsUnder', () => {
-  const ms = [mk(1, '凭证'), mk(2, '凭证/聊天'), mk(3, '物流'), mk(4, '')]
+describe('materialRelPathsUnder', () => {
+  const ms = [
+    mk('AS-1/凭证/a.jpg', '凭证'),
+    mk('AS-1/凭证/聊天/b.jpg', '凭证/聊天'),
+    mk('AS-1/物流/c.jpg', '物流'),
+    mk('AS-1/d.jpg', '')
+  ]
 
-  it('collects ids in the folder and all its descendants', () => {
-    expect(materialIdsUnder(ms, '凭证').sort((a, b) => a - b)).toEqual([1, 2])
+  it('collects relPaths in the folder and all its descendants', () => {
+    expect(materialRelPathsUnder(ms, '凭证').sort()).toEqual(['AS-1/凭证/a.jpg', 'AS-1/凭证/聊天/b.jpg'])
   })
   it('matches an exact leaf folder', () => {
-    expect(materialIdsUnder(ms, '凭证/聊天')).toEqual([2])
+    expect(materialRelPathsUnder(ms, '凭证/聊天')).toEqual(['AS-1/凭证/聊天/b.jpg'])
   })
   it('returns an empty list when nothing lives under the folder', () => {
-    expect(materialIdsUnder(ms, '不存在')).toEqual([])
+    expect(materialRelPathsUnder(ms, '不存在')).toEqual([])
   })
 })

@@ -1,26 +1,22 @@
-import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
+import { ipcMain, app, dialog, clipboard, nativeImage, shell, BrowserWindow } from 'electron'
 import { join, basename, extname } from 'node:path'
-import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync, rmdirSync } from 'node:fs'
+import { mkdirSync, existsSync, cpSync, rmSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { mediaUrl } from './media-url'
 import { handleMediaProtocol } from './media-protocol'
 import { createDatabase } from './db/database'
 import { TicketRepo, type NewTicket } from './db/tickets'
-import { MaterialRepo } from './db/materials'
-import { FolderRepo } from './db/folders'
 import { StatsRepo } from './db/stats'
 import { Settings } from './services/settings'
 import { Thumbnailer } from './services/thumbnails'
-import { Importer } from './services/importer'
 import { Exporter } from './services/exporter'
-import { Scanner } from './services/scanner'
+import { FileTree } from './services/file-tree'
+import { MaterialWatcher } from './services/material-watch'
 import { safeDir, materialDir } from './services/paths'
-import { ensureFolderDir, ensureRootDir, renameFolderDir } from './services/material-fs'
-import { joinPath, parentPath, normalizeSegment, folderName } from '../shared/folder-path'
 
 import { parseXlsx } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
-import type { Ticket, ImportTicketsResult } from '../shared/types'
+import type { Ticket, ImportTicketsResult, MaterialKind, CreateMaterialPayload, RegionLevel } from '../shared/types'
 
 // Open a URL in Google Chrome specifically, falling back to the default
 // browser if Chrome is not installed / cannot be launched.
@@ -49,13 +45,11 @@ export async function registerIpc(): Promise<void> {
   const db = await createDatabase(join(dataRoot, 'aftersales-tool.db'))
 
   const tickets = new TicketRepo(db)
-  const materials = new MaterialRepo(db)
-  const folderRepo = new FolderRepo(db)
   const statsRepo = new StatsRepo(db)
   const thumb = new Thumbnailer(dataRoot)
-  const importer = new Importer(dataRoot, materials, thumb)
   const exporter = new Exporter(dataRoot)
-  const scanner = new Scanner(dataRoot, materials)
+  const fileTree = new FileTree(dataRoot)
+  const watcher = new MaterialWatcher(dataRoot, (no) => BrowserWindow.getFocusedWindow()?.webContents.send('materials:changed', no))
 
   ipcMain.handle('tickets:list', () => tickets.list())
   ipcMain.handle('tickets:search', (_e, q: string) => tickets.search(q))
@@ -94,20 +88,19 @@ export async function registerIpc(): Promise<void> {
   })
 
   ipcMain.handle('tickets:delete', async (_e, no: string) => {
-    for (const m of await materials.listByTicket(no)) {
-      if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
-    }
     try { rmSync(join(dataRoot, safeDir(no)), { recursive: true, force: true }) } catch { /* ignore */ }
     await tickets.delete(no)
     return true
   })
 
-  ipcMain.handle('stats:regionCounts', (_e, level: import('../shared/types').RegionLevel) => statsRepo.regionCounts(level))
+  ipcMain.handle('stats:regionCounts', (_e, level: RegionLevel) => statsRepo.regionCounts(level))
   ipcMain.handle('stats:summary', () => statsRepo.summary())
 
-  ipcMain.handle('materials:list', (_e, no: string) => { ensureRootDir(dataRoot, no); return materials.listByTicket(no) })
-  ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
+  ipcMain.handle('materials:list', (_e, no: string) => fileTree.list(no))
+  ipcMain.handle('materials:thumb', (_e, relPath: string, kind: MaterialKind, mtimeMs: number, sizeBytes: number) => thumb.thumbFor(relPath, kind, mtimeMs, sizeBytes))
   ipcMain.handle('materials:fileUrl', (_e, relPath: string) => mediaUrl(relPath))
+  ipcMain.handle('materials:remove', (_e, relPath: string) => fileTree.removeMaterial(relPath))
+  ipcMain.handle('materials:move', (_e, no: string, relPath: string, newFolder: string) => fileTree.moveMaterial(no, relPath, newFolder))
 
   ipcMain.handle('materials:pickFile', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openFile'] })
@@ -116,47 +109,33 @@ export async function registerIpc(): Promise<void> {
     return { path: p, name: basename(p, extname(p)) }
   })
 
-  ipcMain.handle('materials:create', async (_e, no: string, payload: import('../shared/types').CreateMaterialPayload) => {
+  ipcMain.handle('materials:create', async (_e, no: string, payload: CreateMaterialPayload) => {
     const folder = payload.folder ?? ''
-    if (payload.source === 'file') return importer.addFile(no, payload.path, payload.name, folder)
-    if (payload.source === 'paste') return importer.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name, folder)
+    if (payload.source === 'file') return fileTree.addFile(no, payload.path, folder)
+    if (payload.source === 'paste') return fileTree.addBytes(no, payload.fileName, Buffer.from(payload.bytes), folder)
     throw new Error('unknown material source')
   })
 
-  ipcMain.handle('folders:list', (_e, no: string) => folderRepo.list(no))
-  ipcMain.handle('folders:create', async (_e, no: string, path: string) => {
-    await folderRepo.create(no, path)
-    ensureFolderDir(dataRoot, no, path)
-  })
-  ipcMain.handle('folders:rename', async (_e, no: string, path: string, newName: string) => {
-    await folderRepo.rename(no, path, newName) // updates DB folder/rel_path; throws on clash/invalid name
-    const newPath = joinPath(parentPath(path), normalizeSegment(newName))
-    renameFolderDir(dataRoot, no, path, newPath)
-  })
-  ipcMain.handle('folders:remove', async (_e, no: string, path: string) => {
-    for (const m of await folderRepo.remove(no, path)) {
-      try { unlinkSync(join(dataRoot, m.relPath)) } catch { /* ignore */ }
-      if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
-    }
-    try { rmdirSync(materialDir(dataRoot, no, path), { recursive: true }) } catch { /* ignore: dir missing or not empty */ }
-  })
-  ipcMain.handle('folders:move', async (_e, no: string, path: string, newParent: string) => {
-    await folderRepo.move(no, path, newParent) // cascades DB; throws on self/descendant/clash
-    renameFolderDir(dataRoot, no, path, joinPath(newParent, folderName(path)))
-  })
-  ipcMain.handle('materials:move', (_e, id: number, folder: string) => importer.moveToFolder(id, folder))
+  ipcMain.handle('materials:watch', (_e, no: string) => watcher.watch(no))
+  ipcMain.handle('materials:unwatch', () => watcher.unwatch())
 
-  ipcMain.handle('export:folder', async (_e, ids: number[], folders: string[] = []) => {
+  ipcMain.handle('folders:list', (_e, no: string) => fileTree.list(no).folders)
+  ipcMain.handle('folders:create', (_e, no: string, path: string) => fileTree.createFolder(no, path))
+  ipcMain.handle('folders:rename', (_e, no: string, path: string, newName: string) => fileTree.renameFolder(no, path, newName))
+  ipcMain.handle('folders:remove', (_e, no: string, path: string) => fileTree.removeFolder(no, path))
+  ipcMain.handle('folders:move', (_e, no: string, path: string, newParent: string) => fileTree.moveFolder(no, path, newParent))
+
+  ipcMain.handle('export:folder', async (_e, relPaths: string[], folders: string[] = []) => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     if (r.canceled || !r.filePaths[0]) return false
-    await exporter.toFolder(await materials.getByIds(ids), r.filePaths[0], folders)
+    await exporter.toFolder(relPaths, r.filePaths[0], folders)
     return true
   })
 
-  ipcMain.handle('export:zip', async (_e, ids: number[], folders: string[] = []) => {
+  ipcMain.handle('export:zip', async (_e, relPaths: string[], folders: string[] = []) => {
     const r = await dialog.showSaveDialog({ defaultPath: 'materials.zip' })
     if (r.canceled || !r.filePath) return false
-    await exporter.toZip(await materials.getByIds(ids), r.filePath, folders)
+    await exporter.toZip(relPaths, r.filePath, folders)
     return true
   })
 
@@ -178,8 +157,6 @@ export async function registerIpc(): Promise<void> {
     clipboard.writeText(abs)
     return abs
   })
-
-  ipcMain.handle('scan:calibrate', (_e, no: string) => scanner.calibrateTicket(no))
 
   ipcMain.handle('settings:getDataRoot', () => settings.getDataRoot())
   ipcMain.handle('settings:chooseDataRoot', async () => {
@@ -205,7 +182,8 @@ export async function registerIpc(): Promise<void> {
 
   // Open a ticket's material directory (folder='' = its root) in the OS file manager.
   ipcMain.handle('shell:openMaterialDir', async (_e, no: string, folder: string) => {
-    ensureFolderDir(dataRoot, no, folder)
-    await shell.openPath(materialDir(dataRoot, no, folder))
+    const dir = materialDir(dataRoot, no, folder)
+    mkdirSync(dir, { recursive: true })
+    await shell.openPath(dir)
   })
 }
