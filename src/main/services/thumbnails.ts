@@ -1,9 +1,10 @@
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync } from 'node:fs'
 import { join, basename, extname } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import sharp from 'sharp'
 import ffmpegPath from 'ffmpeg-static'
+import type { MaterialKind } from '../../shared/types'
 
 const THUMB_DIR = '.thumbnails'
 const SIZE = 320
@@ -20,23 +21,42 @@ export class Thumbnailer {
     return { rel, abs: join(this.dataRoot, rel) }
   }
 
-  async forImage(absSrc: string): Promise<string | null> {
-    const { rel, abs } = this.outPath(absSrc)
+  private async forImageTo(absSrc: string, relOut: string): Promise<string | null> {
+    const abs = join(this.dataRoot, relOut)
     try {
       await sharp(absSrc).resize(SIZE, SIZE, { fit: 'inside' }).jpeg().toFile(abs)
-      return rel
+      return relOut
     } catch {
       return null
     }
   }
 
-  async forVideo(absSrc: string): Promise<string | null> {
-    const { rel, abs } = this.outPath(absSrc)
+  private forVideoTo(absSrc: string, relOut: string): Promise<string | null> {
+    const abs = join(this.dataRoot, relOut)
     return new Promise((resolve) => {
       if (!ffmpegPath) return resolve(null)
       const proc = spawn(ffmpegPath, ['-y', '-i', absSrc, '-ss', '00:00:01', '-vframes', '1', '-vf', `scale=${SIZE}:-1`, abs], { stdio: ['ignore', 'ignore', 'ignore'] })
       proc.on('error', () => resolve(null))
-      proc.on('close', (code: number | null) => resolve(code === 0 ? rel : null))
+      proc.on('close', (code: number | null) => resolve(code === 0 ? relOut : null))
     })
+  }
+
+  async forImage(absSrc: string): Promise<string | null> {
+    const { rel } = this.outPath(absSrc)
+    return this.forImageTo(absSrc, rel)
+  }
+
+  async forVideo(absSrc: string): Promise<string | null> {
+    const { rel } = this.outPath(absSrc)
+    return this.forVideoTo(absSrc, rel)
+  }
+
+  async thumbFor(relPath: string, kind: MaterialKind, mtimeMs: number, sizeBytes: number): Promise<string | null> {
+    if (kind === 'other') return null
+    const hash = createHash('sha1').update(`${relPath}|${mtimeMs}|${sizeBytes}`).digest('hex').slice(0, 16)
+    const rel = `${THUMB_DIR}/${hash}.jpg`
+    if (existsSync(join(this.dataRoot, rel))) return rel
+    const src = join(this.dataRoot, relPath)
+    return kind === 'image' ? this.forImageTo(src, rel) : this.forVideoTo(src, rel)
   }
 }
