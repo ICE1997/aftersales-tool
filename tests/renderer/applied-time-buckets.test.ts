@@ -82,6 +82,25 @@ describe('bucketByAppliedTime', () => {
     const r = bucketByAppliedTime([mk({ appliedAt: null })], null, null)
     expect(r).toEqual({ granularity: 'day', buckets: [], total: 0 })
   })
+
+  it('formats weekly bucket labels as the Monday M/D', () => {
+    const r = bucketByAppliedTime([mk({ appliedAt: at(2026, 3, 1) })], at(2026, 2, 1), at(2026, 4, 30))
+    expect(r.granularity).toBe('week')
+    const wk = r.buckets.find((b) => b.key === '2026-03-30')
+    expect(wk).toBeDefined()
+    expect(wk!.label).toBe('3/30')
+    expect(wk!.count).toBe(1)
+  })
+
+  it('excludes tickets whose appliedAt falls outside an explicit range', () => {
+    const r = bucketByAppliedTime(
+      [mk({ appliedAt: at(2026, 5, 10) }), mk({ appliedAt: at(2026, 5, 14) })],
+      at(2026, 5, 12), at(2026, 5, 14),
+    )
+    expect(r.total).toBe(1)
+    expect(r.buckets.map((b) => b.label)).toEqual(['6/12', '6/13', '6/14'])
+    expect(r.buckets.map((b) => b.count)).toEqual([0, 0, 1])
+  })
 })
 
 describe('summaryText', () => {
