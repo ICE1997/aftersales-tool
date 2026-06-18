@@ -184,4 +184,10 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('shell:openChrome', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) openInChrome(url)
   })
+
+  // Open a ticket's material directory (folder='' = its root) in the OS file manager.
+  ipcMain.handle('shell:openMaterialDir', async (_e, no: string, folder: string) => {
+    ensureFolderDir(dataRoot, no, folder)
+    await shell.openPath(materialDir(dataRoot, no, folder))
+  })
 }
