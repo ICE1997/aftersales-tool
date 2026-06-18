@@ -57,7 +57,10 @@ export function mapRows(matrix: string[][]): MapResult {
       shippingNo: rec.shippingNo ?? '',
       returnNo: rec.returnNo ?? '',
       note: '',
-      status: (rec.status || '待商家处理') as NewTicket['status'],
+      // Keep the raw status (undefined when the cell is empty); the insert path defaults
+      // it to '待商家处理'. Leaving it undefined lets import distinguish "no status given"
+      // from a real status, so empty cells don't overwrite an existing ticket's status.
+      status: (rec.status || undefined) as NewTicket['status'],
       aftersaleType: rec.aftersaleType ?? '',
       aftersaleReason: rec.aftersaleReason ?? '',
       shippingStatus: rec.shippingStatus ?? '',

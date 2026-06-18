@@ -34,7 +34,7 @@ export function TicketTable({ tickets, onOpen, onNew, onImport, selected }: Prop
           <span className="tnum text-xs text-muted">{total}</span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => onImport?.()}><IconImport className="text-[15px]" /> 导入 Excel</button>
+          <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => onImport?.()}><IconImport className="text-[15px]" /> 导入售后单</button>
           <button className="btn-primary px-3 py-1.5 text-sm" onClick={onNew}><IconPlus className="text-[15px]" /> 新建售后单</button>
         </div>
       </div>

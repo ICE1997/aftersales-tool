@@ -72,9 +72,20 @@ export async function registerIpc(): Promise<void> {
     const existing = await tickets.existingNos(mapped.tickets.map((t) => t.aftersaleNo))
     const toInsert = mapped.tickets.filter((t) => !existing.has(t.aftersaleNo))
     await tickets.createMany(toInsert)
+
+    // Existing tickets: if the imported row carries a status that differs, update just the status.
+    let updated = 0
+    for (const t of mapped.tickets) {
+      if (!existing.has(t.aftersaleNo) || !t.status) continue
+      const cur = await tickets.get(t.aftersaleNo)
+      if (cur && cur.status !== t.status) { await tickets.update(t.aftersaleNo, { status: t.status }); updated++ }
+    }
+
+    const existingCount = mapped.tickets.length - toInsert.length
     return {
       imported: toInsert.length,
-      skippedExisting: mapped.tickets.length - toInsert.length,
+      updated,
+      skippedExisting: existingCount - updated,
       duplicatedInFile: mapped.duplicatedInFile,
       failed: mapped.failed
     }

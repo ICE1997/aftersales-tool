@@ -80,6 +80,7 @@ export interface StatsSummary { total: number; classified: number; unclassified:
 
 export interface ImportTicketsResult {
   imported: number
+  updated: number
   skippedExisting: number
   duplicatedInFile: number
   failed: { row: number; reason: string }[]
