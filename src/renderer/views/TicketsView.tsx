@@ -13,7 +13,6 @@ import { ViewTabs } from '../components/ViewTabs'
 import { AppliedTimePanel } from '../components/AppliedTimePanel'
 import { RegionPanel } from '../components/RegionPanel'
 import { applyFilter, EMPTY_FILTER, type TicketFilter } from '../ticket-filter'
-import { presetRange } from '../date-presets'
 import { useSessionState } from '../use-session-state'
 
 export function TicketsView() {
@@ -25,10 +24,7 @@ export function TicketsView() {
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<ImportTicketsResult | null>(null)
-  const [filter, setFilter] = useState<TicketFilter>(() => {
-    const r = presetRange('today')
-    return { ...EMPTY_FILTER, appliedFrom: r.from, appliedTo: r.to }
-  })
+  const [filter, setFilter] = useState<TicketFilter>(EMPTY_FILTER)
   const filtered = useMemo(() => applyFilter(tickets, filter), [tickets, filter])
 
   async function load(q = query) { setTickets(q ? await api.searchTickets(q) : await api.listTickets()) }
