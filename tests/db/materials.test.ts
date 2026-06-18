@@ -61,4 +61,25 @@ describe('MaterialRepo', () => {
     await materials.setFolder(id, '凭证/聊天')
     expect((await materials.getByIds([id]))[0].folder).toBe('凭证/聊天')
   })
+
+  it('nameTaken detects duplicate name within the same folder only', async () => {
+    await materials.add({ aftersaleNo: 'AS-1', name: '客服对话', relPath: 'AS-1/凭证/客服对话.jpg', kind: 'image', folder: '凭证', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    expect(await materials.nameTaken('AS-1', '凭证', '客服对话')).toBe(true)
+    expect(await materials.nameTaken('AS-1', '物流', '客服对话')).toBe(false)
+    expect(await materials.nameTaken('AS-1', '凭证', '别的')).toBe(false)
+  })
+
+  it('nameTaken can exclude a specific id (self when moving)', async () => {
+    const id = await materials.add({ aftersaleNo: 'AS-1', name: 'a', relPath: 'AS-1/a.jpg', kind: 'image', folder: '', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    expect(await materials.nameTaken('AS-1', '', 'a')).toBe(true)
+    expect(await materials.nameTaken('AS-1', '', 'a', id)).toBe(false)
+  })
+
+  it('moveFile updates rel_path and folder together', async () => {
+    const id = await materials.add({ aftersaleNo: 'AS-1', name: 'a', relPath: 'AS-1/a.jpg', kind: 'image', folder: '', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    await materials.moveFile(id, 'AS-1/凭证/a.jpg', '凭证')
+    const m = (await materials.getByIds([id]))[0]
+    expect(m.relPath).toBe('AS-1/凭证/a.jpg')
+    expect(m.folder).toBe('凭证')
+  })
 })

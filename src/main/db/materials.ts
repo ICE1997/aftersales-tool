@@ -37,6 +37,16 @@ export class MaterialRepo {
     await this.db('materials').where('id', id).update({ folder })
   }
 
+  async nameTaken(aftersaleNo: string, folder: string, name: string, exceptId?: number): Promise<boolean> {
+    const q = this.db('materials').where({ aftersale_no: aftersaleNo, folder, name })
+    if (exceptId != null) q.whereNot('id', exceptId)
+    return !!(await q.first())
+  }
+
+  async moveFile(id: number, relPath: string, folder: string): Promise<void> {
+    await this.db('materials').where('id', id).update({ rel_path: relPath, folder })
+  }
+
   async remove(id: number): Promise<void> {
     await this.db('materials').where('id', id).del()
   }
