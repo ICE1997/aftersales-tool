@@ -2,7 +2,7 @@ import { readdirSync, statSync, mkdirSync, renameSync, rmSync, unlinkSync, copyF
 import { join, extname, basename } from 'node:path'
 import type { Material } from '../../shared/types'
 import { materialDir, safeDir } from './paths'
-import { materialRelPath, assertValidMaterialName } from '../../shared/material-path'
+import { assertValidMaterialName } from '../../shared/material-path'
 import { normalizeSegment, joinPath, parentPath, folderName, isUnderOrEqual } from '../../shared/folder-path'
 import { kindFromName, folderOfRelPath } from '../../shared/material-meta'
 
