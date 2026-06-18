@@ -44,11 +44,6 @@ app.whenReady().then(async () => {
     app.quit()
     return
   }
-  app.setAboutPanelOptions({
-    applicationName: '售后酱',
-    applicationVersion: app.getVersion(),
-    copyright: '© 2026 售后酱'
-  })
   const updater = createUpdateController({
     autoUpdater,
     dialog,
@@ -57,7 +52,12 @@ app.whenReady().then(async () => {
     isPackaged: app.isPackaged,
     releasePageUrl: 'https://github.com/ICE1997/aftersales-tool/releases/latest'
   })
-  Menu.setApplicationMenu(buildAppMenu(() => { void updater.checkForUpdates() }))
+  const sendMenu = (which: string): void => { BrowserWindow.getFocusedWindow()?.webContents.send('menu:open', which) }
+  Menu.setApplicationMenu(buildAppMenu(
+    () => { void updater.checkForUpdates() },
+    () => sendMenu('settings'),
+    () => sendMenu('about')
+  ))
   createWindow()
 })
 app.on('window-all-closed', () => {

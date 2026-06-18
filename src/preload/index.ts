@@ -2,6 +2,13 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { Ticket, Material, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary, ImportTicketsResult } from '../shared/types'
 
 const api = {
+  appVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
+  /** Subscribe to native-menu actions (设置/关于). Returns an unsubscribe fn. */
+  onMenu: (cb: (which: string) => void): (() => void) => {
+    const h = (_e: unknown, which: string): void => cb(which)
+    ipcRenderer.on('menu:open', h)
+    return () => ipcRenderer.removeListener('menu:open', h)
+  },
   listTickets: (): Promise<Ticket[]> => ipcRenderer.invoke('tickets:list'),
   searchTickets: (q: string): Promise<Ticket[]> => ipcRenderer.invoke('tickets:search', q),
   getTicket: (no: string): Promise<Ticket | undefined> => ipcRenderer.invoke('tickets:get', no),

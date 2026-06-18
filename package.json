@@ -16,7 +16,7 @@
     "rebuild:node": "npm rebuild better-sqlite3 sharp"
   },
   "keywords": [],
-  "author": "售后酱",
+  "author": "Kiza",
   "license": "ISC",
   "build": {
     "appId": "com.shouhoujiang.app",
