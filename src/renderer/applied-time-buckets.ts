@@ -1,13 +1,14 @@
 import type { Ticket } from '@shared/types'
 
-export type Granularity = 'day' | 'week' | 'month'
+export type Granularity = 'hour' | 'day' | 'week' | 'month'
 export interface Bucket { key: string; label: string; count: number }
 export interface BucketResult { granularity: Granularity; buckets: Bucket[]; total: number }
 
 const DAY_MS = 86_400_000
-const UNIT: Record<Granularity, string> = { day: '天', week: '周', month: '月' }
+const UNIT: Record<Granularity, string> = { hour: '小时', day: '天', week: '周', month: '月' }
 const pad = (n: number) => String(n).padStart(2, '0')
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+const startOfHour = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours())
 /** Monday (local) of the week containing `d`. */
 const mondayOf = (d: Date) => {
   const s = startOfDay(d)
@@ -23,6 +24,7 @@ export function spanDays(from: number, to: number): number {
 }
 
 export function chooseGranularity(days: number): Granularity {
+  if (days <= 1) return 'hour'
   if (days <= 31) return 'day'
   if (days <= 180) return 'week'
   return 'month'
@@ -30,6 +32,7 @@ export function chooseGranularity(days: number): Granularity {
 
 function keyOf(ms: number, g: Granularity): string {
   const d = new Date(ms)
+  if (g === 'hour') return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}`
   if (g === 'day') return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   if (g === 'week') { const m = mondayOf(d); return `${m.getFullYear()}-${pad(m.getMonth() + 1)}-${pad(m.getDate())}` }
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`
@@ -37,6 +40,7 @@ function keyOf(ms: number, g: Granularity): string {
 
 function labelOf(key: string, g: Granularity): string {
   if (g === 'month') return key // 'YYYY-MM'
+  if (g === 'hour') return `${key.split(' ')[1]}:00` // 'YYYY-MM-DD HH' → 'HH:00'
   const [, mo, da] = key.split('-') // 'YYYY-MM-DD'
   return `${Number(mo)}/${Number(da)}` // 'M/D'
 }
@@ -46,13 +50,15 @@ function enumerateKeys(from: number, to: number, g: Granularity): string[] {
   const keys: string[] = []
   const start = new Date(from)
   let cur =
-    g === 'day' ? startOfDay(start)
+    g === 'hour' ? startOfHour(start)
+    : g === 'day' ? startOfDay(start)
     : g === 'week' ? mondayOf(start)
     : new Date(start.getFullYear(), start.getMonth(), 1)
   while (cur.getTime() <= to) {
     keys.push(keyOf(cur.getTime(), g))
     cur =
-      g === 'day' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1)
+      g === 'hour' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate(), cur.getHours() + 1)
+      : g === 'day' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1)
       : g === 'week' ? new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7)
       : new Date(cur.getFullYear(), cur.getMonth() + 1, 1)
   }

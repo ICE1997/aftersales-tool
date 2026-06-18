@@ -29,8 +29,9 @@ describe('spanDays', () => {
 })
 
 describe('chooseGranularity', () => {
-  it('day ≤31, week ≤180, else month', () => {
-    expect(chooseGranularity(1)).toBe('day')
+  it('hour for a single day, day ≤31, week ≤180, else month', () => {
+    expect(chooseGranularity(1)).toBe('hour')
+    expect(chooseGranularity(2)).toBe('day')
     expect(chooseGranularity(31)).toBe('day')
     expect(chooseGranularity(32)).toBe('week')
     expect(chooseGranularity(180)).toBe('week')
@@ -39,6 +40,24 @@ describe('chooseGranularity', () => {
 })
 
 describe('bucketByAppliedTime', () => {
+  it('buckets a single-day range by hour (24 hourly buckets)', () => {
+    const dayStart = new Date(2026, 5, 18, 0, 0, 0, 0).getTime()
+    const dayEnd = new Date(2026, 5, 18, 23, 59, 59, 999).getTime()
+    const hour = (h: number) => new Date(2026, 5, 18, h, 30, 0).getTime()
+    const r = bucketByAppliedTime(
+      [mk({ appliedAt: hour(9) }), mk({ appliedAt: hour(9) }), mk({ appliedAt: hour(14) })],
+      dayStart, dayEnd,
+    )
+    expect(r.granularity).toBe('hour')
+    expect(r.buckets.length).toBe(24)
+    expect(r.buckets[0].label).toBe('00:00')
+    expect(r.buckets[9].label).toBe('09:00')
+    expect(r.buckets[9].count).toBe(2)
+    expect(r.buckets[14].count).toBe(1)
+    expect(r.buckets[23].label).toBe('23:00')
+    expect(r.total).toBe(3)
+  })
+
   it('buckets by day across the given range, zero-filling gaps', () => {
     const tickets = [
       mk({ appliedAt: at(2026, 5, 12) }),
@@ -107,5 +126,12 @@ describe('summaryText', () => {
   it('reads "共 N 单 / M 天" with the unit matching granularity', () => {
     const r = bucketByAppliedTime([mk({ appliedAt: at(2026, 5, 12) })], at(2026, 5, 12), at(2026, 5, 14))
     expect(summaryText(r)).toBe('共 1 单 / 3 天')
+  })
+
+  it('uses 小时 as the unit for single-day (hourly) ranges', () => {
+    const dayStart = new Date(2026, 5, 18, 0, 0, 0, 0).getTime()
+    const dayEnd = new Date(2026, 5, 18, 23, 59, 59, 999).getTime()
+    const r = bucketByAppliedTime([mk({ appliedAt: new Date(2026, 5, 18, 9, 0, 0).getTime() })], dayStart, dayEnd)
+    expect(summaryText(r)).toBe('共 1 单 / 24 小时')
   })
 })
