@@ -1,9 +1,10 @@
 import { copyFileSync, mkdirSync, existsSync, statSync, writeFileSync } from 'node:fs'
 import { join, basename, extname, relative } from 'node:path'
-import type { Material, MaterialKind, ImportResult } from '../../shared/types'
+import type { Material, MaterialKind } from '../../shared/types'
 import type { MaterialRepo } from '../db/materials'
 import type { Thumbnailer } from './thumbnails'
-import { safeDir } from './paths'
+import { materialDir } from './paths'
+import { assertValidMaterialName } from '../../shared/material-path'
 
 const IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic'])
 const VIDEO_EXT = new Set(['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'])
@@ -25,22 +26,11 @@ export class Importer {
     return null
   }
 
-  private uniqueDest(dir: string, name: string): string {
-    const ext = extname(name)
-    const stem = basename(name, ext)
-    let candidate = join(dir, name)
-    let i = 1
-    while (existsSync(candidate)) {
-      candidate = join(dir, `${stem}-${i}${ext}`)
-      i++
-    }
-    return candidate
-  }
-
-  private destDirFor(aftersaleNo: string, kind: MaterialKind): string {
-    const dir = join(this.dataRoot, safeDir(aftersaleNo), kind === 'image' ? 'images' : 'videos')
+  /** Resolve the destination dir + absolute path for a (validated) material. mkdir's the dir. */
+  private destFor(aftersaleNo: string, folder: string, name: string, ext: string): string {
+    const dir = materialDir(this.dataRoot, aftersaleNo, folder)
     mkdirSync(dir, { recursive: true })
-    return dir
+    return join(dir, `${name}${ext}`)
   }
 
   /** Generate thumbnail, insert the material row, return the created Material. */
@@ -59,36 +49,27 @@ export class Importer {
     return created
   }
 
-  /** Copy one file into the ticket folder and record it. Throws on unsupported/missing. */
+  /** Copy one file into the ticket folder, named after the material name. */
   async addFile(aftersaleNo: string, srcPath: string, name: string, folder = ''): Promise<Material> {
     const kind = this.kindOf(srcPath)
     if (!kind) throw new Error('unsupported file type')
     if (!existsSync(srcPath)) throw new Error('file not found')
-    const dest = this.uniqueDest(this.destDirFor(aftersaleNo, kind), basename(srcPath))
+    const clean = assertValidMaterialName(name)
+    if (await this.materials.nameTaken(aftersaleNo, folder, clean)) throw new Error('该文件夹下已存在同名材料')
+    const dest = this.destFor(aftersaleNo, folder, clean, extname(srcPath))
     copyFileSync(srcPath, dest)
-    return this.record(aftersaleNo, kind, dest, name, folder)
+    return this.record(aftersaleNo, kind, dest, clean, folder)
   }
 
-  /** Write file bytes (e.g. a pasted image/file) into the ticket folder and record it. */
+  /** Write file bytes (e.g. a pasted image/file) into the ticket folder, named after the material name. */
   async addBytes(aftersaleNo: string, fileName: string, buffer: Buffer, name: string, folder = ''): Promise<Material> {
     const kind = this.kindOf(fileName)
     if (!kind) throw new Error('unsupported file type')
     if (!buffer || buffer.length === 0) throw new Error('empty file')
-    const dest = this.uniqueDest(this.destDirFor(aftersaleNo, kind), fileName)
+    const clean = assertValidMaterialName(name)
+    if (await this.materials.nameTaken(aftersaleNo, folder, clean)) throw new Error('该文件夹下已存在同名材料')
+    const dest = this.destFor(aftersaleNo, folder, clean, extname(fileName))
     writeFileSync(dest, buffer)
-    return this.record(aftersaleNo, kind, dest, name, folder)
-  }
-
-  /** Batch import (used by older callers/tests). Delegates to addFile, never aborting the batch. */
-  async importFiles(aftersaleNo: string, files: string[]): Promise<ImportResult> {
-    const result: ImportResult = { imported: [], skipped: [] }
-    for (const file of files) {
-      try {
-        result.imported.push(await this.addFile(aftersaleNo, file, '', ''))
-      } catch (e) {
-        result.skipped.push({ file, reason: (e as Error).message })
-      }
-    }
-    return result
+    return this.record(aftersaleNo, kind, dest, clean, folder)
   }
 }
