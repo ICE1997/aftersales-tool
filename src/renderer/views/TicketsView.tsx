@@ -7,8 +7,9 @@ import { TicketTable } from '../components/TicketTable'
 import { TicketDetail } from '../components/TicketDetail'
 import { NewTicketDialog } from '../components/NewTicketDialog'
 import { ImportResultDialog } from '../components/ImportResultDialog'
-import { IconClose } from '../components/icons'
+import { IconClose, IconImport, IconPlus } from '../components/icons'
 import { TicketFilterBar } from '../components/TicketFilterBar'
+import { ViewTabs } from '../components/ViewTabs'
 import { AppliedTimePanel } from '../components/AppliedTimePanel'
 import { applyFilter, EMPTY_FILTER, type TicketFilter } from '../ticket-filter'
 import { presetRange } from '../date-presets'
@@ -17,6 +18,7 @@ import { useSessionState } from '../use-session-state'
 export function TicketsView() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [view, setView] = useSessionState<'list' | 'detail'>('vh.view', 'list')
+  const [tab, setTab] = useSessionState<'list' | 'chart'>('vh.ticketsTab', 'list')
   const [selected, setSelected] = useSessionState<string | undefined>('vh.selected', undefined)
   const [newOpen, setNewOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -57,15 +59,31 @@ export function TicketsView() {
       <div className={`flex min-h-0 flex-1 flex-col ${view === 'detail' ? 'hidden' : ''}`}>
         <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3"><div className="max-w-xl"><SearchBar onSearch={onSearch} /></div></div>
         <TicketFilterBar filter={filter} onChange={setFilter} />
-        <AppliedTimePanel
-          tickets={filtered}
-          from={filter.appliedFrom}
-          to={filter.appliedTo}
-          onRangeChange={(appliedFrom, appliedTo) => setFilter((prev) => ({ ...prev, appliedFrom, appliedTo }))}
+        <ViewTabs
+          tabs={[{ key: 'list', label: '售后单', count: filtered.length }, { key: 'chart', label: '申请时间分布' }]}
+          active={tab}
+          onChange={(k) => setTab(k as 'list' | 'chart')}
+          right={tab === 'list' ? (
+            <>
+              <button className="btn-ghost px-3 py-1.5 text-sm" onClick={importTickets}><IconImport className="text-[15px]" /> 导入售后单</button>
+              <button className="btn-primary px-3 py-1.5 text-sm" onClick={() => setNewOpen(true)}><IconPlus className="text-[15px]" /> 新建售后单</button>
+            </>
+          ) : undefined}
         />
-        <div className="flex min-h-0 flex-1 flex-col">
-          <TicketTable tickets={filtered} selected={selected} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
+        {/* Table stays mounted (hidden on the chart tab) to preserve sort, page and scroll position. */}
+        <div className={`flex min-h-0 flex-1 flex-col ${tab !== 'list' ? 'hidden' : ''}`}>
+          <TicketTable tickets={filtered} selected={selected} onOpen={(no) => { setSelected(no); setView('detail') }} />
         </div>
+        {tab === 'chart' && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <AppliedTimePanel
+              tickets={filtered}
+              from={filter.appliedFrom}
+              to={filter.appliedTo}
+              onRangeChange={(appliedFrom, appliedTo) => setFilter((prev) => ({ ...prev, appliedFrom, appliedTo }))}
+            />
+          </div>
+        )}
       </div>
       {view === 'detail' && selected && (
         <div className="flex-1 overflow-auto">

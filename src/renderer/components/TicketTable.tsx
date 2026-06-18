@@ -4,14 +4,14 @@ import { formatMs } from '@shared/aftersale-format'
 import { STATUS_META } from '../status'
 import { paginate } from '../table'
 import { regionLabel } from '../region'
-import { IconBox, IconImport, IconPlus } from './icons'
+import { IconBox } from './icons'
 import { applySort, DEFAULT_SORT, type SortKey } from '../ticket-filter'
 
-interface Props { tickets: Ticket[]; onOpen: (no: string) => void; onNew: () => void; onImport?: () => void; selected?: string }
+interface Props { tickets: Ticket[]; onOpen: (no: string) => void; selected?: string }
 
 const SIZES = [10, 20, 50]
 
-export function TicketTable({ tickets, onOpen, onNew, onImport, selected }: Props) {
+export function TicketTable({ tickets, onOpen, selected }: Props) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [sort, setSort] = useState(DEFAULT_SORT)
@@ -28,17 +28,6 @@ export function TicketTable({ tickets, onOpen, onNew, onImport, selected }: Prop
 
   return (
     <div className="flex h-full flex-col p-6">
-      <div className="mb-3 flex shrink-0 items-center justify-between">
-        <div className="flex items-baseline gap-2">
-          <span className="font-display text-sm font-bold tracking-tight text-ink">售后单</span>
-          <span className="tnum text-xs text-muted">{total}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="btn-ghost px-3 py-1.5 text-sm" onClick={() => onImport?.()}><IconImport className="text-[15px]" /> 导入售后单</button>
-          <button className="btn-primary px-3 py-1.5 text-sm" onClick={onNew}><IconPlus className="text-[15px]" /> 新建售后单</button>
-        </div>
-      </div>
-
       {total === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl2 border border-line bg-surface py-20 text-center shadow-card">
           <div className="grid h-14 w-14 place-items-center rounded-2xl border border-line bg-paper-2 text-muted"><IconBox className="text-2xl" /></div>

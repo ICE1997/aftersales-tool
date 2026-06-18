@@ -34,5 +34,5 @@ export function AppliedTimeBarChart({ buckets }: { buckets: Bucket[] }) {
     chart.resize()
   }, [option])
 
-  return <div ref={ref} style={{ width: '100%', height: 220 }} />
+  return <div ref={ref} className="h-full min-h-[200px] w-full" />
 }

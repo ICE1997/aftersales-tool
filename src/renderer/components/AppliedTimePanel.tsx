@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { Ticket } from '@shared/types'
 import { DatePresetChips } from './DatePresetChips'
 import { AppliedTimeBarChart } from './AppliedTimeBarChart'
@@ -12,9 +12,8 @@ interface Props {
   onRangeChange: (from: number | null, to: number | null) => void
 }
 
-/** Collapsible panel: quick-range chips + custom date + applied-time bar chart. */
+/** Applied-time distribution view: quick-range chips + a full-height bar chart. */
 export function AppliedTimePanel({ tickets, from, to, onRangeChange }: Props) {
-  const [open, setOpen] = useState(true)
   const result = useMemo(() => bucketByAppliedTime(tickets, from, to), [tickets, from, to])
   const activePreset = matchPreset(from, to)
 
@@ -24,24 +23,18 @@ export function AppliedTimePanel({ tickets, from, to, onRangeChange }: Props) {
   }
 
   return (
-    <div className="shrink-0 border-b border-line bg-paper-2 px-6 py-3">
-      <div className="flex items-center justify-between">
-        <span className="font-display text-sm text-ink-soft">申请时间分布</span>
-        <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setOpen((o) => !o)}>
-          {open ? '收起' : '展开'}
-        </button>
+    <div className="flex h-full min-h-0 flex-col gap-3 p-6">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <DatePresetChips active={activePreset} onSelect={selectPreset} />
+        {result.total > 0 && <span className="tnum text-xs text-muted">{summaryText(result)}</span>}
       </div>
-      {open && (
-        <div className="mt-2 flex flex-col gap-2">
-          <DatePresetChips active={activePreset} onSelect={selectPreset} />
-          {result.total === 0 ? (
-            <div className="grid h-[180px] place-items-center text-sm text-muted">该范围内暂无售后单</div>
-          ) : (
-            <>
-              <AppliedTimeBarChart buckets={result.buckets} />
-              <div className="text-right text-xs text-muted tnum">{summaryText(result)}</div>
-            </>
-          )}
+      {result.total === 0 ? (
+        <div className="grid min-h-0 flex-1 place-items-center rounded-xl2 border border-line bg-surface text-sm text-muted shadow-card">
+          该范围内暂无售后单
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 rounded-xl2 border border-line bg-surface p-4 shadow-card">
+          <AppliedTimeBarChart buckets={result.buckets} />
         </div>
       )}
     </div>
