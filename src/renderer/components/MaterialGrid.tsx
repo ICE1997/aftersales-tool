@@ -12,6 +12,7 @@ interface Props {
   folders: string[]
   currentFolder: string
   selectedIds: Set<number>
+  selectedFolders: Set<string>
   onToggle: (id: number) => void
   onToggleFolder: (path: string) => void
   onOpen: (m: Material) => void
@@ -75,7 +76,7 @@ function CrumbDrop({ path, children }: { path: string; children: ReactNode }) {
   return <span ref={setNodeRef} className={`rounded-md ${isOver ? 'ring-2 ring-accent ring-offset-1 ring-offset-paper' : ''}`}>{children}</span>
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -191,19 +192,25 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
         {/* subfolders — draggable (move) + droppable (accept) + selectable (export) */}
         {subfolders.map((path) => {
           const underIds = materialIdsUnder(materials, path)
-          const folderSel = underIds.length > 0 && underIds.every((id) => selectedIds.has(id))
+          const folderSel = selectedFolders.has(path)
           return (
             <FolderDnd key={`f:${path}`} path={path}>
               <div className="group relative flex flex-col rounded-xl2 border border-line bg-surface transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lift">
                 <button className="flex aspect-square w-full flex-col items-center justify-center gap-2 text-accent" onClick={() => onEnterFolder(path)}>
                   <IconFolder className="text-4xl" />
                 </button>
-                {underIds.length > 0 && (
-                  <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹的材料'} title={`选择此文件夹的材料(${underIds.length})`}
-                    className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
-                    <IconCheck className="text-[13px]" />
-                  </button>
-                )}
+                {/* top-left: select (same corner as material cards) */}
+                <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹'} title={`选择此文件夹${underIds.length ? `的材料(${underIds.length})` : '(空)'}`}
+                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
+                  <IconCheck className="text-[13px]" />
+                </button>
+                {/* top-right: actions (same corner as material cards) */}
+                <div className="absolute right-2 top-2 z-10 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-ink" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-danger" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
+                </div>
                 {renaming === path ? (
                   <div className="px-2 pb-2">
                     <input
@@ -217,15 +224,7 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
                     {renameErr && <p className="mt-1 leading-tight text-[10px] text-danger">{renameErr}</p>}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between gap-1 px-2.5 py-2">
-                    <span className="truncate text-[12px] text-ink">{folderName(path)}</span>
-                    <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100">
-                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
-                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
-                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-ink" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
-                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-danger-soft hover:text-danger" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
-                    </span>
-                  </div>
+                  <div className="truncate px-2.5 py-2 text-[12px] text-ink">{folderName(path)}</div>
                 )}
               </div>
             </FolderDnd>

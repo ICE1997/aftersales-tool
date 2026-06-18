@@ -146,17 +146,17 @@ export async function registerIpc(): Promise<void> {
   })
   ipcMain.handle('materials:move', (_e, id: number, folder: string) => importer.moveToFolder(id, folder))
 
-  ipcMain.handle('export:folder', async (_e, ids: number[]) => {
+  ipcMain.handle('export:folder', async (_e, ids: number[], folders: string[] = []) => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     if (r.canceled || !r.filePaths[0]) return false
-    await exporter.toFolder(await materials.getByIds(ids), r.filePaths[0])
+    await exporter.toFolder(await materials.getByIds(ids), r.filePaths[0], folders)
     return true
   })
 
-  ipcMain.handle('export:zip', async (_e, ids: number[]) => {
+  ipcMain.handle('export:zip', async (_e, ids: number[], folders: string[] = []) => {
     const r = await dialog.showSaveDialog({ defaultPath: 'materials.zip' })
     if (r.canceled || !r.filePath) return false
-    await exporter.toZip(await materials.getByIds(ids), r.filePath)
+    await exporter.toZip(await materials.getByIds(ids), r.filePath, folders)
     return true
   })
 

@@ -20,6 +20,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [folders, setFolders] = useState<string[]>([])
   const [currentFolder, setCurrentFolder] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<Material | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -48,6 +49,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     setMaterials(ms)
     setFolders(fs)
     setSelected(new Set())
+    setSelectedFolders(new Set())
   }
   useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
 
@@ -56,12 +58,13 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const toggle = (id: number) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const meta = STATUS_META[ticket.status] ?? STATUS_META['待商家处理']
 
+  const folderPaths = () => [...selectedFolders]
   async function exportFolder() {
-    try { const ok = await api.exportFolder(ids()); setMsg(ok ? '已导出到文件夹' : null) }
+    try { const ok = await api.exportFolder(ids(), folderPaths()); setMsg(ok ? '已导出到文件夹' : null) }
     catch (e) { setMsg(`导出失败:${(e as Error).message}`) }
   }
   async function exportZip() {
-    try { const ok = await api.exportZip(ids()); setMsg(ok ? '已打包 zip' : null) }
+    try { const ok = await api.exportZip(ids(), folderPaths()); setMsg(ok ? '已打包 zip' : null) }
     catch (e) { setMsg(`打包失败:${(e as Error).message}`) }
   }
   async function calibrate() {
@@ -95,10 +98,11 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   }
   function toggleFolder(path: string) {
     const ids = materialIdsUnder(materials, path)
-    if (ids.length === 0) return
-    setSelected((s) => {
+    const wasSelected = selectedFolders.has(path)
+    setSelectedFolders((s) => { const n = new Set(s); if (wasSelected) n.delete(path); else n.add(path); return n })
+    if (ids.length) setSelected((s) => {
       const n = new Set(s)
-      if (ids.every((id) => n.has(id))) ids.forEach((id) => n.delete(id))
+      if (wasSelected) ids.forEach((id) => n.delete(id))
       else ids.forEach((id) => n.add(id))
       return n
     })
@@ -346,9 +350,9 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           {/* materials toolbar */}
           <div className="flex items-center gap-2 border-b border-line px-6 py-3">
             <button className="btn-primary" onClick={() => setNewOpen(true)}><IconImport className="text-[16px]" /> 新建材料</button>
-            {selected.size > 0 ? (
+            {selected.size > 0 || selectedFolders.size > 0 ? (
               <div className="flex animate-slidedown items-center gap-1 rounded-lg bg-accent-soft px-2 py-1">
-                <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}</span>
+                <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}{selectedFolders.size ? ` · ${selectedFolders.size} 个目录` : ''}</span>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
                 <select className="rounded border border-line bg-surface px-1.5 py-1 text-xs" defaultValue="__none"
@@ -357,10 +361,10 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
                   <option value="__root">根目录</option>
                   {folders.map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
-                <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => setSelected(new Set())}>取消选择</button>
+                <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => { setSelected(new Set()); setSelectedFolders(new Set()) }}>取消选择</button>
               </div>
             ) : materials.length > 0 ? (
-              <span className="text-xs text-muted">勾选材料可导出或打包</span>
+              <span className="text-xs text-muted">勾选材料或文件夹可导出或打包</span>
             ) : null}
             <button className="btn-ghost ml-auto px-2.5" onClick={() => void api.openMaterialDir(aftersaleNo, currentFolder)} title="在文件管理器中打开当前目录">
               <IconFolderOpen className="text-[15px]" /> 打开目录
@@ -376,6 +380,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               folders={folders}
               currentFolder={currentFolder}
               selectedIds={selected}
+              selectedFolders={selectedFolders}
               onToggle={toggle}
               onToggleFolder={toggleFolder}
               onOpen={setPreview}

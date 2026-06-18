@@ -60,6 +60,19 @@ describe('Exporter', () => {
     expect(listing).toContain('a-1.jpg')
   })
 
+  it('creates selected (empty) folders when exporting to a folder', async () => {
+    await exporter.toFolder([], out, ['空目录', '凭证/聊天'])
+    expect(existsSync(join(out, '空目录'))).toBe(true)
+    expect(existsSync(join(out, '凭证', '聊天'))).toBe(true)
+  })
+
+  it('includes selected empty folders as directory entries in the zip', async () => {
+    const zipPath = join(out, 'pack.zip')
+    await exporter.toZip([], zipPath, ['evidence']) // ASCII: `unzip -l` mangles non-ASCII names in its listing
+    const listing = execSync(`unzip -l "${zipPath}"`).toString()
+    expect(listing).toContain('evidence/')
+  })
+
   it('rejects when a material file is missing', async () => {
     const m = { id: 1, aftersaleNo: 'AS-1', name: '', relPath: 'AS-1/images/ghost.jpg', kind: 'image' as const, capturedAt: null, importedAt: 1, sizeBytes: 5, thumbPath: null, folder: '' }
     await expect(exporter.toZip([m], join(out, 'p.zip'))).rejects.toBeTruthy()
