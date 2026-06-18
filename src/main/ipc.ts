@@ -156,6 +156,8 @@ export async function registerIpc(): Promise<void> {
     return true
   })
 
+  ipcMain.handle('app:version', () => app.getVersion())
+
   ipcMain.handle('clipboard:copyImage', (_e, relPath: string) => {
     clipboard.writeImage(nativeImage.createFromPath(join(dataRoot, relPath)))
     return true
