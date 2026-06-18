@@ -40,7 +40,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   })
   const currentNo = useRef(aftersaleNo)
 
-  async function reload() {
+  async function reload(preserveSelection = false) {
     currentNo.current = aftersaleNo
     const [t, tree] = await Promise.all([api.getTicket(aftersaleNo), api.listMaterials(aftersaleNo)])
     if (currentNo.current !== aftersaleNo) return
@@ -48,14 +48,21 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     setTicket(t)
     setMaterials(tree.materials)
     setFolders(tree.folders)
-    setSelected(new Set())
-    setSelectedFolders(new Set())
+    if (preserveSelection) {
+      const relSet = new Set(tree.materials.map((m) => m.relPath))
+      const folderSet = new Set(tree.folders)
+      setSelected((prev) => new Set([...prev].filter((rp) => relSet.has(rp))))
+      setSelectedFolders((prev) => new Set([...prev].filter((p) => folderSet.has(p))))
+    } else {
+      setSelected(new Set())
+      setSelectedFolders(new Set())
+    }
   }
   useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
 
   useEffect(() => {
     void api.watchMaterials(aftersaleNo)
-    const off = api.onMaterialsChanged((no) => { if (no === aftersaleNo) void reload() })
+    const off = api.onMaterialsChanged((no) => { if (no === aftersaleNo) void reload(true) })
     return () => { off(); void api.unwatchMaterials() }
   }, [aftersaleNo])
 

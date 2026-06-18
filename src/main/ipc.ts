@@ -49,7 +49,9 @@ export async function registerIpc(): Promise<void> {
   const thumb = new Thumbnailer(dataRoot)
   const exporter = new Exporter(dataRoot)
   const fileTree = new FileTree(dataRoot)
-  const watcher = new MaterialWatcher(dataRoot, (no) => BrowserWindow.getFocusedWindow()?.webContents.send('materials:changed', no))
+  const watcher = new MaterialWatcher(dataRoot, (no) => {
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.send('materials:changed', no)
+  })
 
   ipcMain.handle('tickets:list', () => tickets.list())
   ipcMain.handle('tickets:search', (_e, q: string) => tickets.search(q))
