@@ -60,7 +60,7 @@ export function TicketsView() {
           tickets={filtered}
           from={filter.appliedFrom}
           to={filter.appliedTo}
-          onRangeChange={(appliedFrom, appliedTo) => setFilter({ ...filter, appliedFrom, appliedTo })}
+          onRangeChange={(appliedFrom, appliedTo) => setFilter((prev) => ({ ...prev, appliedFrom, appliedTo }))}
         />
         <div className="flex min-h-0 flex-1 flex-col">
           <TicketTable tickets={filtered} selected={selected} onOpen={(no) => { setSelected(no); setView('detail') }} onNew={() => setNewOpen(true)} onImport={importTickets} />
