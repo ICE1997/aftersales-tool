@@ -8,6 +8,7 @@ import { NewMaterialDialog } from './NewMaterialDialog'
 import { RegionCascader, type RegionValue } from './RegionCascader'
 import { DateTimeField } from './DateFields'
 import { extractContact } from '../contact-extract'
+import { materialIdsUnder } from '../material-select'
 import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal, IconFolderOpen } from './icons'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
@@ -83,6 +84,24 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   async function moveSelected(folder: string) {
     for (const id of selected) await api.moveMaterial(id, folder)
     await reload()
+  }
+  async function moveMaterial(id: number, folder: string) {
+    try { await api.moveMaterial(id, folder); await reload() }
+    catch (e) { setMsg(`移动失败:${(e as Error).message}`) }
+  }
+  async function moveFolder(path: string, newParent: string) {
+    try { await api.moveFolder(aftersaleNo, path, newParent); await reload() }
+    catch (e) { setMsg(`移动文件夹失败:${(e as Error).message}`) }
+  }
+  function toggleFolder(path: string) {
+    const ids = materialIdsUnder(materials, path)
+    if (ids.length === 0) return
+    setSelected((s) => {
+      const n = new Set(s)
+      if (ids.every((id) => n.has(id))) ids.forEach((id) => n.delete(id))
+      else ids.forEach((id) => n.add(id))
+      return n
+    })
   }
   async function remove() {
     await api.deleteTicket(aftersaleNo)
@@ -358,11 +377,14 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               currentFolder={currentFolder}
               selectedIds={selected}
               onToggle={toggle}
+              onToggleFolder={toggleFolder}
               onOpen={setPreview}
               onEnterFolder={setCurrentFolder}
               onCreateFolder={createFolder}
               onRenameFolder={renameFolder}
               onDeleteFolder={deleteFolder}
+              onMoveMaterial={moveMaterial}
+              onMoveFolder={moveFolder}
               onOpenDir={(folder) => void api.openMaterialDir(aftersaleNo, folder)}
               onCopyDirPath={(folder) => void api.copyDirPath(aftersaleNo, folder).then(() => setMsg('已复制目录路径到剪贴板'))}
               onCopyMaterialPath={(relPath) => void api.copyMaterialPath(relPath).then(() => setMsg('已复制材料路径到剪贴板'))}

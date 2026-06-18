@@ -16,7 +16,7 @@ import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
 import { safeDir, materialDir } from './services/paths'
 import { ensureFolderDir, ensureRootDir, renameFolderDir } from './services/material-fs'
-import { joinPath, parentPath, normalizeSegment } from '../shared/folder-path'
+import { joinPath, parentPath, normalizeSegment, folderName } from '../shared/folder-path'
 
 import { parseXlsx } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
@@ -139,6 +139,10 @@ export async function registerIpc(): Promise<void> {
       if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
     }
     try { rmdirSync(materialDir(dataRoot, no, path), { recursive: true }) } catch { /* ignore: dir missing or not empty */ }
+  })
+  ipcMain.handle('folders:move', async (_e, no: string, path: string, newParent: string) => {
+    await folderRepo.move(no, path, newParent) // cascades DB; throws on self/descendant/clash
+    renameFolderDir(dataRoot, no, path, joinPath(newParent, folderName(path)))
   })
   ipcMain.handle('materials:move', (_e, id: number, folder: string) => importer.moveToFolder(id, folder))
 

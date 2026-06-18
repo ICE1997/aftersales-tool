@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import type { Material } from '@shared/types'
 import { api } from '../api'
-import { childrenFolders, folderName, ancestorsAndSelf } from '../../shared/folder-path'
+import { childrenFolders, folderName, ancestorsAndSelf, isUnderOrEqual, parentPath } from '../../shared/folder-path'
+import { materialIdsUnder } from '../material-select'
 import { IconPlay, IconCheck, IconImage, IconFolder, IconFolderPlus, IconPencil, IconTrash, IconClose, IconFolderOpen, IconCopy } from './icons'
 
 interface Props {
@@ -10,11 +13,14 @@ interface Props {
   currentFolder: string
   selectedIds: Set<number>
   onToggle: (id: number) => void
+  onToggleFolder: (path: string) => void
   onOpen: (m: Material) => void
   onEnterFolder: (path: string) => void
   onCreateFolder: (name: string) => void
   onRenameFolder: (path: string, newName: string) => void
   onDeleteFolder: (path: string) => void
+  onMoveMaterial: (id: number, folder: string) => void
+  onMoveFolder: (path: string, newParent: string) => void
   onOpenDir: (folder: string) => void
   onCopyDirPath: (folder: string) => void
   onCopyMaterialPath: (relPath: string) => void
@@ -36,7 +42,40 @@ function Thumb({ m }: { m: Material }) {
   return <img src={url} alt="" className="h-full w-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.05]" />
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
+/** Drag source (a material card). */
+function Draggable({ id, data, children }: { id: string; data: Record<string, unknown>; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id, data })
+  return (
+    <div ref={setNodeRef} {...attributes} {...listeners}
+      style={{ transform: CSS.Translate.toString(transform), zIndex: isDragging ? 50 : undefined }}
+      className={`touch-none ${isDragging ? 'opacity-60' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+/** A folder card: both a drag source (move the folder) and a drop target (accept items). */
+function FolderDnd({ path, children }: { path: string; children: ReactNode }) {
+  const drag = useDraggable({ id: `fdrag:${path}`, data: { kind: 'folder', path } })
+  const drop = useDroppable({ id: `fdrop:${path}`, data: { folder: path } })
+  return (
+    <div
+      ref={(el) => { drag.setNodeRef(el); drop.setNodeRef(el) }}
+      {...drag.attributes} {...drag.listeners}
+      style={{ transform: CSS.Translate.toString(drag.transform), zIndex: drag.isDragging ? 50 : undefined }}
+      className={`touch-none rounded-xl2 transition ${drag.isDragging ? 'opacity-60' : ''} ${drop.isOver ? 'ring-2 ring-accent ring-offset-2 ring-offset-paper' : ''}`}>
+      {children}
+    </div>
+  )
+}
+
+/** A breadcrumb crumb that accepts drops (move the dragged item into that folder). */
+function CrumbDrop({ path, children }: { path: string; children: ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `cdrop:${path}`, data: { folder: path } })
+  return <span ref={setNodeRef} className={`rounded-md ${isOver ? 'ring-2 ring-accent ring-offset-1 ring-offset-paper' : ''}`}>{children}</span>
+}
+
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -49,6 +88,22 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
   const files = materials.filter((m) => m.folder === currentFolder)
   const crumbs = ['', ...ancestorsAndSelf(currentFolder)]
   const siblingNames = subfolders.map(folderName)
+
+  // A short drag threshold lets clicks (open / select / rename) still work on the cards.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  function handleDragEnd(e: DragEndEvent) {
+    const a = e.active.data.current as { kind?: string; id?: number; folder?: string; path?: string } | undefined
+    const o = e.over?.data.current as { folder?: string } | undefined
+    if (!a || !o || o.folder === undefined) return
+    const target = o.folder
+    if (a.kind === 'material') {
+      if (a.folder !== target) onMoveMaterial(a.id!, target)
+    } else if (a.kind === 'folder') {
+      const src = a.path!
+      if (src === target || isUnderOrEqual(target, src) || parentPath(src) === target) return // self / descendant / already there
+      onMoveFolder(src, target)
+    }
+  }
 
   /** Validate a folder name against its siblings. `self` excludes the folder being renamed. */
   function nameError(name: string, self?: string): string | null {
@@ -89,15 +144,18 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
   }
 
   return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
     <div className="p-6">
-      {/* breadcrumbs */}
+      {/* breadcrumbs (each is also a drop target — drop a file/folder here to move it there) */}
       <div className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted">
         {crumbs.map((c, i) => (
           <span key={c || 'root'} className="flex items-center gap-1">
             {i > 0 && <span className="text-muted/60">/</span>}
-            <button className="btn-ghost px-2 py-0.5 text-xs disabled:opacity-60" disabled={c === currentFolder} onClick={() => onEnterFolder(c)}>
-              {c === '' ? '根目录' : folderName(c)}
-            </button>
+            <CrumbDrop path={c}>
+              <button className="btn-ghost px-2 py-0.5 text-xs disabled:opacity-60" disabled={c === currentFolder} onClick={() => onEnterFolder(c)}>
+                {c === '' ? '根目录' : folderName(c)}
+              </button>
+            </CrumbDrop>
           </span>
         ))}
       </div>
@@ -130,63 +188,75 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
           </button>
         )}
 
-        {/* subfolders */}
-        {subfolders.map((path) => (
-          <div key={`f:${path}`} className="group relative flex flex-col rounded-xl2 border border-line bg-surface transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lift">
-            <button className="flex aspect-square w-full flex-col items-center justify-center gap-2 text-accent" onClick={() => onEnterFolder(path)}>
-              <IconFolder className="text-4xl" />
-            </button>
-            {renaming === path ? (
-              <div className="px-2 pb-2">
-                <input
-                  autoFocus
-                  className={`field h-7 w-full py-1 text-xs ${renameErr ? 'border-danger ring-1 ring-danger' : ''}`}
-                  value={renameVal}
-                  onChange={(e) => { setRenameVal(e.target.value); setRenameErr(nameError(e.target.value, folderName(path))) }}
-                  onKeyDown={(e) => onRenameKey(e, path)}
-                  onBlur={() => commitRename(path)}
-                />
-                {renameErr && <p className="mt-1 leading-tight text-[10px] text-danger">{renameErr}</p>}
+        {/* subfolders — draggable (move) + droppable (accept) + selectable (export) */}
+        {subfolders.map((path) => {
+          const underIds = materialIdsUnder(materials, path)
+          const folderSel = underIds.length > 0 && underIds.every((id) => selectedIds.has(id))
+          return (
+            <FolderDnd key={`f:${path}`} path={path}>
+              <div className="group relative flex flex-col rounded-xl2 border border-line bg-surface transition-all duration-150 hover:-translate-y-0.5 hover:shadow-lift">
+                <button className="flex aspect-square w-full flex-col items-center justify-center gap-2 text-accent" onClick={() => onEnterFolder(path)}>
+                  <IconFolder className="text-4xl" />
+                </button>
+                <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹的材料'}
+                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
+                  <IconCheck className="text-[13px]" />
+                </button>
+                {renaming === path ? (
+                  <div className="px-2 pb-2">
+                    <input
+                      autoFocus
+                      className={`field h-7 w-full py-1 text-xs ${renameErr ? 'border-danger ring-1 ring-danger' : ''}`}
+                      value={renameVal}
+                      onChange={(e) => { setRenameVal(e.target.value); setRenameErr(nameError(e.target.value, folderName(path))) }}
+                      onKeyDown={(e) => onRenameKey(e, path)}
+                      onBlur={() => commitRename(path)}
+                    />
+                    {renameErr && <p className="mt-1 leading-tight text-[10px] text-danger">{renameErr}</p>}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-1 px-2.5 py-2">
+                    <span className="truncate text-[12px] text-ink">{folderName(path)}</span>
+                    <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100">
+                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
+                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
+                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-ink" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
+                      <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-danger-soft hover:text-danger" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
+                    </span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="flex items-center justify-between gap-1 px-2.5 py-2">
-                <span className="truncate text-[12px] text-ink">{folderName(path)}</span>
-                <span className="flex shrink-0 gap-0.5 opacity-0 transition group-hover:opacity-100">
-                  <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
-                  <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-accent-ink" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
-                  <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-paper-2 hover:text-ink" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
-                  <button className="grid h-6 w-6 place-items-center rounded-md text-muted hover:bg-danger-soft hover:text-danger" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
+            </FolderDnd>
+          )
+        })}
 
-        {/* files */}
+        {/* files — draggable into folders */}
         {files.map((m, i) => {
           const sel = selectedIds.has(m.id)
           return (
-            <div key={m.id}
-              className={`group relative animate-rise overflow-hidden rounded-xl2 border bg-surface transition-all duration-150 ${sel ? 'border-accent shadow-card ring-2 ring-accent ring-offset-2 ring-offset-paper' : 'border-line hover:-translate-y-0.5 hover:shadow-lift'}`}
-              style={{ animationDelay: `${Math.min(i, 16) * 18}ms` }}>
-              <button className="relative block aspect-square w-full overflow-hidden bg-paper-2" onClick={() => onOpen(m)}>
-                <Thumb m={m} />
-                {m.kind === 'video' && (
-                  <span className="pointer-events-none absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-white shadow-lg" style={{ background: 'rgba(33,30,24,.55)', backdropFilter: 'blur(2px)' }}>
-                    <IconPlay className="text-[15px]" />
-                  </span>
-                )}
-              </button>
-              <button onClick={() => onToggle(m.id)} aria-label={sel ? '取消选择' : '选择'}
-                className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${sel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
-                <IconCheck className="text-[13px]" />
-              </button>
-              <button onClick={() => onCopyMaterialPath(m.relPath)} title="复制路径" aria-label="复制路径"
-                className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted opacity-0 backdrop-blur transition hover:text-accent-ink group-hover:opacity-100">
-                <IconCopy className="text-[13px]" />
-              </button>
-              <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
-            </div>
+            <Draggable key={m.id} id={`m:${m.id}`} data={{ kind: 'material', id: m.id, folder: m.folder }}>
+              <div
+                className={`group relative animate-rise overflow-hidden rounded-xl2 border bg-surface transition-all duration-150 ${sel ? 'border-accent shadow-card ring-2 ring-accent ring-offset-2 ring-offset-paper' : 'border-line hover:-translate-y-0.5 hover:shadow-lift'}`}
+                style={{ animationDelay: `${Math.min(i, 16) * 18}ms` }}>
+                <button className="relative block aspect-square w-full overflow-hidden bg-paper-2" onClick={() => onOpen(m)}>
+                  <Thumb m={m} />
+                  {m.kind === 'video' && (
+                    <span className="pointer-events-none absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-white shadow-lg" style={{ background: 'rgba(33,30,24,.55)', backdropFilter: 'blur(2px)' }}>
+                      <IconPlay className="text-[15px]" />
+                    </span>
+                  )}
+                </button>
+                <button onClick={() => onToggle(m.id)} aria-label={sel ? '取消选择' : '选择'}
+                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${sel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
+                  <IconCheck className="text-[13px]" />
+                </button>
+                <button onClick={() => onCopyMaterialPath(m.relPath)} title="复制路径" aria-label="复制路径"
+                  className="absolute right-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted opacity-0 backdrop-blur transition hover:text-accent-ink group-hover:opacity-100">
+                  <IconCopy className="text-[13px]" />
+                </button>
+                <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
+              </div>
+            </Draggable>
           )
         })}
       </div>
@@ -211,5 +281,6 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, o
         </div>
       )}
     </div>
+    </DndContext>
   )
 }

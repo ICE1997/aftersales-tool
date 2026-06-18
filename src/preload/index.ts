@@ -39,6 +39,7 @@ const api = {
   renameFolder: (no: string, path: string, newName: string): Promise<void> => ipcRenderer.invoke('folders:rename', no, path, newName),
   removeFolder: (no: string, path: string): Promise<void> => ipcRenderer.invoke('folders:remove', no, path),
   moveMaterial: (id: number, folder: string): Promise<void> => ipcRenderer.invoke('materials:move', id, folder),
+  moveFolder: (no: string, path: string, newParent: string): Promise<void> => ipcRenderer.invoke('folders:move', no, path, newParent),
 }
 
 export type Api = typeof api

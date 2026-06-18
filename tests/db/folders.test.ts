@@ -70,6 +70,35 @@ describe('FolderRepo', () => {
     await expect(folders.rename('AS-1', '凭证', '证据')).rejects.toThrow(/重名/)
   })
 
+  it('move reparents a folder subtree (and its materials) under a new parent', async () => {
+    await folders.create('AS-1', '凭证/聊天')
+    await folders.create('AS-1', '物流')
+    const mid = await materials.add({ aftersaleNo: 'AS-1', name: 'x', relPath: 'AS-1/凭证/聊天/x.jpg', kind: 'image', folder: '凭证/聊天', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    const moves = await folders.move('AS-1', '凭证/聊天', '物流')
+    expect((await folders.list('AS-1')).sort()).toEqual(['凭证', '物流', '物流/聊天'])
+    expect((await materials.getByIds([mid]))[0].folder).toBe('物流/聊天')
+    expect((await materials.getByIds([mid]))[0].relPath).toBe('AS-1/物流/聊天/x.jpg')
+    expect(moves).toEqual([{ oldRelPath: 'AS-1/凭证/聊天/x.jpg', newRelPath: 'AS-1/物流/聊天/x.jpg' }])
+  })
+
+  it('move to root keeps the leaf name', async () => {
+    await folders.create('AS-1', '凭证/聊天')
+    await folders.move('AS-1', '凭证/聊天', '')
+    expect((await folders.list('AS-1')).sort()).toEqual(['凭证', '聊天'])
+  })
+
+  it('move rejects dropping a folder into itself or a descendant', async () => {
+    await folders.create('AS-1', '凭证/聊天')
+    await expect(folders.move('AS-1', '凭证', '凭证')).rejects.toThrow()
+    await expect(folders.move('AS-1', '凭证', '凭证/聊天')).rejects.toThrow()
+  })
+
+  it('move rejects a name clash in the target parent', async () => {
+    await folders.create('AS-1', '凭证/聊天')
+    await folders.create('AS-1', '物流/聊天')
+    await expect(folders.move('AS-1', '凭证/聊天', '物流')).rejects.toThrow()
+  })
+
   it('remove deletes the subtree and returns affected materials', async () => {
     await folders.create('AS-1', '凭证/聊天')
     await folders.create('AS-1', '物流')
