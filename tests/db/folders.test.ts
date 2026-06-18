@@ -44,6 +44,23 @@ describe('FolderRepo', () => {
     await expect(folders.create('AS-1', '凭证//聊天')).rejects.toThrow()
   })
 
+  it('rename rewrites material rel_path and returns the disk moves', async () => {
+    await folders.create('AS-1', '凭证/聊天')
+    const mid = await materials.add({ aftersaleNo: 'AS-1', name: 'x', relPath: 'AS-1/凭证/聊天/x.jpg', kind: 'image', folder: '凭证/聊天', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    const moves = await folders.rename('AS-1', '凭证', '证据')
+    expect((await materials.getByIds([mid]))[0].folder).toBe('证据/聊天')
+    expect((await materials.getByIds([mid]))[0].relPath).toBe('AS-1/证据/聊天/x.jpg')
+    expect(moves).toEqual([{ oldRelPath: 'AS-1/凭证/聊天/x.jpg', newRelPath: 'AS-1/证据/聊天/x.jpg' }])
+  })
+
+  it('rename falls back to current basename for legacy materials with empty name', async () => {
+    await folders.create('AS-1', '凭证')
+    const mid = await materials.add({ aftersaleNo: 'AS-1', name: '', relPath: 'AS-1/images/legacy.jpg', kind: 'image', folder: '凭证', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    const moves = await folders.rename('AS-1', '凭证', '证据')
+    expect((await materials.getByIds([mid]))[0].relPath).toBe('AS-1/证据/legacy.jpg')
+    expect(moves).toEqual([{ oldRelPath: 'AS-1/images/legacy.jpg', newRelPath: 'AS-1/证据/legacy.jpg' }])
+  })
+
   it('remove deletes the subtree and returns affected materials', async () => {
     await folders.create('AS-1', '凭证/聊天')
     await folders.create('AS-1', '物流')

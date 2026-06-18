@@ -1,8 +1,11 @@
 import type { Knex } from 'knex'
 import { ancestorsAndSelf, isUnderOrEqual, joinPath, parentPath, rewritePrefix, normalizeSegment } from '../../shared/folder-path'
+import { materialRelPath } from '../../shared/material-path'
+import { basename, extname } from 'node:path'
 
 type Now = () => number
 export interface AffectedMaterial { relPath: string; thumbPath: string | null }
+export interface MovedFile { oldRelPath: string; newRelPath: string }
 
 export class FolderRepo {
   constructor(private db: Knex, private now: Now = () => Date.now()) {}
@@ -23,17 +26,27 @@ export class FolderRepo {
     return await this.db('material_folders').where('aftersale_no', aftersaleNo).orderBy('path').pluck('path')
   }
 
-  async rename(aftersaleNo: string, path: string, newName: string): Promise<void> {
+  async rename(aftersaleNo: string, path: string, newName: string): Promise<MovedFile[]> {
     const newPath = joinPath(parentPath(path), normalizeSegment(newName))
-    if (newPath === path) return
+    if (newPath === path) return []
     const clash = await this.db('material_folders').where({ aftersale_no: aftersaleNo, path: newPath }).first()
     if (clash) throw new Error('同级已存在同名文件夹')
+    const moves: MovedFile[] = []
     await this.db.transaction(async (trx) => {
       const fs = (await trx('material_folders').select('id', 'path').where('aftersale_no', aftersaleNo)) as { id: number; path: string }[]
       for (const f of fs) if (isUnderOrEqual(f.path, path)) await trx('material_folders').where('id', f.id).update({ path: rewritePrefix(f.path, path, newPath) })
-      const ms = (await trx('materials').select('id', 'folder').where('aftersale_no', aftersaleNo)) as { id: number; folder: string }[]
-      for (const m of ms) if (isUnderOrEqual(m.folder, path)) await trx('materials').where('id', m.id).update({ folder: rewritePrefix(m.folder, path, newPath) })
+      const ms = (await trx('materials').select('id', 'name', { relPath: 'rel_path' }, 'folder').where('aftersale_no', aftersaleNo)) as { id: number; name: string; relPath: string; folder: string }[]
+      for (const m of ms) {
+        if (!isUnderOrEqual(m.folder, path)) continue
+        const newFolder = rewritePrefix(m.folder, path, newPath)
+        const ext = extname(m.relPath)
+        const stem = m.name || basename(m.relPath, ext)
+        const newRel = materialRelPath(aftersaleNo, newFolder, stem, ext)
+        await trx('materials').where('id', m.id).update({ folder: newFolder, rel_path: newRel })
+        if (newRel !== m.relPath) moves.push({ oldRelPath: m.relPath, newRelPath: newRel })
+      }
     })
+    return moves
   }
 
   async remove(aftersaleNo: string, path: string): Promise<AffectedMaterial[]> {

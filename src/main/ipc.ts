@@ -1,6 +1,6 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
-import { join, basename, extname } from 'node:path'
-import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync } from 'node:fs'
+import { join, basename, extname, dirname } from 'node:path'
+import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync, renameSync, rmdirSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { mediaUrl } from './media-url'
 import { handleMediaProtocol } from './media-protocol'
@@ -14,7 +14,7 @@ import { Thumbnailer } from './services/thumbnails'
 import { Importer } from './services/importer'
 import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
-import { safeDir } from './services/paths'
+import { safeDir, materialDir } from './services/paths'
 
 import { parseXlsx } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
@@ -112,12 +112,22 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle('folders:list', (_e, no: string) => folderRepo.list(no))
   ipcMain.handle('folders:create', (_e, no: string, path: string) => folderRepo.create(no, path))
-  ipcMain.handle('folders:rename', (_e, no: string, path: string, newName: string) => folderRepo.rename(no, path, newName))
+  ipcMain.handle('folders:rename', async (_e, no: string, path: string, newName: string) => {
+    const moves = await folderRepo.rename(no, path, newName)
+    for (const mv of moves) {
+      const src = join(dataRoot, mv.oldRelPath)
+      const dest = join(dataRoot, mv.newRelPath)
+      if (!existsSync(src) || src === dest) continue
+      mkdirSync(dirname(dest), { recursive: true })
+      try { renameSync(src, dest) } catch { /* ignore: source missing or already moved */ }
+    }
+  })
   ipcMain.handle('folders:remove', async (_e, no: string, path: string) => {
     for (const m of await folderRepo.remove(no, path)) {
       try { unlinkSync(join(dataRoot, m.relPath)) } catch { /* ignore */ }
       if (m.thumbPath) { try { unlinkSync(join(dataRoot, m.thumbPath)) } catch { /* ignore */ } }
     }
+    try { rmdirSync(materialDir(dataRoot, no, path), { recursive: true }) } catch { /* ignore: dir missing or not empty */ }
   })
   ipcMain.handle('materials:move', (_e, id: number, folder: string) => importer.moveToFolder(id, folder))
 
