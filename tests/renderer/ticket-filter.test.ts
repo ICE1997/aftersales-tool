@@ -40,6 +40,14 @@ describe('applyFilter', () => {
   it('type multi-select', () => {
     expect(ids(applyFilter(list, f({ types: ['退款'] })))).toEqual(['A', 'C'])
   })
+  it('reason multi-select', () => {
+    const rs = [
+      mk({ aftersaleNo: 'R1', aftersaleReason: '质量问题' }),
+      mk({ aftersaleNo: 'R2', aftersaleReason: '少件' }),
+      mk({ aftersaleNo: 'R3', aftersaleReason: '质量问题' }),
+    ]
+    expect(ids(applyFilter(rs, f({ reasons: ['质量问题'] })))).toEqual(['R1', 'R3'])
+  })
   it('shipping-status multi-select', () => {
     expect(ids(applyFilter(list, f({ shippingStatuses: ['已发货'] })))).toEqual(['B', 'C'])
   })

@@ -1,6 +1,6 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell } from 'electron'
-import { join, basename, extname, dirname } from 'node:path'
-import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync, renameSync, rmdirSync } from 'node:fs'
+import { join, basename, extname } from 'node:path'
+import { mkdirSync, existsSync, cpSync, rmSync, unlinkSync, rmdirSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { mediaUrl } from './media-url'
 import { handleMediaProtocol } from './media-protocol'
@@ -15,6 +15,8 @@ import { Importer } from './services/importer'
 import { Exporter } from './services/exporter'
 import { Scanner } from './services/scanner'
 import { safeDir, materialDir } from './services/paths'
+import { ensureFolderDir, ensureRootDir, renameFolderDir } from './services/material-fs'
+import { joinPath, parentPath, normalizeSegment } from '../shared/folder-path'
 
 import { parseXlsx } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
@@ -103,7 +105,7 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('stats:regionCounts', (_e, level: import('../shared/types').RegionLevel) => statsRepo.regionCounts(level))
   ipcMain.handle('stats:summary', () => statsRepo.summary())
 
-  ipcMain.handle('materials:list', (_e, no: string) => materials.listByTicket(no))
+  ipcMain.handle('materials:list', (_e, no: string) => { ensureRootDir(dataRoot, no); return materials.listByTicket(no) })
   ipcMain.handle('materials:remove', (_e, id: number) => materials.remove(id))
   ipcMain.handle('materials:fileUrl', (_e, relPath: string) => mediaUrl(relPath))
 
@@ -122,16 +124,14 @@ export async function registerIpc(): Promise<void> {
   })
 
   ipcMain.handle('folders:list', (_e, no: string) => folderRepo.list(no))
-  ipcMain.handle('folders:create', (_e, no: string, path: string) => folderRepo.create(no, path))
+  ipcMain.handle('folders:create', async (_e, no: string, path: string) => {
+    await folderRepo.create(no, path)
+    ensureFolderDir(dataRoot, no, path)
+  })
   ipcMain.handle('folders:rename', async (_e, no: string, path: string, newName: string) => {
-    const moves = await folderRepo.rename(no, path, newName)
-    for (const mv of moves) {
-      const src = join(dataRoot, mv.oldRelPath)
-      const dest = join(dataRoot, mv.newRelPath)
-      if (!existsSync(src) || src === dest) continue
-      mkdirSync(dirname(dest), { recursive: true })
-      try { renameSync(src, dest) } catch { /* ignore: source missing or already moved */ }
-    }
+    await folderRepo.rename(no, path, newName) // updates DB folder/rel_path; throws on clash/invalid name
+    const newPath = joinPath(parentPath(path), normalizeSegment(newName))
+    renameFolderDir(dataRoot, no, path, newPath)
   })
   ipcMain.handle('folders:remove', async (_e, no: string, path: string) => {
     for (const m of await folderRepo.remove(no, path)) {
@@ -161,6 +161,18 @@ export async function registerIpc(): Promise<void> {
     return true
   })
 
+  // Copy absolute paths to the clipboard (e.g. to paste into 拼多多 upload dialogs).
+  ipcMain.handle('clipboard:copyMaterialPath', (_e, relPath: string) => {
+    const abs = join(dataRoot, relPath)
+    clipboard.writeText(abs)
+    return abs
+  })
+  ipcMain.handle('clipboard:copyDirPath', (_e, no: string, folder: string) => {
+    const abs = materialDir(dataRoot, no, folder)
+    clipboard.writeText(abs)
+    return abs
+  })
+
   ipcMain.handle('scan:calibrate', (_e, no: string) => scanner.calibrateTicket(no))
 
   ipcMain.handle('settings:getDataRoot', () => settings.getDataRoot())
@@ -183,5 +195,11 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('shell:showItem', (_e, relPath: string) => shell.showItemInFolder(join(dataRoot, relPath)))
   ipcMain.handle('shell:openChrome', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) openInChrome(url)
+  })
+
+  // Open a ticket's material directory (folder='' = its root) in the OS file manager.
+  ipcMain.handle('shell:openMaterialDir', async (_e, no: string, folder: string) => {
+    ensureFolderDir(dataRoot, no, folder)
+    await shell.openPath(materialDir(dataRoot, no, folder))
   })
 }

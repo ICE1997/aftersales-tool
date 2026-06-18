@@ -12,11 +12,12 @@ import { TicketFilterBar } from '../components/TicketFilterBar'
 import { AppliedTimePanel } from '../components/AppliedTimePanel'
 import { applyFilter, EMPTY_FILTER, type TicketFilter } from '../ticket-filter'
 import { presetRange } from '../date-presets'
+import { useSessionState } from '../use-session-state'
 
 export function TicketsView() {
   const [tickets, setTickets] = useState<Ticket[]>([])
-  const [view, setView] = useState<'list' | 'detail'>('list')
-  const [selected, setSelected] = useState<string | undefined>()
+  const [view, setView] = useSessionState<'list' | 'detail'>('vh.view', 'list')
+  const [selected, setSelected] = useSessionState<string | undefined>('vh.selected', undefined)
   const [newOpen, setNewOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)

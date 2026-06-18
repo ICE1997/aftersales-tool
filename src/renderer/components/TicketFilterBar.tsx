@@ -1,7 +1,7 @@
 import { MultiSelectMenu } from './MultiSelectMenu'
 import { DateRangeField } from './DateFields'
 import { STATUS_ORDER } from '../status'
-import { TYPE_OPTIONS, SHIPPING_OPTIONS } from '../aftersale-options'
+import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS } from '../aftersale-options'
 import { EMPTY_FILTER, isFilterActive, type TicketFilter } from '../ticket-filter'
 import type { TicketStatus } from '@shared/types'
 
@@ -18,6 +18,10 @@ export function TicketFilterBar({ filter, onChange }: Props) {
       <MultiSelectMenu
         label="类型" options={TYPE_OPTIONS} selected={filter.types}
         onChange={(v) => onChange({ ...filter, types: v })}
+      />
+      <MultiSelectMenu
+        label="原因" options={REASON_OPTIONS} selected={filter.reasons}
+        onChange={(v) => onChange({ ...filter, reasons: v })}
       />
       <MultiSelectMenu
         label="发货状态" options={SHIPPING_OPTIONS} selected={filter.shippingStatuses}
