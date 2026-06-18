@@ -64,12 +64,12 @@ export class FileTree {
     rmSync(materialDir(this.dataRoot, no, path), { recursive: true, force: true })
   }
 
-  addFile(no: string, srcPath: string, folder: string): Material {
-    return this.place(no, folder, extname(srcPath), basename(srcPath, extname(srcPath)), (abs) => copyFileSync(srcPath, abs))
+  addFile(no: string, srcPath: string, name: string, folder: string): Material {
+    return this.place(no, folder, extname(srcPath), name || basename(srcPath, extname(srcPath)), (abs) => copyFileSync(srcPath, abs))
   }
 
-  addBytes(no: string, fileName: string, buffer: Buffer, folder: string): Material {
-    return this.place(no, folder, extname(fileName), basename(fileName, extname(fileName)), (abs) => writeFileSync(abs, buffer))
+  addBytes(no: string, fileName: string, buffer: Buffer, name: string, folder: string): Material {
+    return this.place(no, folder, extname(fileName), name || basename(fileName, extname(fileName)), (abs) => writeFileSync(abs, buffer))
   }
 
   private place(no: string, folder: string, ext: string, rawStem: string, write: (abs: string) => void): Material {

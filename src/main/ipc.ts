@@ -111,8 +111,8 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle('materials:create', async (_e, no: string, payload: CreateMaterialPayload) => {
     const folder = payload.folder ?? ''
-    if (payload.source === 'file') return fileTree.addFile(no, payload.path, folder)
-    if (payload.source === 'paste') return fileTree.addBytes(no, payload.fileName, Buffer.from(payload.bytes), folder)
+    if (payload.source === 'file') return fileTree.addFile(no, payload.path, payload.name, folder)
+    if (payload.source === 'paste') return fileTree.addBytes(no, payload.fileName, Buffer.from(payload.bytes), payload.name, folder)
     throw new Error('unknown material source')
   })
 

@@ -12,7 +12,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }))
 
 it('lists folders (incl empty) and files with derived metadata', () => {
   ft.createFolder(NO, '凭证/聊天')
-  ft.addBytes(NO, 'a.png', Buffer.from('x'), '凭证')
+  ft.addBytes(NO, 'a.png', Buffer.from('x'), '', '凭证')
   const { folders, materials } = ft.list(NO)
   expect(folders.sort()).toEqual(['凭证', '凭证/聊天'])
   expect(materials).toHaveLength(1)
@@ -29,14 +29,14 @@ it('skips dot-files/dirs when scanning', () => {
 })
 
 it('dedupes a filename collision on addBytes', () => {
-  const m1 = ft.addBytes(NO, 'a.png', Buffer.from('1'), '')
-  const m2 = ft.addBytes(NO, 'a.png', Buffer.from('2'), '')
+  const m1 = ft.addBytes(NO, 'a.png', Buffer.from('1'), '', '')
+  const m2 = ft.addBytes(NO, 'a.png', Buffer.from('2'), '', '')
   expect(m1.name).toBe('a.png'); expect(m2.name).toBe('a-1.png')
 })
 
 it('moveMaterial moves the file and returns the new relPath', () => {
   ft.createFolder(NO, '凭证')
-  const m = ft.addBytes(NO, 'a.png', Buffer.from('x'), '')
+  const m = ft.addBytes(NO, 'a.png', Buffer.from('x'), '', '')
   const moved = ft.moveMaterial(NO, m.relPath, '凭证')
   expect(moved.folder).toBe('凭证')
   expect(existsSync(join(root, moved.relPath))).toBe(true)
@@ -47,7 +47,7 @@ it('renameFolder / moveFolder cascade on disk; move rejects self/descendant/clas
   // Setup: create 凭证/聊天 and 物流, add a file under 凭证/聊天
   ft.createFolder(NO, '凭证/聊天')
   ft.createFolder(NO, '物流')
-  ft.addBytes(NO, 'a.png', Buffer.from('x'), '凭证/聊天')
+  ft.addBytes(NO, 'a.png', Buffer.from('x'), '', '凭证/聊天')
 
   // Move 凭证/聊天 → under 物流; should produce 物流/聊天
   ft.moveFolder(NO, '凭证/聊天', '物流')
@@ -62,7 +62,7 @@ it('renameFolder / moveFolder cascade on disk; move rejects self/descendant/clas
 })
 
 it('removeFolder deletes the subtree; removeMaterial deletes the file', () => {
-  ft.createFolder(NO, '凭证'); const m = ft.addBytes(NO, 'a.png', Buffer.from('x'), '凭证')
+  ft.createFolder(NO, '凭证'); const m = ft.addBytes(NO, 'a.png', Buffer.from('x'), '', '凭证')
   ft.removeMaterial(m.relPath); expect(existsSync(join(root, m.relPath))).toBe(false)
   ft.removeFolder(NO, '凭证'); expect(ft.list(NO).folders).toEqual([])
 })
