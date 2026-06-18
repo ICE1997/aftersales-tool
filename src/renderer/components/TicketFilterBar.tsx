@@ -1,7 +1,8 @@
 import { MultiSelectMenu } from './MultiSelectMenu'
+import { DateRangeField } from './DateFields'
 import { STATUS_ORDER } from '../status'
 import { TYPE_OPTIONS, SHIPPING_OPTIONS } from '../aftersale-options'
-import { EMPTY_FILTER, isFilterActive, dayStartMs, dayEndMs, msToDateInput, type TicketFilter } from '../ticket-filter'
+import { EMPTY_FILTER, isFilterActive, type TicketFilter } from '../ticket-filter'
 import type { TicketStatus } from '@shared/types'
 
 interface Props { filter: TicketFilter; onChange: (f: TicketFilter) => void }
@@ -22,20 +23,11 @@ export function TicketFilterBar({ filter, onChange }: Props) {
         label="发货状态" options={SHIPPING_OPTIONS} selected={filter.shippingStatuses}
         onChange={(v) => onChange({ ...filter, shippingStatuses: v })}
       />
-      <div className="flex items-center gap-1.5 text-sm text-muted">
-        <span>申请时间</span>
-        <input
-          type="date" aria-label="申请时间起" className="field tnum w-[140px] py-1"
-          value={msToDateInput(filter.appliedFrom)}
-          onChange={(e) => onChange({ ...filter, appliedFrom: dayStartMs(e.target.value) })}
-        />
-        <span>至</span>
-        <input
-          type="date" aria-label="申请时间止" className="field tnum w-[140px] py-1"
-          value={msToDateInput(filter.appliedTo)}
-          onChange={(e) => onChange({ ...filter, appliedTo: dayEndMs(e.target.value) })}
-        />
-      </div>
+      <DateRangeField
+        from={filter.appliedFrom}
+        to={filter.appliedTo}
+        onChange={(appliedFrom, appliedTo) => onChange({ ...filter, appliedFrom, appliedTo })}
+      />
       <button
         className="btn-ghost px-3 py-1.5 text-sm disabled:opacity-40"
         disabled={!active}

@@ -6,6 +6,7 @@ import { MaterialGrid } from './MaterialGrid'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
 import { RegionCascader, type RegionValue } from './RegionCascader'
+import { DateTimeField } from './DateFields'
 import { extractContact } from '../contact-extract'
 import { regionLabel } from '../region'
 import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal } from './icons'
@@ -291,7 +292,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             </InfoRow>
             <InfoRow label="申请时间">
               {editing
-                ? <input className="field tnum py-1.5" type="datetime-local" step="1" value={form.appliedAt} onChange={(e) => setForm((f) => ({ ...f, appliedAt: e.target.value }))} />
+                ? <DateTimeField value={form.appliedAt} onChange={(v) => setForm((f) => ({ ...f, appliedAt: v }))} />
                 : <Value v={formatMs(ticket.appliedAt)} />}
             </InfoRow>
             <InfoRow label="退货物流状态">
