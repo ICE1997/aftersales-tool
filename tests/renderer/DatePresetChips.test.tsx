@@ -10,6 +10,8 @@ describe('DatePresetChips', () => {
     for (const label of ['今日', '昨日', '近7日', '近30日', '近90日']) {
       expect(screen.getByRole('button', { name: label })).toBeTruthy()
     }
+    const buttons = screen.getAllByRole('button')
+    expect(buttons.map((b) => b.textContent)).toEqual(['今日', '昨日', '近7日', '近30日', '近90日'])
   })
 
   it('marks the active chip with aria-pressed', () => {
