@@ -97,6 +97,16 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     if (!ticket || !ticket.orderNo) return
     api.openInChrome(`https://mms.pinduoduo.com/orders/detail?sn=${encodeURIComponent(ticket.orderNo)}`)
   }
+  function openChat() {
+    if (!ticket || !ticket.orderNo) return
+    api.openInChrome(`https://mms.pinduoduo.com/mms-chat/search?ordersn=${encodeURIComponent(ticket.orderNo)}`)
+  }
+  function openAppeal() {
+    api.openInChrome('https://mms.pinduoduo.com/orders/appeals/aftersale')
+  }
+  function openCompensation() {
+    api.openInChrome('https://mms.pinduoduo.com/aftersales/customer_complain_appeal')
+  }
   function startEdit() {
     if (!ticket) return
     setForm({
@@ -167,6 +177,15 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           </button>
           <button className="btn-ghost px-2.5 disabled:opacity-50" onClick={openOrder} disabled={!ticket.orderNo} title="在拼多多打开订单详情">
             <IconExternal className="text-[15px]" /> 订单详情
+          </button>
+          <button className="btn-ghost px-2.5 disabled:opacity-50" onClick={openChat} disabled={!ticket.orderNo} title="在拼多多打开客户聊天记录">
+            <IconExternal className="text-[15px]" /> 聊天记录
+          </button>
+          <button className="btn-ghost px-2.5" onClick={openAppeal} title="在拼多多打开售后申诉">
+            <IconExternal className="text-[15px]" /> 售后申诉
+          </button>
+          <button className="btn-ghost px-2.5" onClick={openCompensation} title="在拼多多打开消费者负向体验补偿明细">
+            <IconExternal className="text-[15px]" /> 负向补偿
           </button>
           <button className="btn-danger px-2.5" onClick={() => setConfirmDelete(true)}>
             <IconTrash className="text-[15px]" /> 删除
