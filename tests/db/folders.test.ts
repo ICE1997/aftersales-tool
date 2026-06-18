@@ -61,6 +61,15 @@ describe('FolderRepo', () => {
     expect(moves).toEqual([{ oldRelPath: 'AS-1/images/legacy.jpg', newRelPath: 'AS-1/证据/legacy.jpg' }])
   })
 
+  it('rename rejects when two materials would collide at the same rel_path', async () => {
+    await folders.create('AS-1', '凭证')
+    // legacy material: empty name, basename is legacy.jpg
+    await materials.add({ aftersaleNo: 'AS-1', name: '', relPath: 'AS-1/images/legacy.jpg', kind: 'image', folder: '凭证', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    // named material: name='legacy', ext=.jpg — after rename both would map to AS-1/证据/legacy.jpg
+    await materials.add({ aftersaleNo: 'AS-1', name: 'legacy', relPath: 'AS-1/凭证/legacy.jpg', kind: 'image', folder: '凭证', capturedAt: null, importedAt: 1, sizeBytes: 1, thumbPath: null })
+    await expect(folders.rename('AS-1', '凭证', '证据')).rejects.toThrow(/重名/)
+  })
+
   it('remove deletes the subtree and returns affected materials', async () => {
     await folders.create('AS-1', '凭证/聊天')
     await folders.create('AS-1', '物流')

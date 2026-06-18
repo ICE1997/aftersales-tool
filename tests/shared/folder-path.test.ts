@@ -8,6 +8,9 @@ describe('folder-path', () => {
     expect(() => normalizeSegment('a/b')).toThrow()
     expect(() => normalizeSegment('..')).toThrow()
     expect(() => normalizeSegment('.')).toThrow()
+    expect(() => normalizeSegment('a:b')).toThrow()
+    expect(() => normalizeSegment('a*b')).toThrow()
+    expect(() => normalizeSegment('name.')).toThrow()
   })
   it('joinPath / parentPath / folderName', () => {
     expect(joinPath('', '凭证')).toBe('凭证')

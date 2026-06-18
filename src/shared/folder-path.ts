@@ -1,6 +1,9 @@
+// eslint-disable-next-line no-control-regex -- intentional: reject control chars in folder names
+const ILLEGAL_SEG = /[<>:"/\\|?*\x00-\x1f]/
+
 export function normalizeSegment(name: string): string {
   const s = name.trim()
-  if (!s || s.includes('/') || s === '.' || s === '..') throw new Error('非法的文件夹名')
+  if (!s || s === '.' || s === '..' || ILLEGAL_SEG.test(s) || s.endsWith('.')) throw new Error('非法的文件夹名')
   return s
 }
 export function joinPath(parent: string, name: string): string {

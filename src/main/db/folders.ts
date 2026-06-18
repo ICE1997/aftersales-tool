@@ -36,12 +36,15 @@ export class FolderRepo {
       const fs = (await trx('material_folders').select('id', 'path').where('aftersale_no', aftersaleNo)) as { id: number; path: string }[]
       for (const f of fs) if (isUnderOrEqual(f.path, path)) await trx('material_folders').where('id', f.id).update({ path: rewritePrefix(f.path, path, newPath) })
       const ms = (await trx('materials').select('id', 'name', { relPath: 'rel_path' }, 'folder').where('aftersale_no', aftersaleNo)) as { id: number; name: string; relPath: string; folder: string }[]
+      const seenRels = new Set<string>()
       for (const m of ms) {
         if (!isUnderOrEqual(m.folder, path)) continue
         const newFolder = rewritePrefix(m.folder, path, newPath)
         const ext = extname(m.relPath)
         const stem = m.name || basename(m.relPath, ext)
         const newRel = materialRelPath(aftersaleNo, newFolder, stem, ext)
+        if (seenRels.has(newRel)) throw new Error('重命名后会产生重名材料，请先调整冲突的材料名称')
+        seenRels.add(newRel)
         await trx('materials').where('id', m.id).update({ folder: newFolder, rel_path: newRel })
         if (newRel !== m.relPath) moves.push({ oldRelPath: m.relPath, newRelPath: newRel })
       }
