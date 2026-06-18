@@ -1,4 +1,4 @@
-export type MaterialKind = 'image' | 'video'
+export type MaterialKind = 'image' | 'video' | 'other'
 export type TicketStatus =
   | '待商家处理' | '待商家收货' | '待消费者发货' | '平台处理中'
   | '退款成功' | '退款关闭' | '换货/补寄成功' | '换货/补寄关闭' | '维修成功' | '维修关闭'
@@ -47,16 +47,12 @@ export type Ticket = {
 } & CustomerFields & AftersaleFields
 
 export interface Material {
-  id: number
-  aftersaleNo: string
-  name: string
   relPath: string
-  kind: MaterialKind
-  capturedAt: number | null
-  importedAt: number
-  sizeBytes: number
-  thumbPath: string | null
   folder: string
+  name: string
+  kind: MaterialKind
+  sizeBytes: number
+  modifiedAt: number
 }
 
 export interface ImportResult {
