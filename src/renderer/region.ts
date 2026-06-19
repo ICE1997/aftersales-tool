@@ -1,4 +1,5 @@
-export interface Region { code: string; name: string; parent: string }
+import { REGIONS as ALL, type Region } from '@shared/region-data'
+export type { Region } from '@shared/region-data'
 
 /** Pure: children of `parentCode` within `list` (parent '' = top-level provinces). */
 export function childrenOfIn(list: Region[], parentCode: string): Region[] {
@@ -9,9 +10,6 @@ export function childrenOfIn(list: Region[], parentCode: string): Region[] {
 export function regionLabel(parts: { province?: string; city?: string; district?: string }): string {
   return [parts.province, parts.city, parts.district].filter((s) => s && s.length > 0).join(' · ')
 }
-
-import data from './china-divisions.json'
-const ALL = data as Region[]
 
 /** Children of `parentCode` in the bundled dataset (default '' = provinces). */
 export function childrenOf(parentCode = ''): Region[] {
