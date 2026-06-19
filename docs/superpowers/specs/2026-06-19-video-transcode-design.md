@@ -14,25 +14,35 @@
 - **触发**:**手动**。选中含视频的材料 → 工具栏「转码」→ **参数对话框**。一套参数应用到所选的全部视频,**顺序排队**逐个转。
 - **不做**:时长裁剪/剪辑、转码替换原文件、导入时自动转码、全局队列面板。
 
-## 转码对话框(用户可调参数)
+## 转码对话框(高自由度可调)
 
-| 参数 | 选项 | 默认 |
+设计原则:**给用户最大自由度** —— 关键参数都可改,同时有合理默认,新手直接用默认也能出可上传的 mp4。
+
+| 参数 | 选项 / 输入 | 默认 |
 |---|---|---|
-| 输出格式 | `mp4·H.264`(拼多多兼容+可预览)/ `mp4·H.265`(更小,Windows 预览/兼容差,带提示)/ `webm·VP9` / `mov·H.264` | mp4·H.264 |
-| 分辨率上限 | 原始 / 1080p / 720p / 480p(只缩小、保持比例、偶数化;长边上限 1920/1280/854) | 原始 |
-| 画质 | 高 / 中 / 低(映射到 CRF) | 中 |
-| 帧率 | 原始 / 30 / 24 | 原始 |
+| 输出格式 | 下拉(容器·编码):`mp4·H.264`(拼多多兼容+可预览)/ `mp4·H.265` / `mov·H.264` / `mov·H.265` / `webm·VP9` / `mkv·H.264` / `mkv·H.265` | mp4·H.264 |
+| 分辨率 | 原始 / 1080p / 720p / 480p / **自定义**(填长边像素,或 宽×高);只缩不放、保持比例、偶数化(长边预设=1920/1280/854) | 原始 |
+| 画质模式(二选一) | **质量(CRF)**:数值输入(0–51,越小越清越大;默认随编码 x264=23/x265=28/vp9=33) ‖ **目标码率**:kbps 输入(如 4000) | 质量(CRF) |
+| 帧率 | 原始 / 60 / 30 / 24 / **自定义** fps | 原始 |
+| 音频 | 重编码(mp4/mov→AAC、webm→Opus) / **保留原音轨(copy)** / **去掉音频** | 重编码 |
 | 输出文件名 | 文本(默认派生,如 `原名-720p`),同名去重 | 派生 |
+| 高级:附加 ffmpeg 参数(默认折叠) | 文本,原样按空格切分追加到命令(空=不影响);带"高级/后果自负"提示 | 空 |
 
-- 音频自动重编码,不暴露:mp4/mov → AAC;webm → libopus。
-- 选 H.265/webm 时对话框给一行兼容性提示(避免又转出 Windows 播不了的)。
-- CRF 映射:x264 高/中/低 = 20/23/28;x265 = 24/28/32;vp9 = 28/33/38(配 `-b:v 0`)。
+- 选 H.265 / webm / mkv 时对话框给一行兼容性提示(避免又转出 Windows 播不了 / 拼多多不收的)。
+- 默认(mp4·H.264 + 原始分辨率 + CRF 23 + 原始帧率 + 重编码音频)= 一键出可上传可预览的 mp4。
 
 ## 架构 / 数据流
 
 - **`Transcoder` 服务(主进程,新)**:用 `FFMPEG` 路径跑 ffmpeg。`transcode(srcAbs, destAbs, opts, onProgress, signal): Promise<void>`,以 `signal`(AbortSignal)支持取消(杀进程)。
 - **纯函数(可单测,不跑 ffmpeg)**:
-  - `buildTranscodeArgs(srcAbs, destAbs, opts): string[]` —— 由参数拼 ffmpeg 参数数组(`-c:v libx264/libx265/libvpx-vp9`、`-crf`、分辨率 `-vf scale=...:force_original_aspect_ratio=decrease` + 偶数化、`-r`、音频编码、mp4 加 `-movflags +faststart`)。
+  - `buildTranscodeArgs(srcAbs, destAbs, opts): string[]` —— 由参数拼 ffmpeg 参数数组:
+    - 编码 `-c:v libx264 / libx265 / libvpx-vp9`;
+    - 画质模式:CRF → `-crf N`(vp9 再加 `-b:v 0`);码率 → `-b:v {kbps}k`;
+    - 分辨率(非"原始"):`-vf scale=...:force_original_aspect_ratio=decrease` + 偶数化(自定义=按填的长边或宽×高);
+    - 帧率(非"原始"):`-r {fps}`;
+    - 音频:重编码 `-c:a aac`/`libopus` ‖ 保留 `-c:a copy` ‖ 去掉 `-an`;
+    - mp4/mov 加 `-movflags +faststart`;
+    - 末尾追加"附加 ffmpeg 参数"(按空格切分;空则忽略)。
   - `parseDurationMs(stderrChunk): number | null` 与 `parseProgressMs(stderrChunk): number | null` —— 从 ffmpeg stderr 解析 `Duration:` 与 `time=`,百分比 = `progressMs / durationMs`(0–100,封顶 100)。
 - **IPC**:
   - `materials:transcode(no, relPath, opts) -> Material` —— 计算目标文件名(同目录、去重)、启动 ffmpeg、完成后返回新材料;过程中通过 `transcode:progress` 事件推 `{ relPath, percent }`。
@@ -57,9 +67,9 @@
 
 ## 测试
 
-- 单测(纯、快):`buildTranscodeArgs`(各参数组合 → 期望 arg 数组的关键片段)、`parseDurationMs`/`parseProgressMs`(样例 stderr 行 → 毫秒/百分比)、文件名去重。
+- 单测(纯、快):`buildTranscodeArgs`(覆盖 各编码 / CRF vs 码率 / 原始与自定义分辨率 / 帧率 / 三种音频模式 / 附加参数追加 / mp4 faststart)、`parseDurationMs`/`parseProgressMs`(样例 stderr 行 → 毫秒/百分比)、文件名去重。
 - 集成(可选,1 个):用 ffmpeg 生成一段极短测试视频,跑一次真实转码,断言输出文件存在且可被 ffmpeg 读取。
 
 ## 不做(YAGNI)
 
-- 剪辑/裁剪、替换原文件、导入自动转码、转码队列面板、码率手填(用画质预设)、转码结果体积预估、ffprobe(时长从 ffmpeg stderr 解析)。
+- 剪辑/裁剪、替换原文件、导入自动转码、全局转码队列面板、转码结果体积预估、ffprobe(时长从 ffmpeg stderr 解析)。
