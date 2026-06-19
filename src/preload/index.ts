@@ -1,8 +1,10 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { Ticket, Material, MaterialKind, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary, ImportTicketsResult } from '../shared/types'
 
 const api = {
   appVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
+  /** Real filesystem path of a dropped/selected File (Electron's contextIsolation-safe way). */
+  pathForFile: (file: File): string => webUtils.getPathForFile(file),
   /** Subscribe to native-menu actions (设置/关于). Returns an unsubscribe fn. */
   onMenu: (cb: (which: string) => void): (() => void) => {
     const h = (_e: unknown, which: string): void => cb(which)

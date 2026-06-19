@@ -85,6 +85,16 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     const path = currentFolder ? `${currentFolder}/${name.trim()}` : name.trim()
     try { await api.createFolder(aftersaleNo, path); await reload() } catch (e) { setMsg(`新建文件夹失败:${(e as Error).message}`) }
   }
+  // Files dragged from the OS file manager onto the grid → copy into the current folder (keep their names).
+  async function addDroppedFiles(paths: string[]) {
+    let ok = 0
+    for (const path of paths) {
+      try { await api.createMaterial(aftersaleNo, { source: 'file', path, name: '', folder: currentFolder }); ok++ }
+      catch (e) { setMsg(`添加失败:${(e as Error).message}`) }
+    }
+    await reload()
+    if (ok) setMsg(`已添加 ${ok} 个材料`)
+  }
   async function renameFolder(path: string, newName: string) {
     try { await api.renameFolder(aftersaleNo, path, newName); await reload() } catch (e) { setMsg(`重命名失败:${(e as Error).message}`) }
   }
@@ -407,6 +417,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               onOpenDir={(folder) => void api.openMaterialDir(aftersaleNo, folder)}
               onCopyDirPath={(folder) => void api.copyDirPath(aftersaleNo, folder).then(() => setMsg('已复制目录路径到剪贴板'))}
               onCopyMaterialPath={(relPath) => void api.copyMaterialPath(relPath).then(() => setMsg('已复制材料路径到剪贴板'))}
+              onAddFiles={addDroppedFiles}
             />
           </div>
         </div>

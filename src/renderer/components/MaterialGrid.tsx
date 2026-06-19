@@ -26,6 +26,7 @@ interface Props {
   onOpenDir: (folder: string) => void
   onCopyDirPath: (folder: string) => void
   onCopyMaterialPath: (relPath: string) => void
+  onAddFiles: (paths: string[]) => void
 }
 
 function Thumb({ m }: { m: Material }) {
@@ -83,7 +84,8 @@ function CrumbDrop({ path, children }: { path: string; children: ReactNode }) {
   return <span ref={setNodeRef} className={`rounded-md ${isOver ? 'ring-2 ring-accent ring-offset-1 ring-offset-paper' : ''}`}>{children}</span>
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onDeleteMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath }: Props) {
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onDeleteMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath, onAddFiles }: Props) {
+  const [osDragOver, setOsDragOver] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -154,7 +156,20 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-    <div className="p-6">
+    <div className="relative p-6"
+      onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOsDragOver(true) } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setOsDragOver(false) }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return
+        e.preventDefault(); setOsDragOver(false)
+        const paths = Array.from(e.dataTransfer.files).map((f) => api.pathForFile(f)).filter(Boolean)
+        if (paths.length) onAddFiles(paths)
+      }}>
+      {osDragOver && (
+        <div className="pointer-events-none absolute inset-2 z-30 grid place-items-center rounded-xl2 border-2 border-dashed border-accent bg-paper/80 backdrop-blur-sm">
+          <div className="text-sm font-semibold text-accent-ink">松开以添加到当前目录</div>
+        </div>
+      )}
       {/* breadcrumbs (each is also a drop target — drop a file/folder here to move it there) */}
       <div className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted">
         {crumbs.map((c, i) => (
