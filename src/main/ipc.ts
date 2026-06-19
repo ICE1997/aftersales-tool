@@ -170,8 +170,8 @@ export async function registerIpc(): Promise<void> {
     return true
   })
 
-  ipcMain.handle('export:zip', async (_e, relPaths: string[], folders: string[] = []) => {
-    const r = await dialog.showSaveDialog({ defaultPath: 'materials.zip' })
+  ipcMain.handle('export:zip', async (_e, no: string, relPaths: string[], folders: string[] = []) => {
+    const r = await dialog.showSaveDialog({ defaultPath: `${safeDir(no)}.zip` })
     if (r.canceled || !r.filePath) return false
     await exporter.toZip(relPaths, r.filePath, folders)
     return true

@@ -42,7 +42,7 @@ const api = {
     return () => ipcRenderer.removeListener('transcode:progress', h)
   },
   exportFolder: (relPaths: string[], folders: string[] = []): Promise<boolean> => ipcRenderer.invoke('export:folder', relPaths, folders),
-  exportZip: (relPaths: string[], folders: string[] = []): Promise<boolean> => ipcRenderer.invoke('export:zip', relPaths, folders),
+  exportZip: (no: string, relPaths: string[], folders: string[] = []): Promise<boolean> => ipcRenderer.invoke('export:zip', no, relPaths, folders),
   copyImage: (relPath: string): Promise<boolean> => ipcRenderer.invoke('clipboard:copyImage', relPath),
   copyMaterialPath: (relPath: string): Promise<string> => ipcRenderer.invoke('clipboard:copyMaterialPath', relPath),
   copyDirPath: (no: string, folder: string): Promise<string> => ipcRenderer.invoke('clipboard:copyDirPath', no, folder),

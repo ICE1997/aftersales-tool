@@ -87,7 +87,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     catch (e) { setMsg(`导出失败:${(e as Error).message}`) }
   }
   async function exportZip() {
-    try { const ok = await api.exportZip(relPaths(), folderPaths()); setMsg(ok ? '已导出压缩包' : null) }
+    try { const ok = await api.exportZip(aftersaleNo, relPaths(), folderPaths()); setMsg(ok ? '已导出压缩包' : null) }
     catch (e) { setMsg(`导出压缩包失败:${(e as Error).message}`) }
   }
 
