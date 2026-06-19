@@ -19,8 +19,9 @@ import { FORMATS } from '../shared/transcode'
 import { folderOfRelPath } from '../shared/material-meta'
 import { assertValidMaterialName } from '../shared/material-path'
 
-import { parseXlsx } from './services/ticket-importer'
+import { parseXlsx, parseSheet } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
+import { detectColumns, planEnrich } from './services/enrich-region'
 import type { Ticket, ImportTicketsResult, MaterialKind, CreateMaterialPayload, RegionLevel, Material } from '../shared/types'
 import type { TranscodeOptions } from '../shared/transcode'
 
@@ -96,6 +97,17 @@ export async function registerIpc(): Promise<void> {
       duplicatedInFile: mapped.duplicatedInFile,
       failed: mapped.failed
     }
+  })
+
+  ipcMain.handle('tickets:enrichRegion', async (): Promise<import('../shared/types').EnrichResult | null> => {
+    const r = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: '数据表', extensions: ['xlsx', 'xls', 'csv'] }] })
+    if (r.canceled || !r.filePaths[0]) return null
+    const grid = parseSheet(r.filePaths[0])
+    if (grid.length < 2) throw new Error('文件没有数据行')
+    const cols = detectColumns(grid[0])
+    const { patches, result } = planEnrich(grid.slice(1), cols, await tickets.list())
+    for (const { aftersaleNo, patch } of patches) await tickets.update(aftersaleNo, patch)
+    return result
   })
 
   ipcMain.handle('tickets:delete', async (_e, no: string) => {

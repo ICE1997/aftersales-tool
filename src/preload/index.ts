@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { Ticket, Material, MaterialKind, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary, ImportTicketsResult } from '../shared/types'
+import type { Ticket, Material, MaterialKind, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary, ImportTicketsResult, EnrichResult } from '../shared/types'
 import type { TranscodeOptions } from '../shared/transcode'
 
 const api = {
@@ -61,6 +61,7 @@ const api = {
   moveMaterial: (no: string, relPath: string, newFolder: string): Promise<void> => ipcRenderer.invoke('materials:move', no, relPath, newFolder),
   renameMaterial: (relPath: string, newName: string): Promise<void> => ipcRenderer.invoke('materials:rename', relPath, newName),
   moveFolder: (no: string, path: string, newParent: string): Promise<void> => ipcRenderer.invoke('folders:move', no, path, newParent),
+  enrichRegion: (): Promise<EnrichResult | null> => ipcRenderer.invoke('tickets:enrichRegion'),
 }
 
 export type Api = typeof api

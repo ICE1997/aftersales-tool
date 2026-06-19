@@ -28,7 +28,7 @@ export function planEnrich(
   for (const row of dataRows) {
     const orderNo = (row[cols.order] ?? '').trim()
     if (!orderNo) continue
-    let p = '', c = '', d = ''
+    let p: string, c: string, d: string
     if (cols.region >= 0) {
       const s = splitRegionCell(row[cols.region] ?? '')
       p = s.p; c = s.c; d = s.d
