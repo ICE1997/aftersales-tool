@@ -49,7 +49,7 @@ export function TicketsView() {
   async function enrich() {
     try {
       const r = await api.enrichRegion()
-      if (r) { setEnrichResult(r); await load() }
+      if (r) { setEnrichResult(r); setError(null); await load() }
     } catch (e) { setError(`补充失败:${(e as Error).message}`) }
   }
 

@@ -39,7 +39,8 @@ export function planEnrich(
     }
     const r = resolveRegion(p, c, d)
     if (!r.province) { unresolved++; continue }
-    if (!regionByOrder.has(orderNo)) { regionByOrder.set(orderNo, r); withRegion++ }
+    withRegion++
+    if (!regionByOrder.has(orderNo)) regionByOrder.set(orderNo, r)
   }
   const patches: { aftersaleNo: string; patch: RegionPatch }[] = []
   const ordersWithTicket = new Set<string>()
