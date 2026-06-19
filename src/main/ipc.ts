@@ -103,6 +103,7 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('materials:fileUrl', (_e, relPath: string) => mediaUrl(relPath))
   ipcMain.handle('materials:remove', (_e, relPath: string) => fileTree.removeMaterial(relPath))
   ipcMain.handle('materials:move', (_e, no: string, relPath: string, newFolder: string) => fileTree.moveMaterial(no, relPath, newFolder))
+  ipcMain.handle('materials:rename', (_e, relPath: string, newName: string) => fileTree.renameMaterial(relPath, newName))
 
   ipcMain.handle('materials:pickFile', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openFile'] })

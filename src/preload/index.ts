@@ -49,6 +49,7 @@ const api = {
   renameFolder: (no: string, path: string, newName: string): Promise<void> => ipcRenderer.invoke('folders:rename', no, path, newName),
   removeFolder: (no: string, path: string): Promise<void> => ipcRenderer.invoke('folders:remove', no, path),
   moveMaterial: (no: string, relPath: string, newFolder: string): Promise<void> => ipcRenderer.invoke('materials:move', no, relPath, newFolder),
+  renameMaterial: (relPath: string, newName: string): Promise<void> => ipcRenderer.invoke('materials:rename', relPath, newName),
   moveFolder: (no: string, path: string, newParent: string): Promise<void> => ipcRenderer.invoke('folders:move', no, path, newParent),
 }
 

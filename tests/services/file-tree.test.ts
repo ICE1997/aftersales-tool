@@ -66,3 +66,16 @@ it('removeFolder deletes the subtree; removeMaterial deletes the file', () => {
   ft.removeMaterial(m.relPath); expect(existsSync(join(root, m.relPath))).toBe(false)
   ft.removeFolder(NO, '凭证'); expect(ft.list(NO).folders).toEqual([])
 })
+
+it('renameMaterial renames the file keeping its extension; rejects a clash', () => {
+  ft.createFolder(NO, '凭证')
+  const m = ft.addBytes(NO, 'a.png', Buffer.from('x'), '', '凭证')
+  const r = ft.renameMaterial(m.relPath, '证据')
+  expect(r.name).toBe('证据.png')
+  expect(r.relPath).toBe(`${NO}/凭证/证据.png`)
+  expect(existsSync(join(root, r.relPath))).toBe(true)
+  expect(existsSync(join(root, m.relPath))).toBe(false)
+  // a second file would clash on rename to the same name
+  ft.addBytes(NO, 'b.png', Buffer.from('y'), '', '凭证')
+  expect(() => ft.renameMaterial(`${NO}/凭证/b.png`, '证据')).toThrow()
+})

@@ -100,6 +100,23 @@ export class FileTree {
     return { relPath: newRel, folder: newFolder, name: dest, kind: kindFromName(dest), sizeBytes: st.size, modifiedAt: st.mtimeMs }
   }
 
+  /** Rename a material in place, keeping its extension (the filename is its name). */
+  renameMaterial(relPath: string, newName: string): Material {
+    const slash = relPath.lastIndexOf('/')
+    const oldName = relPath.slice(slash + 1)
+    const ext = extname(oldName)
+    const newFileName = `${assertValidMaterialName(newName)}${ext}`
+    const srcAbs = join(this.dataRoot, relPath)
+    const destAbs = join(this.dataRoot, relPath.slice(0, slash + 1), newFileName)
+    if (newFileName !== oldName) {
+      if (existsSync(destAbs)) throw new Error('同目录已存在同名文件')
+      renameSync(srcAbs, destAbs)
+    }
+    const newRel = relPath.slice(0, slash + 1) + newFileName
+    const st = statSync(destAbs)
+    return { relPath: newRel, folder: folderOfRelPath(newRel), name: newFileName, kind: kindFromName(newFileName), sizeBytes: st.size, modifiedAt: st.mtimeMs }
+  }
+
   removeMaterial(relPath: string): void {
     try { unlinkSync(join(this.dataRoot, relPath)) } catch { /* already gone */ }
   }

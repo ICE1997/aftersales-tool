@@ -26,6 +26,7 @@ interface Props {
   onOpenDir: (folder: string) => void
   onCopyDirPath: (folder: string) => void
   onCopyMaterialPath: (relPath: string) => void
+  onRenameMaterial: (relPath: string, newName: string) => void
   onAddFiles: (paths: string[]) => void
 }
 
@@ -84,8 +85,11 @@ function CrumbDrop({ path, children }: { path: string; children: ReactNode }) {
   return <span ref={setNodeRef} className={`rounded-md ${isOver ? 'ring-2 ring-accent ring-offset-1 ring-offset-paper' : ''}`}>{children}</span>
 }
 
-export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onDeleteMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath, onAddFiles }: Props) {
+export function MaterialGrid({ materials, folders, currentFolder, selectedIds, selectedFolders, onToggle, onToggleFolder, onOpen, onEnterFolder, onCreateFolder, onRenameFolder, onDeleteFolder, onMoveMaterial, onDeleteMaterial, onMoveFolder, onOpenDir, onCopyDirPath, onCopyMaterialPath, onRenameMaterial, onAddFiles }: Props) {
   const [osDragOver, setOsDragOver] = useState(false)
+  const [renamingMat, setRenamingMat] = useState<string | null>(null)
+  const [renameMatVal, setRenameMatVal] = useState('')
+  const [renameMatErr, setRenameMatErr] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createErr, setCreateErr] = useState<string | null>(null)
@@ -152,6 +156,28 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
     const err = nameError(renameVal, folderName(path))
     if (renameVal.trim() && err) { setRenameErr(err); return }
     commitRename(path)
+  }
+
+  // Material rename (edits the filename stem; the extension is kept).
+  const matStem = (name: string): string => name.replace(/\.[^.]+$/, '')
+  function matNameError(name: string): string | null {
+    const n = name.trim()
+    if (!n) return '名称不能为空'
+    if (/[/\\:*?"<>|]/.test(n) || n === '.' || n === '..') return '名称含非法字符'
+    return null
+  }
+  function startRenameMat(m: Material) { setRenamingMat(m.relPath); setRenameMatVal(matStem(m.name)); setRenameMatErr(null) }
+  function closeRenameMat() { setRenamingMat(null); setRenameMatVal(''); setRenameMatErr(null) }
+  function commitRenameMat(m: Material) {
+    const n = renameMatVal.trim()
+    if (n && n !== matStem(m.name) && !matNameError(n)) onRenameMaterial(m.relPath, n)
+    closeRenameMat()
+  }
+  function onRenameMatKey(e: React.KeyboardEvent, m: Material) {
+    if (e.key === 'Escape') return closeRenameMat()
+    if (e.key !== 'Enter') return
+    if (renameMatVal.trim() && matNameError(renameMatVal)) { setRenameMatErr(matNameError(renameMatVal)); return }
+    commitRenameMat(m)
   }
 
   return (
@@ -279,12 +305,27 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
                     className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink">
                     <IconCopy className="text-[13px]" />
                   </button>
+                  <button onClick={() => startRenameMat(m)} title="重命名" aria-label="重命名"
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-ink">
+                    <IconPencil className="text-[13px]" />
+                  </button>
                   <button onClick={() => setConfirmDelMat(m)} title="删除" aria-label="删除"
                     className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-danger">
                     <IconTrash className="text-[13px]" />
                   </button>
                 </div>
-                <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
+                {renamingMat === m.relPath ? (
+                  <div className="px-2 pb-2 pt-1">
+                    <input autoFocus className={`field h-7 w-full py-1 text-xs ${renameMatErr ? 'border-danger ring-1 ring-danger' : ''}`}
+                      value={renameMatVal}
+                      onChange={(e) => { setRenameMatVal(e.target.value); setRenameMatErr(matNameError(e.target.value)) }}
+                      onKeyDown={(e) => onRenameMatKey(e, m)}
+                      onBlur={() => commitRenameMat(m)} />
+                    {renameMatErr && <p className="mt-1 leading-tight text-[10px] text-danger">{renameMatErr}</p>}
+                  </div>
+                ) : (
+                  <div className="truncate px-2.5 py-2 font-mono text-[11px] text-ink-soft">{m.name || m.relPath.split('/').pop()}</div>
+                )}
               </div>
             </Draggable>
           )
