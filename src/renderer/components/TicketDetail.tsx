@@ -205,6 +205,11 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     if (!ticket || !ticket.orderNo) return
     api.openInChrome(`https://mms.pinduoduo.com/mms-chat/search?ordersn=${encodeURIComponent(ticket.orderNo)}`)
   }
+  // Open the 拼多多 IM desktop app straight to this order's conversation (pddim: custom scheme).
+  function openChatApp() {
+    if (!ticket || !ticket.orderNo) return
+    api.openExternal(`pddim:sendmsg/?OpeId=open_order&ordersn=${encodeURIComponent(ticket.orderNo)}`)
+  }
   function openAppeal() {
     api.openInChrome('https://mms.pinduoduo.com/orders/appeals/aftersale')
   }
@@ -284,6 +289,9 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
           </button>
           <button className="btn-ghost px-2.5 disabled:opacity-50" onClick={openChat} disabled={!ticket.orderNo} title="在拼多多打开客户聊天记录">
             <IconExternal className="text-[15px]" /> 聊天记录
+          </button>
+          <button className="btn-ghost px-2.5 disabled:opacity-50" onClick={openChatApp} disabled={!ticket.orderNo} title="在拼多多聊天工具中发起对话">
+            <IconExternal className="text-[15px]" /> 发起对话
           </button>
           <button className="btn-ghost px-2.5" onClick={openAppeal} title="在拼多多打开售后申诉">
             <IconExternal className="text-[15px]" /> 售后申诉

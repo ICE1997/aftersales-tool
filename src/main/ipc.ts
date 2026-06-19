@@ -234,6 +234,8 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('shell:openChrome', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) openInChrome(url)
   })
+  // Hand a URL to the OS default handler — used for custom schemes like pddim: (拼多多 IM app).
+  ipcMain.handle('shell:openExternal', (_e, url: string) => { void shell.openExternal(url) })
 
   // Open a ticket's material directory (folder='' = its root) in the OS file manager.
   ipcMain.handle('shell:openMaterialDir', async (_e, no: string, folder: string) => {
