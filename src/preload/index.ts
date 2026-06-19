@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { Ticket, Material, MaterialKind, PickedFile, CreateMaterialPayload, NewTicket, RegionLevel, RegionCount, StatsSummary, ImportTicketsResult } from '../shared/types'
+import type { TranscodeOptions } from '../shared/transcode'
 
 const api = {
   appVersion: (): Promise<string> => ipcRenderer.invoke('app:version'),
@@ -31,6 +32,14 @@ const api = {
     const h = (_e: unknown, no: string): void => cb(no)
     ipcRenderer.on('materials:changed', h)
     return () => ipcRenderer.removeListener('materials:changed', h)
+  },
+  transcodeMaterial: (no: string, relPath: string, opts: TranscodeOptions): Promise<Material> => ipcRenderer.invoke('materials:transcode', no, relPath, opts),
+  cancelTranscode: (relPath: string): Promise<void> => ipcRenderer.invoke('materials:cancelTranscode', relPath),
+  /** Subscribe to transcode progress events. Returns an unsubscribe fn. */
+  onTranscodeProgress: (cb: (p: { relPath: string; percent: number }) => void): (() => void) => {
+    const h = (_e: unknown, p: { relPath: string; percent: number }): void => cb(p)
+    ipcRenderer.on('transcode:progress', h)
+    return () => ipcRenderer.removeListener('transcode:progress', h)
   },
   exportFolder: (relPaths: string[], folders: string[] = []): Promise<boolean> => ipcRenderer.invoke('export:folder', relPaths, folders),
   exportZip: (relPaths: string[], folders: string[] = []): Promise<boolean> => ipcRenderer.invoke('export:zip', relPaths, folders),

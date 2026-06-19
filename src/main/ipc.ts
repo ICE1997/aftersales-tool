@@ -1,6 +1,6 @@
 import { ipcMain, app, dialog, clipboard, nativeImage, shell, BrowserWindow } from 'electron'
 import { join, basename, extname } from 'node:path'
-import { mkdirSync, existsSync, cpSync, rmSync } from 'node:fs'
+import { mkdirSync, existsSync, cpSync, rmSync, readdirSync, statSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { mediaUrl } from './media-url'
 import { handleMediaProtocol } from './media-protocol'
@@ -13,10 +13,15 @@ import { Exporter } from './services/exporter'
 import { FileTree } from './services/file-tree'
 import { MaterialWatcher } from './services/material-watch'
 import { safeDir, materialDir } from './services/paths'
+import { Transcoder } from './services/transcoder'
+import { dedupeName } from './services/transcode-args'
+import { FORMATS } from '../shared/transcode'
+import { folderOfRelPath } from '../shared/material-meta'
 
 import { parseXlsx } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
-import type { Ticket, ImportTicketsResult, MaterialKind, CreateMaterialPayload, RegionLevel } from '../shared/types'
+import type { Ticket, ImportTicketsResult, MaterialKind, CreateMaterialPayload, RegionLevel, Material } from '../shared/types'
+import type { TranscodeOptions } from '../shared/transcode'
 
 // Open a URL in Google Chrome specifically, falling back to the default
 // browser if Chrome is not installed / cannot be launched.
@@ -36,6 +41,9 @@ function openInChrome(url: string): void {
     fallback()
   }
 }
+
+const transcoder = new Transcoder()
+const transcodeJobs = new Map<string, AbortController>()
 
 export async function registerIpc(): Promise<void> {
   const settings = new Settings(app.getPath('userData'), join(app.getPath('documents'), 'aftersales-tool-data'))
@@ -121,6 +129,31 @@ export async function registerIpc(): Promise<void> {
 
   ipcMain.handle('materials:watch', (_e, no: string) => watcher.watch(no))
   ipcMain.handle('materials:unwatch', () => watcher.unwatch())
+
+  ipcMain.handle('materials:transcode', async (_e, no: string, relPath: string, opts: TranscodeOptions): Promise<Material> => {
+    const folder = folderOfRelPath(relPath)
+    const dir = materialDir(dataRoot, no, folder)
+    const ext = '.' + FORMATS[opts.format].container
+    const desired = `${opts.outputName}${ext}`
+    const existing = readdirSync(dir)
+    const name = dedupeName(existing, desired)
+    const destAbs = join(dir, name)
+    const ac = new AbortController(); transcodeJobs.set(relPath, ac)
+    try {
+      await transcoder.transcode(
+        join(dataRoot, relPath),
+        destAbs,
+        opts,
+        (percent) => { for (const w of BrowserWindow.getAllWindows()) w.webContents.send('transcode:progress', { relPath, percent }) },
+        ac.signal
+      )
+    } finally { transcodeJobs.delete(relPath) }
+    const st = statSync(destAbs)
+    const newRel = folder ? `${safeDir(no)}/${folder}/${name}` : `${safeDir(no)}/${name}`
+    return { relPath: newRel, folder, name, kind: 'video', sizeBytes: st.size, modifiedAt: st.mtimeMs }
+  })
+
+  ipcMain.handle('materials:cancelTranscode', (_e, relPath: string) => { transcodeJobs.get(relPath)?.abort() })
 
   ipcMain.handle('folders:list', (_e, no: string) => fileTree.list(no).folders)
   ipcMain.handle('folders:create', (_e, no: string, path: string) => fileTree.createFolder(no, path))
