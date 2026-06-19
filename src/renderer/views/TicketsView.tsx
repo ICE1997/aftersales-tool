@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { NewTicket, Ticket } from '@shared/types'
+import type { NewTicket, Ticket, EnrichResult } from '@shared/types'
 import type { ImportTicketsResult } from '@shared/types'
 import { api } from '../api'
 import { SearchBar } from '../components/SearchBar'
@@ -7,6 +7,7 @@ import { TicketTable } from '../components/TicketTable'
 import { TicketDetail } from '../components/TicketDetail'
 import { NewTicketDialog } from '../components/NewTicketDialog'
 import { ImportResultDialog } from '../components/ImportResultDialog'
+import { EnrichResultDialog } from '../components/EnrichResultDialog'
 import { IconClose, IconImport, IconPlus } from '../components/icons'
 import { TicketFilterBar } from '../components/TicketFilterBar'
 import { ViewTabs } from '../components/ViewTabs'
@@ -24,6 +25,7 @@ export function TicketsView() {
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [importResult, setImportResult] = useState<ImportTicketsResult | null>(null)
+  const [enrichResult, setEnrichResult] = useState<EnrichResult | null>(null)
   const [filter, setFilter] = useState<TicketFilter>(EMPTY_FILTER)
   const filtered = useMemo(() => applyFilter(tickets, filter), [tickets, filter])
 
@@ -42,6 +44,13 @@ export function TicketsView() {
       const r = await api.importTickets()
       if (r) { setImportResult(r); setError(null); await load() }
     } catch (e) { setError(`导入失败:${(e as Error).message}`) }
+  }
+
+  async function enrich() {
+    try {
+      const r = await api.enrichRegion()
+      if (r) { setEnrichResult(r); await load() }
+    } catch (e) { setError(`补充失败:${(e as Error).message}`) }
   }
 
   return (
@@ -63,6 +72,7 @@ export function TicketsView() {
           right={tab === 'list' ? (
             <>
               <button className="btn-ghost px-3 py-1.5 text-sm" onClick={importTickets}><IconImport className="text-[15px]" /> 导入售后单</button>
+              <button className="btn-ghost px-3 py-1.5 text-sm" onClick={enrich}><IconImport className="text-[15px]" /> 补充信息</button>
               <button className="btn-primary px-3 py-1.5 text-sm" onClick={() => setNewOpen(true)}><IconPlus className="text-[15px]" /> 新建售后单</button>
             </>
           ) : undefined}
@@ -99,6 +109,7 @@ export function TicketsView() {
       )}
       <NewTicketDialog open={newOpen} onCreate={createTicket} onCancel={() => setNewOpen(false)} />
       <ImportResultDialog result={importResult} onClose={() => setImportResult(null)} />
+      <EnrichResultDialog result={enrichResult} onClose={() => setEnrichResult(null)} />
     </div>
   )
 }
