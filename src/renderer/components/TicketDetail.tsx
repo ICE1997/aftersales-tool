@@ -6,12 +6,14 @@ import { MaterialGrid } from './MaterialGrid'
 import { MoveToMenu } from './MoveToMenu'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
+import { TranscodeDialog } from './TranscodeDialog'
+import type { TranscodeOptions } from '@shared/transcode'
 import { RegionCascader, type RegionValue } from './RegionCascader'
 import { DateTimeField } from './DateFields'
 import { extractContact } from '../contact-extract'
 import { materialRelPathsUnder } from '../material-select'
 import { regionLabel } from '../region'
-import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal, IconFolderOpen } from './icons'
+import { IconImport, IconFolder, IconArchive, IconRefresh, IconTrash, IconClose, IconExternal, IconFolderOpen, IconPlay } from './icons'
 import { TYPE_OPTIONS, REASON_OPTIONS, SHIPPING_OPTIONS, withCurrent } from '../aftersale-options'
 import { parseAmountToCents, localInputToMs, formatCents, formatMs, msToLocalInput } from '@shared/aftersale-format'
 
@@ -26,6 +28,10 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [msg, setMsg] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
+  const [transcodeOpen, setTranscodeOpen] = useState(false)
+  const [transcodeJob, setTranscodeJob] = useState<{ name: string; percent: number; index: number; total: number } | null>(null)
+  const cancelledRef = useRef(false)
+  const currentTranscodeRel = useRef('')
   const [editing, setEditing] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [form, setForm] = useState<
@@ -69,6 +75,9 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
 
   if (!ticket) return null
   const relPaths = () => [...selected]
+  const selectedVideos = [...selected]
+    .map((rp) => materials.find((m) => m.relPath === rp))
+    .filter((m): m is Material => !!m && m.kind === 'video')
   const toggle = (relPath: string) => setSelected((s) => { const n = new Set(s); if (n.has(relPath)) n.delete(relPath); else n.add(relPath); return n })
   const meta = STATUS_META[ticket.status] ?? STATUS_META['待商家处理']
 
@@ -107,6 +116,46 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   async function moveSelected(folder: string) {
     for (const relPath of selected) await api.moveMaterial(aftersaleNo, relPath, folder)
     await reload()
+  }
+  async function runTranscode(opts: TranscodeOptions) {
+    setTranscodeOpen(false)
+    const queue = selectedVideos
+    const total = queue.length
+    if (!total) return
+    cancelledRef.current = false
+    let ok = 0
+    let fail = 0
+    const off = api.onTranscodeProgress(({ relPath, percent }) => {
+      if (relPath === currentTranscodeRel.current) setTranscodeJob((j) => j && { ...j, percent })
+    })
+    try {
+      for (let i = 0; i < total; i++) {
+        if (cancelledRef.current) break
+        const video = queue[i]
+        currentTranscodeRel.current = video.relPath
+        setTranscodeJob({ name: video.name, percent: 0, index: i + 1, total })
+        try {
+          await api.transcodeMaterial(aftersaleNo, video.relPath, {
+            ...opts,
+            outputName: total > 1 ? stem(video.name) : opts.outputName,
+          })
+          ok++
+        } catch (e) {
+          if ((e as Error).name === 'AbortError' || cancelledRef.current) break
+          fail++
+        }
+      }
+    } finally {
+      off()
+      setTranscodeJob(null)
+    }
+    await reload(true)
+    if (cancelledRef.current) setMsg(ok ? `已取消(已转码 ${ok} 个)` : '已取消')
+    else setMsg(`已转码 ${ok} 个${fail ? `,失败 ${fail} 个` : ''}`)
+  }
+  function cancelTranscode() {
+    cancelledRef.current = true
+    if (currentTranscodeRel.current) void api.cancelTranscode(currentTranscodeRel.current)
   }
   async function moveMaterial(relPath: string, folder: string) {
     try { await api.moveMaterial(aftersaleNo, relPath, folder); await reload() }
@@ -379,6 +428,9 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
                 <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}{selectedFolders.size ? ` · ${selectedFolders.size} 个目录` : ''}</span>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
+                {selectedVideos.length > 0 && (
+                  <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={() => setTranscodeOpen(true)}><IconPlay className="text-[13px]" /> 转码</button>
+                )}
                 <MoveToMenu folders={folders} onMove={(folder) => void moveSelected(folder)} />
                 <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => { setSelected(new Set()); setSelectedFolders(new Set()) }}>取消选择</button>
               </div>
@@ -420,6 +472,26 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
         </div>
       </div>
 
+      <TranscodeDialog
+        open={transcodeOpen}
+        videoCount={selectedVideos.length}
+        defaultStem={selectedVideos[0] ? stem(selectedVideos[0].name) : ''}
+        onCancel={() => setTranscodeOpen(false)}
+        onConfirm={(opts) => void runTranscode(opts)}
+      />
+      {transcodeJob && (
+        <div className="fixed bottom-5 right-5 z-50 w-80 animate-slidedown rounded-xl border border-line bg-paper p-4 shadow-lg">
+          <div className="mb-2 truncate text-[13px] font-medium text-ink">
+            转码中 第 {transcodeJob.index}/{transcodeJob.total} · {transcodeJob.name} · {transcodeJob.percent}%
+          </div>
+          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-paper-2">
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${transcodeJob.percent}%` }} />
+          </div>
+          <div className="flex justify-end">
+            <button className="btn-ghost px-2.5 py-1 text-xs" onClick={cancelTranscode}>取消</button>
+          </div>
+        </div>
+      )}
       <PreviewModal material={preview} onClose={() => setPreview(null)} />
       <NewMaterialDialog
         open={newOpen}
@@ -430,6 +502,10 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       />
     </div>
   )
+}
+
+function stem(name: string) {
+  return name.replace(/\.[^.]+$/, '')
 }
 
 function InfoRow({ label, children }: { label: string; children: ReactNode }) {

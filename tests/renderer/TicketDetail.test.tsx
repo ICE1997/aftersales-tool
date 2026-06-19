@@ -19,6 +19,9 @@ vi.mock('../../src/renderer/api', () => ({
     watchMaterials: vi.fn(async () => {}),
     unwatchMaterials: vi.fn(async () => {}),
     onMaterialsChanged: vi.fn(() => () => {}),
+    transcodeMaterial: vi.fn(),
+    cancelTranscode: vi.fn(),
+    onTranscodeProgress: () => () => {},
   }
 }))
 
