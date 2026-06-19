@@ -250,15 +250,15 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
                 </button>
                 {/* top-left: select (same corner as material cards) */}
                 <button onClick={() => onToggleFolder(path)} aria-label={folderSel ? '取消选择' : '选择该文件夹'} title={`选择此文件夹${underRels.length ? `的材料(${underRels.length})` : '(空)'}`}
-                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
+                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${folderSel ? 'border-accent bg-accent text-white' : 'border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 opacity-0 hover:bg-[rgba(33,30,24,0.72)] group-hover:opacity-100'}`}>
                   <IconCheck className="text-[13px]" />
                 </button>
                 {/* top-right: actions (same corner as material cards) */}
                 <div className="absolute right-2 top-2 z-10 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
-                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
-                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
-                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-ink" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
-                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-danger" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:bg-[rgba(33,30,24,0.72)]" title="打开目录" onClick={() => onOpenDir(path)}><IconFolderOpen className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:bg-[rgba(33,30,24,0.72)]" title="复制路径" onClick={() => onCopyDirPath(path)}><IconCopy className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:bg-[rgba(33,30,24,0.72)]" title="重命名" onClick={() => { setRenaming(path); setRenameVal(folderName(path)); setRenameErr(null) }}><IconPencil className="text-[13px]" /></button>
+                  <button className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:border-danger hover:bg-danger hover:text-white" title="删除" onClick={() => setConfirmDel(path)}><IconTrash className="text-[13px]" /></button>
                 </div>
                 {renaming === path ? (
                   <div className="px-2 pb-2">
@@ -297,20 +297,20 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
                   )}
                 </button>
                 <button onClick={() => onToggle(m.relPath)} aria-label={sel ? '取消选择' : '选择'}
-                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${sel ? 'border-accent bg-accent text-white' : 'border-white/70 bg-white/65 text-transparent opacity-0 hover:text-muted group-hover:opacity-100'}`}>
+                  className={`absolute left-2 top-2 z-10 grid h-6 w-6 place-items-center rounded-md border backdrop-blur transition ${sel ? 'border-accent bg-accent text-white' : 'border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 opacity-0 hover:bg-[rgba(33,30,24,0.72)] group-hover:opacity-100'}`}>
                   <IconCheck className="text-[13px]" />
                 </button>
                 <div className="absolute right-2 top-2 z-10 flex gap-0.5 opacity-0 transition group-hover:opacity-100">
                   <button onClick={() => onCopyMaterialPath(m.relPath)} title="复制路径" aria-label="复制路径"
-                    className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-accent-ink">
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:bg-[rgba(33,30,24,0.72)]">
                     <IconCopy className="text-[13px]" />
                   </button>
                   <button onClick={() => startRenameMat(m)} title="重命名" aria-label="重命名"
-                    className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-ink">
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:bg-[rgba(33,30,24,0.72)]">
                     <IconPencil className="text-[13px]" />
                   </button>
                   <button onClick={() => setConfirmDelMat(m)} title="删除" aria-label="删除"
-                    className="grid h-6 w-6 place-items-center rounded-md border border-white/70 bg-white/65 text-muted backdrop-blur transition hover:text-danger">
+                    className="grid h-6 w-6 place-items-center rounded-md border border-white/25 bg-[rgba(33,30,24,0.5)] text-white/90 backdrop-blur transition hover:border-danger hover:bg-danger hover:text-white">
                     <IconTrash className="text-[13px]" />
                   </button>
                 </div>
