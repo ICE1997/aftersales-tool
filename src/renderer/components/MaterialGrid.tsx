@@ -156,7 +156,7 @@ export function MaterialGrid({ materials, folders, currentFolder, selectedIds, s
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-    <div className="relative p-6"
+    <div className="relative min-h-full p-6"
       onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setOsDragOver(true) } }}
       onDragLeave={(e) => { if (e.currentTarget === e.target) setOsDragOver(false) }}
       onDrop={(e) => {
