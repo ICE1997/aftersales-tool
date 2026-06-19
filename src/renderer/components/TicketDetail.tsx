@@ -26,6 +26,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState<Material | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [msgAction, setMsgAction] = useState<{ label: string; onClick: () => void } | null>(null)
+  function notify(text: string | null, action: { label: string; onClick: () => void } | null = null) { setMsg(text); setMsgAction(action) }
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [newOpen, setNewOpen] = useState(false)
   const [transcodeOpen, setTranscodeOpen] = useState(false)
@@ -65,7 +67,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       setSelectedFolders(new Set())
     }
   }
-  useEffect(() => { setMsg(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
+  useEffect(() => { notify(null); setConfirmDelete(false); setEditing(false); setCurrentFolder(''); reload() }, [aftersaleNo])
 
   useEffect(() => {
     void api.watchMaterials(aftersaleNo)
@@ -83,30 +85,34 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
 
   const folderPaths = () => [...selectedFolders]
   async function exportFolder() {
-    try { const ok = await api.exportFolder(relPaths(), folderPaths()); setMsg(ok ? '已导出到文件夹' : null) }
-    catch (e) { setMsg(`导出失败:${(e as Error).message}`) }
+    try {
+      const path = await api.exportFolder(relPaths(), folderPaths())
+      if (path) notify('已导出到文件夹', { label: '打开位置', onClick: () => void api.revealPath(path, false) })
+    } catch (e) { notify(`导出失败:${(e as Error).message}`) }
   }
   async function exportZip() {
-    try { const ok = await api.exportZip(aftersaleNo, relPaths(), folderPaths()); setMsg(ok ? '已导出压缩包' : null) }
-    catch (e) { setMsg(`导出压缩包失败:${(e as Error).message}`) }
+    try {
+      const path = await api.exportZip(aftersaleNo, relPaths(), folderPaths())
+      if (path) notify('已导出压缩包', { label: '打开位置', onClick: () => void api.revealPath(path, true) })
+    } catch (e) { notify(`导出压缩包失败:${(e as Error).message}`) }
   }
 
   async function createFolder(name: string) {
     const path = currentFolder ? `${currentFolder}/${name.trim()}` : name.trim()
-    try { await api.createFolder(aftersaleNo, path); await reload() } catch (e) { setMsg(`新建文件夹失败:${(e as Error).message}`) }
+    try { await api.createFolder(aftersaleNo, path); await reload() } catch (e) { notify(`新建文件夹失败:${(e as Error).message}`) }
   }
   // Files dragged from the OS file manager onto the grid → copy into the current folder (keep their names).
   async function addDroppedFiles(paths: string[]) {
     let ok = 0
     for (const path of paths) {
       try { await api.createMaterial(aftersaleNo, { source: 'file', path, name: '', folder: currentFolder }); ok++ }
-      catch (e) { setMsg(`添加失败:${(e as Error).message}`) }
+      catch (e) { notify(`添加失败:${(e as Error).message}`) }
     }
     await reload()
-    if (ok) setMsg(`已添加 ${ok} 个材料`)
+    if (ok) notify(`已添加 ${ok} 个材料`)
   }
   async function renameFolder(path: string, newName: string) {
-    try { await api.renameFolder(aftersaleNo, path, newName); await reload() } catch (e) { setMsg(`重命名失败:${(e as Error).message}`) }
+    try { await api.renameFolder(aftersaleNo, path, newName); await reload() } catch (e) { notify(`重命名失败:${(e as Error).message}`) }
   }
   async function deleteFolder(path: string) {
     await api.removeFolder(aftersaleNo, path)
@@ -151,8 +157,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       setTranscodeJob(null)
     }
     await reload(true)
-    if (cancelledRef.current) setMsg(ok ? `已取消(已转码 ${ok} 个)` : '已取消')
-    else setMsg(`已转码 ${ok} 个${fail ? `,失败 ${fail} 个` : ''}`)
+    if (cancelledRef.current) notify(ok ? `已取消(已转码 ${ok} 个)` : '已取消')
+    else notify(`已转码 ${ok} 个${fail ? `,失败 ${fail} 个` : ''}`)
   }
   function cancelTranscode() {
     cancelledRef.current = true
@@ -160,15 +166,15 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
   }
   async function moveMaterial(relPath: string, folder: string) {
     try { await api.moveMaterial(aftersaleNo, relPath, folder); await reload() }
-    catch (e) { setMsg(`移动失败:${(e as Error).message}`) }
+    catch (e) { notify(`移动失败:${(e as Error).message}`) }
   }
   async function deleteMaterial(relPath: string) {
     try { await api.removeMaterial(relPath); await reload() }
-    catch (e) { setMsg(`删除失败:${(e as Error).message}`) }
+    catch (e) { notify(`删除失败:${(e as Error).message}`) }
   }
   async function moveFolder(path: string, newParent: string) {
     try { await api.moveFolder(aftersaleNo, path, newParent); await reload() }
-    catch (e) { setMsg(`移动文件夹失败:${(e as Error).message}`) }
+    catch (e) { notify(`移动文件夹失败:${(e as Error).message}`) }
   }
   function toggleFolder(path: string) {
     const rels = materialRelPathsUnder(materials, path)
@@ -241,7 +247,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     setEditing(false)
     await reload()
     onChanged()
-    setMsg('已保存基本信息')
+    notify('已保存基本信息')
   }
   const region: RegionValue = {
     provinceCode: form.provinceCode, province: form.province, cityCode: form.cityCode,
@@ -304,7 +310,12 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
       {msg && (
         <div className="flex animate-slidedown items-center justify-between gap-3 border-b border-warn-soft bg-warn-soft px-6 py-2 text-sm text-warn">
           <span>{msg}</span>
-          <button className="rounded p-1 hover:bg-white/50" onClick={() => setMsg(null)} aria-label="关闭"><IconClose className="text-[13px]" /></button>
+          <div className="flex shrink-0 items-center gap-1">
+            {msgAction && (
+              <button className="rounded-md px-2 py-0.5 text-xs font-medium underline-offset-2 hover:underline" onClick={msgAction.onClick}>{msgAction.label}</button>
+            )}
+            <button className="rounded p-1 hover:bg-white/50" onClick={() => notify(null)} aria-label="关闭"><IconClose className="text-[13px]" /></button>
+          </div>
         </div>
       )}
 
@@ -464,9 +475,9 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               onDeleteMaterial={deleteMaterial}
               onMoveFolder={moveFolder}
               onOpenDir={(folder) => void api.openMaterialDir(aftersaleNo, folder)}
-              onCopyDirPath={(folder) => void api.copyDirPath(aftersaleNo, folder).then(() => setMsg('已复制目录路径到剪贴板'))}
-              onCopyMaterialPath={(relPath) => void api.copyMaterialPath(relPath).then(() => setMsg('已复制材料路径到剪贴板'))}
-              onRenameMaterial={(relPath, newName) => void api.renameMaterial(relPath, newName).then(() => reload()).catch((e) => setMsg(`重命名失败:${(e as Error).message}`))}
+              onCopyDirPath={(folder) => void api.copyDirPath(aftersaleNo, folder).then(() => notify('已复制目录路径到剪贴板'))}
+              onCopyMaterialPath={(relPath) => void api.copyMaterialPath(relPath).then(() => notify('已复制材料路径到剪贴板'))}
+              onRenameMaterial={(relPath, newName) => void api.renameMaterial(relPath, newName).then(() => reload()).catch((e) => notify(`重命名失败:${(e as Error).message}`))}
               onAddFiles={addDroppedFiles}
             />
           </div>
@@ -499,7 +510,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
         aftersaleNo={aftersaleNo}
         targetFolder={currentFolder}
         onCancel={() => setNewOpen(false)}
-        onCreated={async (m) => { setNewOpen(false); await reload(); setMsg(`已新建材料:${m.name || m.relPath.split('/').pop()}`) }}
+        onCreated={async (m) => { setNewOpen(false); await reload(); notify(`已新建材料:${m.name || m.relPath.split('/').pop()}`) }}
       />
     </div>
   )

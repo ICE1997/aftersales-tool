@@ -163,18 +163,18 @@ export async function registerIpc(): Promise<void> {
   ipcMain.handle('folders:remove', (_e, no: string, path: string) => fileTree.removeFolder(no, path))
   ipcMain.handle('folders:move', (_e, no: string, path: string, newParent: string) => fileTree.moveFolder(no, path, newParent))
 
-  ipcMain.handle('export:folder', async (_e, relPaths: string[], folders: string[] = []) => {
+  ipcMain.handle('export:folder', async (_e, relPaths: string[], folders: string[] = []): Promise<string | null> => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
-    if (r.canceled || !r.filePaths[0]) return false
+    if (r.canceled || !r.filePaths[0]) return null
     await exporter.toFolder(relPaths, r.filePaths[0], folders)
-    return true
+    return r.filePaths[0]
   })
 
-  ipcMain.handle('export:zip', async (_e, no: string, relPaths: string[], folders: string[] = []) => {
+  ipcMain.handle('export:zip', async (_e, no: string, relPaths: string[], folders: string[] = []): Promise<string | null> => {
     const r = await dialog.showSaveDialog({ defaultPath: `${safeDir(no)}.zip` })
-    if (r.canceled || !r.filePath) return false
+    if (r.canceled || !r.filePath) return null
     await exporter.toZip(relPaths, r.filePath, folders)
-    return true
+    return r.filePath
   })
 
   ipcMain.handle('app:version', () => app.getVersion())
@@ -214,6 +214,11 @@ export async function registerIpc(): Promise<void> {
   })
 
   ipcMain.handle('shell:showItem', (_e, relPath: string) => shell.showItemInFolder(join(dataRoot, relPath)))
+  // Reveal an ABSOLUTE path (e.g. an export destination outside dataRoot): file → highlight in its folder; dir → open it.
+  ipcMain.handle('shell:revealPath', (_e, absPath: string, asFile: boolean) => {
+    if (asFile) shell.showItemInFolder(absPath)
+    else void shell.openPath(absPath)
+  })
   ipcMain.handle('shell:openChrome', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) openInChrome(url)
   })
