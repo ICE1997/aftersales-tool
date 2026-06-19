@@ -9,6 +9,11 @@ import type { MaterialKind } from '../../shared/types'
 const THUMB_DIR = '.thumbnails'
 const SIZE = 320
 
+// In a packaged app the ffmpeg binary is extracted out of the asar (asarUnpack),
+// but ffmpeg-static still reports the in-asar path, which cannot be executed.
+// Point at the unpacked copy. No-op in dev (path has no "app.asar").
+const FFMPEG = ffmpegPath ? ffmpegPath.replace('app.asar', 'app.asar.unpacked') : null
+
 export class Thumbnailer {
   constructor(private dataRoot: string) {
     mkdirSync(join(dataRoot, THUMB_DIR), { recursive: true })
@@ -34,8 +39,8 @@ export class Thumbnailer {
   private forVideoTo(absSrc: string, relOut: string): Promise<string | null> {
     const abs = join(this.dataRoot, relOut)
     return new Promise((resolve) => {
-      if (!ffmpegPath) return resolve(null)
-      const proc = spawn(ffmpegPath, ['-y', '-i', absSrc, '-ss', '00:00:01', '-vframes', '1', '-vf', `scale=${SIZE}:-1`, abs], { stdio: ['ignore', 'ignore', 'ignore'] })
+      if (!FFMPEG) return resolve(null)
+      const proc = spawn(FFMPEG, ['-y', '-i', absSrc, '-ss', '00:00:01', '-vframes', '1', '-vf', `scale=${SIZE}:-1`, abs], { stdio: ['ignore', 'ignore', 'ignore'] })
       proc.on('error', () => resolve(null))
       proc.on('close', (code: number | null) => resolve(code === 0 ? relOut : null))
     })
