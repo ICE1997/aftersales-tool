@@ -3,6 +3,7 @@ import type { Material, Ticket, TicketStatus, CustomerFields, AftersaleFields } 
 import { api } from '../api'
 import { STATUS_META, STATUS_ORDER } from '../status'
 import { MaterialGrid } from './MaterialGrid'
+import { MoveToMenu } from './MoveToMenu'
 import { PreviewModal } from './PreviewModal'
 import { NewMaterialDialog } from './NewMaterialDialog'
 import { RegionCascader, type RegionValue } from './RegionCascader'
@@ -378,12 +379,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
                 <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}{selectedFolders.size ? ` · ${selectedFolders.size} 个目录` : ''}</span>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
-                <select className="rounded border border-line bg-surface px-1.5 py-1 text-xs" defaultValue="__none"
-                  onChange={(e) => { const v = e.target.value; e.currentTarget.value = '__none'; if (v !== '__none') void moveSelected(v === '__root' ? '' : v) }}>
-                  <option value="__none">移动到…</option>
-                  <option value="__root">根目录</option>
-                  {folders.map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
+                <MoveToMenu folders={folders} onMove={(folder) => void moveSelected(folder)} />
                 <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => { setSelected(new Set()); setSelectedFolders(new Set()) }}>取消选择</button>
               </div>
             ) : materials.length > 0 ? (
