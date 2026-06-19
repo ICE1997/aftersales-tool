@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/ICE1997/aftersales-tool/compare/v0.3.0...v0.4.0) (2026-06-19)
+
+
+### Features
+
+* **ui:** add 发起对话 button — open the 拼多多 IM app to the order chat ([8a80ccb](https://github.com/ICE1997/aftersales-tool/commit/8a80ccbb88f21a63d135a7edf90efc7231e972d7))
+
 ## [0.3.0](https://github.com/ICE1997/aftersales-tool/compare/v0.2.5...v0.3.0) (2026-06-19)
 
 
