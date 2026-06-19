@@ -3,16 +3,11 @@ import { join, basename, extname } from 'node:path'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import sharp from 'sharp'
-import ffmpegPath from 'ffmpeg-static'
+import { FFMPEG } from './ffmpeg-path'
 import type { MaterialKind } from '../../shared/types'
 
 const THUMB_DIR = '.thumbnails'
 const SIZE = 320
-
-// In a packaged app the ffmpeg binary is extracted out of the asar (asarUnpack),
-// but ffmpeg-static still reports the in-asar path, which cannot be executed.
-// Point at the unpacked copy. No-op in dev (path has no "app.asar").
-const FFMPEG = ffmpegPath ? ffmpegPath.replace('app.asar', 'app.asar.unpacked') : null
 
 export class Thumbnailer {
   constructor(private dataRoot: string) {
