@@ -14,7 +14,6 @@ function findByName(parent: string, name: string): Region | undefined {
   const bare = (s: string) => s.replace(SUFFIX, '')
   return kids.find((r) => r.name === n)
     ?? kids.find((r) => bare(r.name) === bare(n))
-    ?? kids.find((r) => r.name.startsWith(n) || n.startsWith(r.name))
 }
 
 export function resolveRegion(p: string, c: string, d: string): ResolvedRegion {
@@ -33,7 +32,7 @@ export function resolveRegion(p: string, c: string, d: string): ResolvedRegion {
 export function splitRegionCell(cell: string): { p: string; c: string; d: string } {
   const raw = (cell ?? '').trim()
   if (!raw) return { p: '', c: '', d: '' }
-  let parts = raw.split(/[/\\·,，>\s-]+/).map((s) => s.trim()).filter(Boolean)
+  let parts = raw.split(/[/\\·,，、>\s-]+/).map((s) => s.trim()).filter(Boolean)
   if (parts.length === 1) {
     const m = raw.match(/^(.+?(?:省|自治区|特别行政区|市))(.+?(?:市|自治州|地区|盟))?(.+)?$/)
     if (m) parts = [m[1], m[2] ?? '', m[3] ?? ''].map((s) => (s || '').trim()).filter(Boolean)
