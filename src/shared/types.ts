@@ -81,3 +81,13 @@ export interface ImportTicketsResult {
   duplicatedInFile: number
   failed: { row: number; reason: string }[]
 }
+
+export interface EnrichResult {
+  rows: number
+  withRegion: number
+  matchedTickets: number
+  updated: number
+  skippedHasRegion: number
+  noTicket: number
+  unresolved: number
+}
