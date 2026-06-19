@@ -96,7 +96,7 @@ export function TranscodeDialog({
       format,
       resolution: buildResolution(),
       quality: qualityMode === 'crf'
-        ? { mode: 'crf', crf: Math.round(crf) }
+        ? { mode: 'crf', crf: Math.min(51, Math.max(0, Math.round(crf))) }
         : { mode: 'bitrate', kbps: Math.max(1, Math.round(kbps)) },
       fps: fpsPreset === 'original'
         ? 'original'

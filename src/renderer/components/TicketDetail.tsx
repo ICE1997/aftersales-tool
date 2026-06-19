@@ -118,6 +118,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     await reload()
   }
   async function runTranscode(opts: TranscodeOptions) {
+    if (transcodeJob) return
     setTranscodeOpen(false)
     const queue = selectedVideos
     const total = queue.length
@@ -140,8 +141,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
             outputName: total > 1 ? stem(video.name) : opts.outputName,
           })
           ok++
-        } catch (e) {
-          if ((e as Error).name === 'AbortError' || cancelledRef.current) break
+        } catch {
+          if (cancelledRef.current) break
           fail++
         }
       }
@@ -429,7 +430,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
                 {selectedVideos.length > 0 && (
-                  <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={() => setTranscodeOpen(true)}><IconPlay className="text-[13px]" /> 转码</button>
+                  <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white disabled:opacity-50" disabled={!!transcodeJob} onClick={() => setTranscodeOpen(true)}><IconPlay className="text-[13px]" /> 转码</button>
                 )}
                 <MoveToMenu folders={folders} onMove={(folder) => void moveSelected(folder)} />
                 <button className="px-1.5 text-xs text-muted hover:text-accent-ink" onClick={() => { setSelected(new Set()); setSelectedFolders(new Set()) }}>取消选择</button>

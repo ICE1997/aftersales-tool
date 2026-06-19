@@ -17,6 +17,7 @@ import { Transcoder } from './services/transcoder'
 import { dedupeName } from './services/transcode-args'
 import { FORMATS } from '../shared/transcode'
 import { folderOfRelPath } from '../shared/material-meta'
+import { assertValidMaterialName } from '../shared/material-path'
 
 import { parseXlsx } from './services/ticket-importer'
 import { mapRows } from './services/ticket-import-map'
@@ -134,7 +135,8 @@ export async function registerIpc(): Promise<void> {
     const folder = folderOfRelPath(relPath)
     const dir = materialDir(dataRoot, no, folder)
     const ext = '.' + FORMATS[opts.format].container
-    const desired = `${opts.outputName}${ext}`
+    const stem = assertValidMaterialName(opts.outputName)
+    const desired = `${stem}${ext}`
     const existing = readdirSync(dir)
     const name = dedupeName(existing, desired)
     const destAbs = join(dir, name)
