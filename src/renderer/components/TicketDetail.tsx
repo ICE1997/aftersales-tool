@@ -87,8 +87,8 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
     catch (e) { setMsg(`导出失败:${(e as Error).message}`) }
   }
   async function exportZip() {
-    try { const ok = await api.exportZip(relPaths(), folderPaths()); setMsg(ok ? '已打包 zip' : null) }
-    catch (e) { setMsg(`打包失败:${(e as Error).message}`) }
+    try { const ok = await api.exportZip(relPaths(), folderPaths()); setMsg(ok ? '已导出压缩包' : null) }
+    catch (e) { setMsg(`导出压缩包失败:${(e as Error).message}`) }
   }
 
   async function createFolder(name: string) {
@@ -428,7 +428,7 @@ export function TicketDetail({ aftersaleNo, onChanged, onDeleted, onBack }: { af
               <div className="flex animate-slidedown items-center gap-1 rounded-lg bg-accent-soft px-2 py-1">
                 <span className="tnum px-1 text-xs font-semibold text-accent-ink">已选 {selected.size}{selectedFolders.size ? ` · ${selectedFolders.size} 个目录` : ''}</span>
                 <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportFolder}><IconFolder className="text-[15px]" /> 导出到文件夹</button>
-                <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 打包 zip</button>
+                <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white" onClick={exportZip}><IconArchive className="text-[15px]" /> 导出压缩包</button>
                 {selectedVideos.length > 0 && (
                   <button className="btn-ghost border-transparent bg-transparent py-1 shadow-none hover:bg-white disabled:opacity-50" disabled={!!transcodeJob} onClick={() => setTranscodeOpen(true)}><IconPlay className="text-[13px]" /> 转码</button>
                 )}
